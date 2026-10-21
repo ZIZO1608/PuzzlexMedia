@@ -6,6 +6,7 @@
   "main": "server.js",
   "scripts": {
     "start": "node server.js",
+    "build": "node -e \"console.log('No build step: the site is served as is by server.js')\"",
     "dev": "node server.js 5173",
     "build:en": "python -I source-files/tools/make_en.py ."
   },

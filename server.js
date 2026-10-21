@@ -21,7 +21,8 @@ const ROOT = __dirname;
 const PORT = Number(process.argv[2] || process.env.PORT || 8080);
 // all interfaces, so a hosting platform's proxy (Hostinger Web App, Docker) can reach it
 const HOST = process.env.HOST || '0.0.0.0';
-const DATA_DIR = path.resolve(process.env.DATA_DIR || path.join(ROOT, 'data'));
+// "~/puzzlex-data" works too: the home folder, without knowing the hosting account's username
+const DATA_DIR = path.resolve((process.env.DATA_DIR || path.join(ROOT, 'data')).replace(/^~(?=$|[\\/])/, require('node:os').homedir()));
 const SITE_URL = (process.env.SITE_URL || 'https://www.puzzlexmedia.com').replace(/\/+$/, '');
 const CANONICAL = 'https://www.puzzlexmedia.com'; // the address written into the pages
 const TRUST_PROXY = process.env.TRUST_PROXY === '1';

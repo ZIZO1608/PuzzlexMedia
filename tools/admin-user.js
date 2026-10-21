@@ -13,7 +13,7 @@ const path = require('node:path');
 const crypto = require('node:crypto');
 const { hashPassword, generatePassword } = require('../lib/auth');
 
-const DATA_DIR = path.resolve(process.env.DATA_DIR || path.join(__dirname, '..', 'data'));
+const DATA_DIR = path.resolve((process.env.DATA_DIR || path.join(__dirname, '..', 'data')).replace(/^~(?=$|[\\/])/, require('node:os').homedir()));
 const FILE = path.join(DATA_DIR, 'users.json');
 
 const read = () => { try { return JSON.parse(fs.readFileSync(FILE, 'utf8')); } catch (e) { if (e.code === 'ENOENT') return []; throw e; } };
