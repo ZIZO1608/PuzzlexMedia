@@ -30,6 +30,17 @@ body {
 }
 a { color: inherit; text-decoration: none; }
 
+/* branded scrollbar + text selection; the thumb uses --accent-text so it stays visible in the light theme */
+::-webkit-scrollbar { width: 12px; height: 12px; }
+::-webkit-scrollbar-track { background: var(--ink); }
+::-webkit-scrollbar-thumb { background: var(--accent-text); border: 3px solid var(--ink); border-radius: 999px; }
+::-webkit-scrollbar-thumb:hover { background: var(--text); }
+::-webkit-scrollbar-corner { background: var(--ink); }
+@supports not selector(::-webkit-scrollbar) { /* Firefox */
+  html { scrollbar-color: var(--accent-text) var(--ink); scrollbar-width: thin; }
+}
+::selection { background: var(--lime); color: #0a0a0b; }
+
 .sr-only {
   position: absolute; width: 1px; height: 1px; overflow: hidden;
   clip: rect(0 0 0 0); white-space: nowrap;
@@ -743,6 +754,7 @@ html.has-cursor, html.has-cursor * { cursor: none !important; }
   background: var(--ink-2); box-shadow: 0 18px 40px -18px rgba(0, 0, 0, .6);
 }
 .work-cover .cover { display: block; width: 100%; height: 100%; transition: transform .7s cubic-bezier(.2, .7, .2, 1); }
+img.cover { object-fit: cover; } /* uploaded project images fill their frame like the placeholders do */
 .work-card:hover .cover, .work-card:focus-visible .cover { transform: scale(1.06); }
 .work-card:focus-visible { outline: none; }
 .work-card:focus-visible .work-cover { outline: 2px solid var(--lime); outline-offset: 4px; }
@@ -874,7 +886,8 @@ html.has-cursor, html.has-cursor * { cursor: none !important; }
 .form-error:empty { display: none; }
 :root[data-theme="light"] .form-error { color: #c62828; }
 .form-submit[disabled] { opacity: .6; cursor: progress; }
-.hp { position: absolute; left: -9999px; width: 1px; height: 1px; overflow: hidden; }
+/* spam trap: clipped in place rather than pushed off-screen — a far-off box widens the page sideways in RTL on phones */
+.hp { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; opacity: 0; pointer-events: none; }
 
 /* after sending */
 .form-done {
@@ -1068,4 +1081,63 @@ html .loader.is-leaving { display: grid; position: fixed; inset: 0; z-index: 900
   .value { position: static; opacity: 1; transform: none; filter: none; margin-bottom: 28px; }
     .star3d, .mini-star, .partners-frame.nudge { animation: none; }
   .partners-cta { opacity: 1; visibility: visible; }
+}
+
+/* =========================================================
+   Phones: menu, comfortable tap targets, readable small print
+   ========================================================= */
+.menu-toggle { display: none; }
+@media (max-width: 760px) {
+  /* the links, language, theme and contact button fold into a full-screen menu */
+  .topbar .top-actions { display: none; }
+  .menu-toggle {
+    display: grid; place-content: center; gap: 6px; flex: none;
+    width: 44px; height: 44px; border-radius: 50%; border: 1px solid var(--line);
+    background: none; color: var(--text); cursor: pointer; transition: border-color .2s, color .2s, transform .2s;
+  }
+  .menu-toggle span { display: block; width: 18px; height: 1.8px; border-radius: 2px; background: currentColor; transition: transform .25s ease; }
+  .menu-toggle:active { transform: scale(.94); }
+  .menu-toggle:focus-visible { outline: 2px solid var(--lime); outline-offset: 2px; }
+  .topbar.menu-open .menu-toggle { border-color: var(--lime); color: var(--accent-text); }
+  .topbar.menu-open .menu-toggle span:first-child { transform: translateY(3.9px) rotate(45deg); }
+  .topbar.menu-open .menu-toggle span:last-child { transform: translateY(-3.9px) rotate(-45deg); }
+  /* a backdrop-filter would trap the fixed panel inside the bar */
+  .topbar.menu-open { -webkit-backdrop-filter: none; backdrop-filter: none; background: none; border-color: transparent; }
+  .topbar.menu-open::before { content: ""; position: fixed; inset: 0; z-index: -1; background: var(--ink); }
+  .topbar.menu-open .nav {
+    display: flex; flex-direction: column; gap: 0; position: fixed; inset: 92px 16px auto;
+    font-size: 26px; font-weight: 800; color: var(--text);
+  }
+  .topbar.menu-open .nav a { padding: 14px 0; border-bottom: 1px solid var(--line); }
+  .topbar.menu-open .nav a[aria-current="page"] { color: var(--accent-text); }
+  .topbar.menu-open .top-actions {
+    display: flex; gap: 10px; position: fixed; inset: auto 16px max(24px, env(safe-area-inset-bottom));
+  }
+  .topbar.menu-open .top-actions .lang-switch,
+  .topbar.menu-open .top-actions .sound { width: 48px; height: 48px; flex: none; }
+  .topbar.menu-open .top-actions .btn-small { flex: 1; min-height: 48px; font-size: 15px; }
+  html.menu-lock, html.menu-lock body { overflow: hidden; }
+
+  /* tap targets of at least ~44px */
+  .brand { min-height: 44px; }
+  .footer-col { gap: 0; }
+  .footer-col h3 { margin-bottom: 6px; }
+  .footer-col a, .footer-col .placeholder { padding-block: 11px; }
+  .footer-col .socials { flex-wrap: wrap; }
+  .footer-col .socials a { padding-block: 0; width: 44px; height: 44px; }
+  .contact-card a { display: inline-block; padding-block: 12px; }
+  .piece-opt { min-height: 44px; }
+  .form-submit { min-height: 52px; }
+  .seg-btn { min-height: 44px; padding-inline: 16px; white-space: nowrap; }
+  .back-link { padding-block: 12px; margin-bottom: 18px; }
+  .orbit-label::after { content: ""; position: absolute; inset: -11px -8px; } /* bigger hit area, same look */
+  a.tag { display: inline-flex; align-items: center; min-height: 40px; }
+
+  /* footer: site links + socials side by side, the contact details get a full row so the domain stays whole */
+  .footer-grid > :nth-child(3) { grid-column: 1 / -1; order: 1; }
+
+  /* small print no smaller than 12px */
+  .chip-count, .placeholder-tag { font-size: 12px; }
+  .svc-hero-piece .n { font-size: max(12px, calc(var(--s) * .08)); }
+  [lang="en"] .svc-hero-piece .t { font-size: max(12px, calc(var(--s) * .105)); }
 }

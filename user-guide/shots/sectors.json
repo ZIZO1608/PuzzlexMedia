@@ -1,0 +1,18 @@
+{
+  "image": "sectors.png",
+  "width": 950,
+  "height": 361.578125,
+  "url": "http://localhost:5180/admin/#/projects",
+  "display_url": "www.puzzlexmedia.com/admin/#/projects",
+  "clipped": true,
+  "device": "desktop",
+  "boxes": {
+    "ar": [
+      481,
+      100.6,
+      440,
+      48.8
+    ]
+  },
+  "captured": "2026-10-17 11:17"
+}

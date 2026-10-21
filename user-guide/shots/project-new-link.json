@@ -1,0 +1,24 @@
+{
+  "image": "project-new-link.png",
+  "width": 950,
+  "height": 361.375,
+  "url": "http://localhost:5180/admin/#/projects/project-1",
+  "display_url": "www.puzzlexmedia.com/admin/#/projects/project-1",
+  "clipped": true,
+  "device": "desktop",
+  "boxes": {
+    "link": [
+      29,
+      256.8,
+      892,
+      48.8
+    ],
+    "address": [
+      29,
+      311.6,
+      892,
+      20.8
+    ]
+  },
+  "captured": "2026-10-17 11:17"
+}

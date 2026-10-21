@@ -1,0 +1,24 @@
+{
+  "image": "socials.png",
+  "width": 950,
+  "height": 323.578125,
+  "url": "http://localhost:5180/admin/#/contact",
+  "display_url": "www.puzzlexmedia.com/admin/#/contact",
+  "clipped": true,
+  "device": "desktop",
+  "boxes": {
+    "li": [
+      483,
+      100.6,
+      438,
+      48.8
+    ],
+    "x": [
+      483,
+      219,
+      438,
+      48.8
+    ]
+  },
+  "captured": "2026-10-17 11:17"
+}

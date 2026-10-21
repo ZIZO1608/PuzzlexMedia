@@ -1,0 +1,30 @@
+{
+  "image": "savebar.png",
+  "width": 660,
+  "height": 84,
+  "url": "http://localhost:5180/admin/#/texts",
+  "display_url": "www.puzzlexmedia.com/admin/#/texts",
+  "clipped": true,
+  "device": "desktop",
+  "boxes": {
+    "count": [
+      422.9,
+      30,
+      206.1,
+      24
+    ],
+    "save": [
+      21,
+      21,
+      132.4,
+      42
+    ],
+    "undo": [
+      161.4,
+      21,
+      71.5,
+      42
+    ]
+  },
+  "captured": "2026-10-17 11:16"
+}

@@ -1,0 +1,42 @@
+{
+  "image": "editor-gallery.png",
+  "width": 950,
+  "height": 281.59375,
+  "url": "http://localhost:5180/admin/#/projects/coffee-021",
+  "display_url": "www.puzzlexmedia.com/admin/#/projects/coffee-021",
+  "clipped": true,
+  "device": "desktop",
+  "boxes": {
+    "first": [
+      771,
+      102.6,
+      150,
+      150
+    ],
+    "earlier": [
+      718,
+      209.6,
+      36,
+      36
+    ],
+    "del": [
+      668,
+      209.6,
+      36,
+      36
+    ],
+    "later": [
+      618,
+      209.6,
+      36,
+      36
+    ],
+    "add": [
+      291,
+      102.6,
+      150,
+      150
+    ]
+  },
+  "captured": "2026-10-17 11:17"
+}

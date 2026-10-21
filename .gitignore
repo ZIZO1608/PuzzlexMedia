@@ -14,3 +14,22 @@ desktop.ini
 node_modules/
 data/
 .env
+.env.*
+!.env.example
+*.log
+npm-debug.log*
+.npm/
+.cache/
+
+# deploy archives and portfolio output
+*.zip
+*.tar.gz
+portfolio-kit/
+
+# mobile UI scan output
+mobile-ui/
+
+# user guide: build output and demo data
+user-guide/out/
+user-guide/demo-data/
+.build-*

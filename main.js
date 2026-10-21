@@ -6,9 +6,15 @@ gsap.registerPlugin(ScrollTrigger);
 const LIME = '#D7FF00';
 const DPR = Math.min(window.devicePixelRatio || 1, 2);
 const REDUCED = matchMedia('(prefers-reduced-motion: reduce)').matches;
-// language: the English pages live in /en/ with <html lang="en">; T() picks the string for the current one
+// language: the English pages live in /en/ with <html lang="en">; T() picks the string for the current one,
+// or the admin panel's edit of it (window.SITE.texts, keyed by the Arabic + English default — see lib/content.js)
 const EN = document.documentElement.lang === 'en';
-const T = (ar, en) => (EN ? en : ar);
+const SITE = window.SITE || {};
+const pickText = (ar, en) => {
+  const edit = SITE.texts && SITE.texts[`${ar}␟${en}`];
+  return EN ? (edit && edit.en) || en : (edit && edit.ar) || ar;
+};
+const T = (ar, en) => (Array.isArray(ar) ? ar.map((a, i) => pickText(a, en[i])) : pickText(ar, en));
 // asset paths built in JS start here: English pages sit one folder down; the 404 page sets data-root="/"
 const ROOT = document.documentElement.dataset.root ?? (EN ? '../' : '');
 
@@ -76,7 +82,7 @@ const PALETTES = {
   dark: {
     bg: '#0c0c0d', glow: 'rgba(215,255,0,.20)', grid: 'rgba(255,255,255,.035)',
     text: '#f4f4f1', muted: 'rgba(244,244,241,.7)', faint: 'rgba(255,255,255,.45)',
-    chip: 'rgba(255,255,255,.22)', chipText: 'rgba(244,244,241,.85)', rule: 'rgba(255,255,255,.12)', foot: 'rgba(244,244,241,.5)',
+    chip: 'rgba(255,255,255,.22)', chipText: 'rgba(244,244,241,.85)',
     ring1: 'rgba(215,255,0,.28)', ring2: 'rgba(255,255,255,.16)', spark: '#fff', sparkAlt: LIME, iconGlow: 'rgba(215,255,0,.45)',
     accentText: LIME, marker: null,
     ghostFill: 'rgba(255,255,255,.025)', ghostLine: 'rgba(255,255,255,.16)', ghostEdge: 'rgba(215,255,0,.6)', ghostTick: LIME,
@@ -85,7 +91,7 @@ const PALETTES = {
   light: {
     bg: '#efefe9', glow: 'rgba(200,240,0,.38)', grid: 'rgba(13,13,14,.05)',
     text: '#0d0d0e', muted: 'rgba(13,13,14,.68)', faint: 'rgba(13,13,14,.45)',
-    chip: 'rgba(13,13,14,.25)', chipText: 'rgba(13,13,14,.85)', rule: 'rgba(13,13,14,.14)', foot: 'rgba(13,13,14,.5)',
+    chip: 'rgba(13,13,14,.25)', chipText: 'rgba(13,13,14,.85)',
     ring1: 'rgba(120,160,0,.45)', ring2: 'rgba(13,13,14,.18)', spark: '#0d0d0e', sparkAlt: '#9cc000', iconGlow: 'rgba(160,200,0,.5)',
     accentText: '#0d0d0e', marker: LIME, // lime text doesn't read on off-white: dark text on a lime highlighter instead
     ghostFill: 'rgba(13,13,14,.03)', ghostLine: 'rgba(13,13,14,.2)', ghostEdge: 'rgba(110,140,0,.75)', ghostTick: '#9cc000',
@@ -209,7 +215,7 @@ function drawArt(ctx, W, H, mobile) {
   glow.addColorStop(0, PAL.glow);
   glow.addColorStop(1, 'rgba(215,255,0,0)');
   ctx.fillStyle = glow;
-  ctx.fillRect(0, 0, W, H);
+  ctx.fillRect(0, -H, W, H * 2); // reaches up under the top bar too
   ctx.strokeStyle = PAL.grid;
   ctx.lineWidth = 1;
   ctx.beginPath();
@@ -283,18 +289,6 @@ function drawArt(ctx, W, H, mobile) {
       x += (EN ? 1 : -1) * (w + u * 1);
     }
 
-    // footer strip
-    ctx.strokeStyle = PAL.rule;
-    ctx.beginPath(); ctx.moveTo(u * 6, H - u * 7.5); ctx.lineTo(W - u * 6, H - u * 7.5); ctx.stroke();
-    ctx.font = `300 ${u * 1.7}px Alexandria`;
-    ctx.fillStyle = PAL.foot;
-    ctx.textAlign = 'right';
-    ctx.fillText(T('الخليج · سوريا', 'Gulf · Syria'), right, H - u * 5.3);
-    ctx.direction = 'ltr';
-    ctx.textAlign = 'left';
-    ctx.font = `700 ${u * 1.5}px "Agera Gothic"`;
-    ctx.fillText('WWW.PUZZLEXMEDIA.COM', u * 6, H - u * 5.1);
-
     return { key: { x: vx, y: vy }, cta: { x: tx, y: y + ph + u * 3.6, align, size: u * 2.1 } };
   }
 
@@ -336,25 +330,38 @@ function build() {
   const vh = stage.clientHeight;
   if (vw < 50 || vh < 50) return false; // no real viewport yet (hidden tab): the resize handler builds once there is one
   const mobile = vw < 760 && vh > vw;
-  const cols = mobile ? 8 : 12;
-  const rows = mobile ? 12 : 8;
-
-  let W = Math.min(vw * (mobile ? 0.92 : 0.86), vh * (mobile ? 0.74 : 0.76) * (cols / rows));
-  const pw = Math.floor(W / cols);
+  // the board covers the whole screen: square pieces, enough of them to overhang every edge a little
+  const pw = Math.ceil(mobile ? Math.max(vw / 8, vh / 14) : Math.max(vw / 16, vh / 10));
   heroPieceSize = pw;
   const ph = pw;
-  W = pw * cols;
+  const cols = Math.ceil(vw / pw);
+  const rows = Math.ceil(vh / ph);
+  const W = pw * cols;
   const H = ph * rows;
   boardEl.style.width = W + 'px';
   boardEl.style.height = H + 'px';
 
-  // master artwork
+  // master artwork: laid out in the visible part of the board, below the top bar
+  const topH = $('.topbar').offsetHeight;
+  const ox = (W - vw) / 2, oy = (H - vh) / 2 + topH;
   const master = document.createElement('canvas');
   master.width = Math.round(W * DPR);
   master.height = Math.round(H * DPR);
   const mctx = master.getContext('2d');
   mctx.scale(DPR, DPR);
-  const layout = drawArt(mctx, W, H, mobile);
+  mctx.fillStyle = PAL.bg;
+  mctx.fillRect(0, 0, W, H);
+  // carry the artwork's grid on under the top bar so the two areas meet without a seam
+  const step = mobile ? vw / 8 : vw / 16;
+  mctx.strokeStyle = PAL.grid;
+  mctx.lineWidth = 1;
+  mctx.beginPath();
+  for (let x = ox % step; x < W; x += step) { mctx.moveTo(x, 0); mctx.lineTo(x, oy); }
+  for (let y = oy - step; y > 0; y -= step) { mctx.moveTo(0, y); mctx.lineTo(W, y); }
+  mctx.stroke();
+  mctx.translate(ox, oy);
+  const layout = drawArt(mctx, vw, vh - topH, mobile);
+  for (const pt of [layout.key, layout.cta]) { pt.x += ox; pt.y += oy; }
   // the same artwork without seams, laid over the pieces and wiped in behind the final light sweep
   boardEl.querySelector('.seamless')?.remove();
   master.className = 'seamless';

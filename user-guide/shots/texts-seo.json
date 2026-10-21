@@ -1,0 +1,24 @@
+{
+  "image": "texts-seo.png",
+  "width": 954,
+  "height": 212.1875,
+  "url": "http://localhost:5180/admin/#/texts",
+  "display_url": "www.puzzlexmedia.com/admin/#/texts",
+  "clipped": true,
+  "device": "desktop",
+  "boxes": {
+    "kind": [
+      720.6,
+      27,
+      206.4,
+      24
+    ],
+    "ar": [
+      483,
+      99.2,
+      444,
+      74
+    ]
+  },
+  "captured": "2026-10-17 11:16"
+}

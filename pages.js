@@ -11,6 +11,31 @@
     onScroll();
     window.addEventListener('scroll', onScroll, { passive: true });
   }
+  // phones: the links, language, theme and contact button fold into a full-screen menu (styles.css, "Phones")
+  document.querySelectorAll('.topbar').forEach((top) => {
+    const nav = top.querySelector('.nav');
+    if (!nav) return;
+    nav.id ||= 'site-menu';
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = 'menu-toggle';
+    btn.setAttribute('aria-controls', nav.id);
+    btn.innerHTML = '<span></span><span></span>';
+    top.append(btn);
+    const set = (open) => {
+      top.classList.toggle('menu-open', open);
+      document.documentElement.classList.toggle('menu-lock', open);
+      btn.setAttribute('aria-expanded', String(open));
+      btn.setAttribute('aria-label', open ? T('إغلاق القائمة', 'Close menu') : T('القائمة', 'Menu'));
+    };
+    set(false);
+    btn.addEventListener('click', () => set(!top.classList.contains('menu-open')));
+    top.addEventListener('click', (ev) => { if (ev.target.closest('.nav a, .top-actions a')) set(false); });
+    document.addEventListener('keydown', (ev) => {
+      if (ev.key === 'Escape' && top.classList.contains('menu-open')) { set(false); btn.focus(); }
+    });
+    matchMedia('(min-width: 761px)').addEventListener('change', (ev) => { if (ev.matches) set(false); });
+  });
   // the loading screen hides the scrollbar; positions shift slightly once it's gone
   document.addEventListener('loaderdone', () => ScrollTrigger.refresh());
   // switching language keeps the same project / picked services
@@ -387,6 +412,14 @@ function initServiceReveal() {
 // the client's logo on a tile, and a clear "placeholder" label.
 const hashStr = (s) => [...s].reduce((h, ch) => (Math.imul(h, 31) + ch.charCodeAt(0)) | 0, 7);
 
+// project texts come from the admin panel: always inserted escaped
+const escHtml = (s) => String(s ?? '').replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c]);
+
+// an uploaded image when there is one, otherwise the generated placeholder
+const projectImage = (p, src, variant, w, h) => (src
+  ? `<img class="cover" src="${escHtml(assetUrl(src))}" alt="${escHtml(p.title)} — ${escHtml(p.client)}" width="${w}" height="${h}" loading="lazy" decoding="async">`
+  : coverSVG(p, variant, w, h));
+
 function coverSVG(p, variant = 0, w = 400, h = 300) {
   const R = rng(hashStr(p.id) + variant * 101);
   const gid = `cv-${p.id}-${variant}-${w}x${h}`;
@@ -407,7 +440,7 @@ function coverSVG(p, variant = 0, w = 400, h = 300) {
   const [fx, fy] = spots[variant % spots.length];
   const tx = w * fx - tile / 2, ty = h * fy - tile / 2;
   const angle = variant ? (R() * 2 - 1) * 8 : 0;
-  return `<svg class="cover" viewBox="0 0 ${w} ${h}" preserveAspectRatio="xMidYMid slice" role="img" aria-label="${T('صورة مؤقتة', 'Placeholder image')} — ${p.client}">
+  return `<svg class="cover" viewBox="0 0 ${w} ${h}" preserveAspectRatio="xMidYMid slice" role="img" aria-label="${T('صورة مؤقتة', 'Placeholder image')} — ${escHtml(p.client)}">
     <defs><linearGradient id="${gid}" x1="0" y1="0" x2="1" y2="1">
       <stop offset="0" stop-color="${p.colors[0]}"/><stop offset="1" stop-color="${p.colors[1]}"/>
     </linearGradient></defs>
@@ -416,7 +449,7 @@ function coverSVG(p, variant = 0, w = 400, h = 300) {
     <g transform="rotate(${angle.toFixed(1)} ${w * fx} ${h * fy})">
       <rect x="${tx + 6}" y="${ty + 10}" width="${tile}" height="${tile}" rx="${tile * 0.18}" fill="rgba(0,0,0,.25)"/>
       <rect x="${tx}" y="${ty}" width="${tile}" height="${tile}" rx="${tile * 0.18}" fill="#fff"/>
-      <image href="${ROOT}assets/partners/${p.logo}.webp" x="${tx + tile * 0.08}" y="${ty + tile * 0.08}" width="${tile * 0.84}" height="${tile * 0.84}" preserveAspectRatio="xMidYMid meet"/>
+      <image href="${escHtml(assetUrl(p.logo))}" x="${tx + tile * 0.08}" y="${ty + tile * 0.08}" width="${tile * 0.84}" height="${tile * 0.84}" preserveAspectRatio="xMidYMid meet"/>
     </g>
     <g transform="translate(${w - 14} ${h - 14})">
       <rect x="-86" y="-22" width="86" height="22" rx="11" fill="rgba(0,0,0,.35)"/>
@@ -438,13 +471,13 @@ function initWork() {
   const grid = document.querySelector('.work-grid');
   if (!grid || typeof PROJECTS === 'undefined') return;
   grid.innerHTML = PROJECTS.map((p) => `
-    <li class="work-item" data-sector="${p.sector}">
-      <a class="work-card" href="project.html?id=${p.id}">
-        <div class="work-cover">${coverSVG(p, 0)}<span class="work-go">${miniArrowPiece()}</span></div>
+    <li class="work-item" data-sector="${escHtml(p.sector)}">
+      <a class="work-card" href="project.html?id=${encodeURIComponent(p.id)}">
+        <div class="work-cover">${projectImage(p, p.cover, 0, 400, 300)}<span class="work-go">${miniArrowPiece()}</span></div>
         <div class="work-meta">
-          <span class="work-client">${p.client}</span>
-          <h2 class="work-title">${p.title}</h2>
-          <ul class="work-tags">${p.services.map((s) => `<li>${s}</li>`).join('')}</ul>
+          <span class="work-client">${escHtml(p.client)}</span>
+          <h2 class="work-title">${escHtml(p.title)}</h2>
+          <ul class="work-tags">${p.services.map((s) => `<li>${escHtml(s)}</li>`).join('')}</ul>
         </div>
       </a>
     </li>`).join('');
@@ -453,6 +486,8 @@ function initWork() {
   const chips = [...document.querySelectorAll('.work-filters .chip')];
   chips.forEach((chip) => {
     const f = chip.dataset.filter;
+    const label = chip.querySelector('.chip-label'); // the sector names are edited with the projects
+    if (label && SECTORS[f]) label.textContent = SECTORS[f];
     chip.querySelector('.chip-count').textContent = f === 'all' ? PROJECTS.length : PROJECTS.filter((p) => p.sector === f).length;
   });
 
@@ -504,25 +539,28 @@ function initProject() {
   const meta = document.querySelector('meta[name="description"]');
   if (meta) meta.setAttribute('content', p.summary);
 
-  page.querySelector('.project-logo').innerHTML = `<img src="${ROOT}assets/partners/${p.logo}.webp" alt="${p.client}" width="96" height="96">`;
+  page.querySelector('.project-logo').innerHTML = `<img src="${escHtml(assetUrl(p.logo))}" alt="${escHtml(p.client)}" width="96" height="96">`;
   page.querySelector('.project-client').textContent = p.client;
   page.querySelector('.project-title').textContent = p.title;
   page.querySelector('.project-summary').textContent = p.summary;
   page.querySelector('.project-sector').textContent = SECTORS[p.sector];
-  page.querySelector('.project-services').innerHTML = p.services.map((s) => `<a class="tag" href="services.html">${s}</a>`).join('');
+  page.querySelector('.project-services').innerHTML = p.services.map((s) => `<a class="tag" href="services.html">${escHtml(s)}</a>`).join('');
   if (p.year) page.querySelector('.project-year').textContent = p.year;
   else page.querySelector('.project-year-row').remove();
 
-  // gallery: one wide frame, two side by side, one wide again
-  const frames = [[0, 800, 400, 'wide'], [1, 400, 300, ''], [2, 400, 300, ''], [3, 800, 340, 'wide']];
+  // gallery: one wide frame, two side by side, one wide again (repeating for more uploaded images)
+  const shape = (k) => (k % 3 === 0 ? [800, 450, 'wide'] : [400, 300, '']);
+  const frames = p.gallery.length
+    ? p.gallery.map((src, k) => [k, ...shape(k), src])
+    : [[0, 800, 400, 'wide'], [1, 400, 300, ''], [2, 400, 300, ''], [3, 800, 340, 'wide']];
   page.querySelector('.project-gallery').innerHTML = frames
-    .map(([v, w, h, cls]) => `<figure class="gallery-item ${cls}">${coverSVG(p, v, w, h)}</figure>`).join('');
+    .map(([v, w, h, cls, src]) => `<figure class="gallery-item ${cls}">${projectImage(p, src, v, w, h)}</figure>`).join('');
 
   const prev = PROJECTS[(i - 1 + PROJECTS.length) % PROJECTS.length];
   const next = PROJECTS[(i + 1) % PROJECTS.length];
   page.querySelector('.project-nav').innerHTML = `
-    <a class="project-nav-link prev" href="project.html?id=${prev.id}"><span class="dir">${T('→ المشروع السابق', '← Previous project')}</span><span class="name">${prev.title}</span><span class="who">${prev.client}</span></a>
-    <a class="project-nav-link next" href="project.html?id=${next.id}"><span class="dir">${T('المشروع التالي ←', 'Next project →')}</span><span class="name">${next.title}</span><span class="who">${next.client}</span></a>`;
+    <a class="project-nav-link prev" href="project.html?id=${encodeURIComponent(prev.id)}"><span class="dir">${T('→ المشروع السابق', '← Previous project')}</span><span class="name">${escHtml(prev.title)}</span><span class="who">${escHtml(prev.client)}</span></a>
+    <a class="project-nav-link next" href="project.html?id=${encodeURIComponent(next.id)}"><span class="dir">${T('المشروع التالي ←', 'Next project →')}</span><span class="name">${escHtml(next.title)}</span><span class="who">${escHtml(next.client)}</span></a>`;
 
   if (!REDUCED) {
     gsap.from(page.querySelectorAll('.project-head, .project-summary, .project-facts > div'), { y: 30, autoAlpha: 0, duration: 0.7, stagger: 0.08, ease: 'power3.out', delay: 0.1 });

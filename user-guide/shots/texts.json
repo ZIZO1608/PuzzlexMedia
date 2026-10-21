@@ -1,0 +1,30 @@
+{
+  "image": "texts.png",
+  "width": 1280,
+  "height": 760,
+  "url": "http://localhost:5180/admin/#/texts",
+  "display_url": "www.puzzlexmedia.com/admin/#/texts",
+  "clipped": false,
+  "device": "desktop",
+  "boxes": {
+    "search": [
+      48,
+      193.6,
+      934,
+      48.8
+    ],
+    "chips": [
+      48,
+      254.4,
+      934,
+      80
+    ],
+    "open": [
+      48,
+      113.6,
+      138.5,
+      42
+    ]
+  },
+  "captured": "2026-10-17 11:16"
+}

@@ -1,0 +1,30 @@
+{
+  "image": "site-contact.png",
+  "width": 422.21875,
+  "height": 547,
+  "url": "http://localhost:5180/contact",
+  "display_url": "www.puzzlexmedia.com/contact",
+  "clipped": true,
+  "device": "desktop",
+  "boxes": {
+    "phone": [
+      41,
+      148,
+      340.2,
+      18
+    ],
+    "wa": [
+      41,
+      397,
+      340.2,
+      47
+    ],
+    "socials": [
+      41,
+      462,
+      340.2,
+      42
+    ]
+  },
+  "captured": "2026-10-17 11:17"
+}

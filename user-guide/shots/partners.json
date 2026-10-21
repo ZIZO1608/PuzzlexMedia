@@ -1,0 +1,30 @@
+{
+  "image": "partners.png",
+  "width": 1280,
+  "height": 760,
+  "url": "http://localhost:5180/admin/#/partners",
+  "display_url": "www.puzzlexmedia.com/admin/#/partners",
+  "clipped": false,
+  "device": "desktop",
+  "boxes": {
+    "info": [
+      48,
+      181.6,
+      934,
+      20
+    ],
+    "tile": [
+      804.8,
+      213.6,
+      177.2,
+      232.5
+    ],
+    "open": [
+      48,
+      113.6,
+      196.1,
+      42
+    ]
+  },
+  "captured": "2026-10-17 11:17"
+}

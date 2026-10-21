@@ -1,0 +1,36 @@
+{
+  "image": "dashboard.png",
+  "width": 1280,
+  "height": 760,
+  "url": "http://localhost:5180/admin/#/",
+  "display_url": "www.puzzlexmedia.com/admin/#/",
+  "clipped": false,
+  "device": "desktop",
+  "boxes": {
+    "menu": [
+      1047,
+      86,
+      217,
+      332
+    ],
+    "stats": [
+      48,
+      181.6,
+      934,
+      120
+    ],
+    "site": [
+      1047,
+      666,
+      217,
+      42
+    ],
+    "who": [
+      1047,
+      718,
+      217,
+      20
+    ]
+  },
+  "captured": "2026-10-17 11:16"
+}

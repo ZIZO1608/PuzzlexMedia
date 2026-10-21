@@ -1,0 +1,36 @@
+{
+  "image": "project-row.png",
+  "width": 950,
+  "height": 92,
+  "url": "http://localhost:5180/admin/#/projects",
+  "display_url": "www.puzzlexmedia.com/admin/#/projects",
+  "clipped": true,
+  "device": "desktop",
+  "boxes": {
+    "thumb": [
+      859,
+      19,
+      72,
+      54
+    ],
+    "up": [
+      139.1,
+      28,
+      36,
+      36
+    ],
+    "down": [
+      93.1,
+      28,
+      36,
+      36
+    ],
+    "edit": [
+      19,
+      29,
+      64.1,
+      34
+    ]
+  },
+  "captured": "2026-10-17 11:17"
+}

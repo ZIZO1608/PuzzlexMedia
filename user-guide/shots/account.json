@@ -1,0 +1,36 @@
+{
+  "image": "account.png",
+  "width": 536,
+  "height": 481.265625,
+  "url": "http://localhost:5180/admin/#/account",
+  "display_url": "www.puzzlexmedia.com/admin/#/account",
+  "clipped": true,
+  "device": "desktop",
+  "boxes": {
+    "current": [
+      29,
+      100.6,
+      478,
+      48.8
+    ],
+    "new": [
+      29,
+      192.2,
+      478,
+      48.8
+    ],
+    "again": [
+      29,
+      310.6,
+      478,
+      48.8
+    ],
+    "go": [
+      29,
+      410.3,
+      478,
+      42
+    ]
+  },
+  "captured": "2026-10-17 11:17"
+}

@@ -1,0 +1,36 @@
+{
+  "image": "texts-toolbar.png",
+  "width": 950,
+  "height": 182.796875,
+  "url": "http://localhost:5180/admin/#/texts",
+  "display_url": "www.puzzlexmedia.com/admin/#/texts",
+  "clipped": true,
+  "device": "desktop",
+  "boxes": {
+    "search": [
+      8,
+      20,
+      934,
+      48.8
+    ],
+    "page": [
+      644.1,
+      80.8,
+      103.6,
+      36
+    ],
+    "shared": [
+      755.7,
+      80.8,
+      186.3,
+      36
+    ],
+    "edited": [
+      191.6,
+      124.8,
+      116,
+      36
+    ]
+  },
+  "captured": "2026-10-17 11:16"
+}

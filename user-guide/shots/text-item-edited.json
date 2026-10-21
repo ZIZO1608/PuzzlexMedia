@@ -1,0 +1,30 @@
+{
+  "image": "text-item-edited.png",
+  "width": 954,
+  "height": 204.375,
+  "url": "http://localhost:5180/admin/#/texts",
+  "display_url": "www.puzzlexmedia.com/admin/#/texts",
+  "clipped": true,
+  "device": "desktop",
+  "boxes": {
+    "badge": [
+      708.2,
+      32,
+      54.7,
+      24
+    ],
+    "restore": [
+      27,
+      27,
+      114.4,
+      34
+    ],
+    "original": [
+      27,
+      158.2,
+      900,
+      19.2
+    ]
+  },
+  "captured": "2026-10-17 11:16"
+}

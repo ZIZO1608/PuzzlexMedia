@@ -1,0 +1,30 @@
+{
+  "image": "project-editor.png",
+  "width": 1280,
+  "height": 760,
+  "url": "http://localhost:5180/admin/#/projects/coffee-021",
+  "display_url": "www.puzzlexmedia.com/admin/#/projects/coffee-021",
+  "clipped": false,
+  "device": "desktop",
+  "boxes": {
+    "back": [
+      882.2,
+      109.6,
+      99.8,
+      19
+    ],
+    "view": [
+      188.7,
+      89.6,
+      169.5,
+      42
+    ],
+    "delete": [
+      48,
+      89.6,
+      130.7,
+      42
+    ]
+  },
+  "captured": "2026-10-17 11:17"
+}

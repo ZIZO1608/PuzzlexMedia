@@ -1,0 +1,30 @@
+{
+  "image": "login.png",
+  "width": 436,
+  "height": 538.875,
+  "url": "http://localhost:5180/admin/",
+  "display_url": "www.puzzlexmedia.com/admin/",
+  "clipped": true,
+  "device": "desktop",
+  "boxes": {
+    "user": [
+      47,
+      252.6,
+      342,
+      48.8
+    ],
+    "pass": [
+      47,
+      344.2,
+      342,
+      48.8
+    ],
+    "go": [
+      47,
+      443.9,
+      342,
+      42
+    ]
+  },
+  "captured": "2026-10-17 11:16"
+}

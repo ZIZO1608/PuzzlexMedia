@@ -1,0 +1,36 @@
+{
+  "image": "messages.png",
+  "width": 1280,
+  "height": 760,
+  "url": "http://localhost:5180/admin/#/messages",
+  "display_url": "www.puzzlexmedia.com/admin/#/messages",
+  "clipped": false,
+  "device": "desktop",
+  "boxes": {
+    "badge": [
+      1059,
+      337,
+      22,
+      22
+    ],
+    "filter": [
+      48,
+      157.6,
+      934,
+      36
+    ],
+    "unread": [
+      48,
+      207.6,
+      934,
+      54
+    ],
+    "read": [
+      48,
+      335.6,
+      934,
+      54
+    ]
+  },
+  "captured": "2026-10-17 11:17"
+}

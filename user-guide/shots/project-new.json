@@ -1,0 +1,24 @@
+{
+  "image": "project-new.png",
+  "width": 950,
+  "height": 567.953125,
+  "url": "http://localhost:5180/admin/#/projects/project-1",
+  "display_url": "www.puzzlexmedia.com/admin/#/projects/project-1",
+  "clipped": true,
+  "device": "desktop",
+  "boxes": {
+    "client": [
+      29,
+      68.6,
+      892,
+      75.6
+    ],
+    "title": [
+      29,
+      158.2,
+      892,
+      75.6
+    ]
+  },
+  "captured": "2026-10-17 11:17"
+}

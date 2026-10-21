@@ -48,6 +48,55 @@ To also get each message by email, fill in `CONTACT_TO` and the `SMTP_*` setting
 Built in: required-field checks on both sides, a hidden spam-trap field, 5 messages per visitor per
 10 minutes, 16 KB size limit.
 
+## Admin panel (`/admin`)
+
+At `/admin/` the team edits the site without touching code:
+
+- **Texts**: every text on every page, Arabic and English side by side (including page titles, share
+  descriptions and the texts drawn by the animations). Shared texts, such as the menu links, change everywhere at once.
+- **Projects**: add, edit, delete and reorder projects; upload the cover and gallery images.
+- **Partner logos**: the logos in the partners puzzle. The puzzle resizes itself (5×5 for up to 24, 7×7 for up to 48, 9×9 for up to 80).
+- **Contact & links**: phone, WhatsApp, email, website and social links (empty = "coming soon" stays on the site).
+- **Messages**: the contact-form inbox, with read / unread and delete.
+
+Edits are saved in `/data` (the Docker volume) and show on the site immediately: `texts.json`, `projects.json`,
+`partners.json`, `settings.json`, `uploads/`. On first start these are created from the files in the repo, so a fresh
+install looks exactly like the code. Images are resized and converted to WebP in the browser before they're uploaded.
+
+**Users** are kept in `/data/users.json` with hashed passwords only. Manage them with the included tool:
+
+```bash
+docker compose exec web node tools/admin-user.js add hussein "حسين"     # prints a generated password
+docker compose exec web node tools/admin-user.js passwd hussein         # new generated password
+docker compose exec web node tools/admin-user.js list
+docker compose exec web node tools/admin-user.js remove hussein
+```
+
+Locally (without Docker) drop the `docker compose exec web` part. Everyone can change their own password in the panel.
+
+Security: sessions are HttpOnly, SameSite=Strict cookies (12 hours idle); 8 wrong passwords in 15 minutes lock that
+IP / username for 15 minutes; every change needs the panel's own header and same-origin requests; uploads must really
+be JPG / PNG / WebP (SVG is refused); everything editors type is shown as text, never as HTML. The panel needs HTTPS in
+production (the cookie is `Secure`); for plain-HTTP testing on another machine set `COOKIE_SECURE=0`.
+
+**Backups**: everything the team edits is in the volume. Back it up with
+`docker run --rm -v puzzlex-data:/data -v "$PWD":/backup alpine tar czf /backup/puzzlex-data.tgz -C /data .`
+
+## User guide (PDF)
+
+`user-guide/` holds the admin-panel user guide: `guide.ar.json` / `guide.en.json` (the text), `shots.mjs` (which
+screens to capture) and `shots/` (the screenshots). To update it after the panel changes, run a demo copy of the site
+on its own data (never the real data), re-capture, and rebuild:
+
+```bash
+DATA_DIR="$PWD/user-guide/demo-data" node server.js 5180      # demo copy (user-guide/demo-data is a copy of data/ + demo messages)
+GUIDE_PASS=… node user-guide/tools/capture.mjs user-guide/shots.mjs --out user-guide/shots
+node user-guide/tools/build.mjs user-guide/guide.ar.json --shots user-guide/shots --out "user-guide/out/PuzzleX Media – User Guide (AR).pdf" --preview user-guide/out/preview-ar
+node user-guide/tools/build.mjs user-guide/guide.en.json --shots user-guide/shots --out "user-guide/out/PuzzleX Media – User Guide (EN).pdf" --preview user-guide/out/preview-en
+```
+
+Needs only Node and Chrome. `--preview` writes a PNG per page plus `overview.png` for checking the layout.
+
 ## Settings (`.env`)
 
 | Name | What it does |
@@ -85,7 +134,9 @@ pages.js              inner pages, contact form, 404
 projects.js           project data (Arabic + English); also read by the server
 loader.js, cursor.js, theme.js
 assets/               icon, fonts, partner logos (WebP), share image
-server.js             the web server
+server.js             the web server (lib/: content, admin API, sign-in, storage)
+admin/                the admin panel (/admin)
+tools/admin-user.js   add / reset / remove admin users
 Dockerfile, docker-compose.yml, .env.example
 source-files/tools/make_en.py   rebuilds en/ from the Arabic pages
 ```

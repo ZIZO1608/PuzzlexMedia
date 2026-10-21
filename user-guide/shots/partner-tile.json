@@ -1,0 +1,42 @@
+{
+  "image": "partner-tile.png",
+  "width": 193.203125,
+  "height": 248.53125,
+  "url": "http://localhost:5180/admin/#/partners",
+  "display_url": "www.puzzlexmedia.com/admin/#/partners",
+  "clipped": true,
+  "device": "desktop",
+  "boxes": {
+    "num": [
+      19,
+      19,
+      155.2,
+      18.4
+    ],
+    "name": [
+      19,
+      149.4,
+      155.2,
+      36.1
+    ],
+    "earlier": [
+      138.2,
+      193.5,
+      36,
+      36
+    ],
+    "del": [
+      78.6,
+      193.5,
+      36,
+      36
+    ],
+    "later": [
+      19,
+      193.5,
+      36,
+      36
+    ]
+  },
+  "captured": "2026-10-17 11:17"
+}

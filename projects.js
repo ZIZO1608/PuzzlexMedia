@@ -113,6 +113,6 @@ const PROJECTS_EN = {
     summary: 'A visual identity for a sports nutrition brand, applied to clothing, stickers and packaging.' },
 };
 if (document.documentElement.lang === 'en') {
-  Object.assign(SECTORS, { org: 'International & development organizations', academic: 'Education & research', brand: 'Brands' });
+  Object.assign(SECTORS, { org: 'International & development', academic: 'Education & research', brand: 'Brands' });
   PROJECTS.forEach((p) => Object.assign(p, PROJECTS_EN[p.id]));
 }

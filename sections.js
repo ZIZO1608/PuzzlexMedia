@@ -60,8 +60,13 @@ function initValues() {
 }
 
 /* ---------- Partners: logos assemble into one puzzle, the centre piece is "yours" ---------- */
-const PARTNER_COUNT = 48;
-const GRID = 7; // 7×7 = 48 logos + the centre piece
+// the logos come from the admin panel (window.SITE.partners: { src, name } in puzzle order); the grid is the smallest odd
+// square that holds them all around the centre piece: 7×7 for 48 logos, 5×5 for up to 24, 9×9 for up to 80
+const PARTNERS = SITE.partners && SITE.partners.length
+  ? SITE.partners
+  : Array.from({ length: 48 }, (_, i) => ({ src: `assets/partners/p${String(i + 1).padStart(2, '0')}.webp`, name: '' }));
+const assetUrl = (src) => (/^(\/|https?:)/.test(src) ? src : ROOT + src);
+let GRID = 7;
 let partnerImgs = [];
 let pctx = null;
 let partnerLastT = 0;
@@ -127,6 +132,7 @@ function paintLogo(img, size, e) {
   return (g) => {
     g.fillStyle = '#ffffff';
     g.fill();
+    if (!img) { g.lineWidth = 1; g.strokeStyle = 'rgba(0,0,0,.22)'; g.stroke(); return; } // a slot with no logo yet
     const box = img._box || { x: 0, y: 0, w: img.naturalWidth, h: img.naturalHeight };
     const f = fitInto(box, safeRect(e, size));
     g.save();
@@ -242,6 +248,7 @@ function buildPartners() {
       const el = document.createElement('div');
       el.className = isKey ? 'pp key' : 'pp';
       el._pp = { e, img, isKey, size, pad }; // what the pop-up needs to redraw this piece large
+      if (img && img._name) el.title = img._name; // the partner's name (admin panel) on hover
       const inner = document.createElement('div');
       inner.className = 'inner';
       inner.appendChild(pieceCanvas(size, pad, e, isKey ? paintKey(size) : paintLogo(img, size, e)));
@@ -350,6 +357,7 @@ const mixRgb = (a, b, t, shade = 1) => {
 // the logo trimmed to its visible extent and fitted into the piece's safe area (SVG units)
 function logoSvg(data) {
   const img = data.img;
+  if (!img) return '';
   const box = img._box || { x: 0, y: 0, w: img.naturalWidth, h: img.naturalHeight };
   const f = fitInto(box, safeRect(data.e, POP_UNIT));
   const n = (v) => v.toFixed(2);
@@ -440,6 +448,7 @@ function initPiecePop() {
 
   function openPop(el) {
     const data = el._pp;
+    if (!data.img && !data.isKey) return; // empty slot: nothing to show
     const vw = window.innerWidth, vh = window.innerHeight;
     const bodyPx = Math.min(vw * 0.5, vh * 0.46, 400); // on-screen size of the piece body
     const unit = bodyPx / POP_UNIT;
@@ -449,7 +458,7 @@ function initPiecePop() {
     root.className = 'pp-pop';
     root.setAttribute('role', 'dialog');
     root.setAttribute('aria-modal', 'true');
-    root.setAttribute('aria-label', T('قطعة شريك نجاح', 'Partner piece'));
+    root.setAttribute('aria-label', (data.img && data.img._name) || T('قطعة شريك نجاح', 'Partner piece'));
     root.innerHTML = `
       <div class="pp-pop-backdrop"></div>
       <div class="pp-pop-shadow"></div>
@@ -573,9 +582,10 @@ async function initSections() {
   if ($('.values')) initValues();
   if (!$('.partners')) return;
   await document.fonts.load('800 20px Alexandria', T('مكانك هنا', 'YOUR SPOT')).catch(() => {});
-  partnerImgs = await Promise.all(
-    Array.from({ length: PARTNER_COUNT }, (_, i) => loadImage(`${ROOT}assets/partners/p${String(i + 1).padStart(2, '0')}.webp`)),
-  );
+  // a logo that fails to load is left out rather than breaking the puzzle
+  partnerImgs = (await Promise.all(PARTNERS.map((p) => loadImage(assetUrl(p.src)).then((img) => Object.assign(img, { _name: p.name || '' }), () => null)))).filter(Boolean);
+  GRID = 3;
+  while (GRID * GRID - 1 < partnerImgs.length) GRID += 2;
   for (const img of partnerImgs) img._box = trimBox(img); // so logos can be fitted to the safe area of each piece
   buildPartners();
   initPiecePop();

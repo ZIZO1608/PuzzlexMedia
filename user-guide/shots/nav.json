@@ -1,0 +1,48 @@
+{
+  "image": "nav.png",
+  "width": 237,
+  "height": 352,
+  "url": "http://localhost:5180/admin/#/",
+  "display_url": "www.puzzlexmedia.com/admin/#/",
+  "clipped": true,
+  "device": "desktop",
+  "boxes": {
+    "texts": [
+      10,
+      58,
+      217,
+      44
+    ],
+    "projects": [
+      10,
+      106,
+      217,
+      44
+    ],
+    "partners": [
+      10,
+      154,
+      217,
+      44
+    ],
+    "contact": [
+      10,
+      202,
+      217,
+      44
+    ],
+    "messages": [
+      10,
+      250,
+      217,
+      44
+    ],
+    "account": [
+      10,
+      298,
+      217,
+      44
+    ]
+  },
+  "captured": "2026-10-17 11:16"
+}

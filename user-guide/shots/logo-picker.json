@@ -1,0 +1,18 @@
+{
+  "image": "logo-picker.png",
+  "width": 760,
+  "height": 560,
+  "url": "http://localhost:5180/admin/#/projects/coffee-021",
+  "display_url": "www.puzzlexmedia.com/admin/#/projects/coffee-021",
+  "clipped": true,
+  "device": "desktop",
+  "boxes": {
+    "grid": [
+      626.3,
+      65.8,
+      110.7,
+      80
+    ]
+  },
+  "captured": "2026-10-17 11:17"
+}

@@ -11,15 +11,26 @@ const fs = require('node:fs');
 const fsp = require('node:fs/promises');
 const path = require('node:path');
 const zlib = require('node:zlib');
-const vm = require('node:vm');
 const crypto = require('node:crypto');
+const { createStore } = require('./lib/store');
+const { createAuth } = require('./lib/auth');
+const { createContent, projectsScript, PAGES } = require('./lib/content');
+const { createAdmin } = require('./lib/admin');
 
 const ROOT = __dirname;
 const PORT = Number(process.argv[2] || process.env.PORT || 8080);
+// all interfaces, so a hosting platform's proxy (Hostinger Web App, Docker) can reach it
+const HOST = process.env.HOST || '0.0.0.0';
 const DATA_DIR = path.resolve(process.env.DATA_DIR || path.join(ROOT, 'data'));
 const SITE_URL = (process.env.SITE_URL || 'https://www.puzzlexmedia.com').replace(/\/+$/, '');
 const CANONICAL = 'https://www.puzzlexmedia.com'; // the address written into the pages
 const TRUST_PROXY = process.env.TRUST_PROXY === '1';
+
+// editable content (admin panel) lives in DATA_DIR next to the messages; see lib/store.js
+const store = createStore({ dataDir: DATA_DIR, root: ROOT });
+store.seed();
+const auth = createAuth({ store, secureCookies: () => process.env.COOKIE_SECURE !== '0' });
+const content = createContent({ root: ROOT, store });
 
 /* ---------- what may be served ---------- */
 const MIME = {
@@ -31,7 +42,7 @@ const MIME = {
 const COMPRESSIBLE = new Set(['.html', '.css', '.js', '.json', '.svg', '.txt', '.xml']);
 // the server's own files sit next to the site: never hand them out
 const PRIVATE = new Set(['server.js', 'package.json', 'package-lock.json', 'dockerfile', 'docker-compose.yml',
-  'readme.md', 'node_modules', 'source-files', 'data']);
+  'readme.md', 'node_modules', 'source-files', 'data', 'lib', 'tools', 'mobile-ui', 'user-guide', 'portfolio-kit']);
 
 const SECURITY_HEADERS = {
   'X-Content-Type-Options': 'nosniff',
@@ -53,13 +64,65 @@ async function load(file) {
   if (SITE_URL !== CANONICAL && (ext === '.html' || ext === '.xml' || ext === '.txt')) {
     body = Buffer.from(body.toString('utf8').split(CANONICAL).join(SITE_URL));
   }
-  const entry = { mtimeMs: st.mtimeMs, body, etag: `"${crypto.createHash('sha1').update(body).digest('base64url').slice(0, 20)}"` };
+  const entry = { mtimeMs: st.mtimeMs, ...makeEntry(body, ext) };
+  cache.set(file, entry);
+  return entry;
+}
+
+function makeEntry(body, ext) {
+  const entry = { body, etag: `"${crypto.createHash('sha1').update(body).digest('base64url').slice(0, 20)}"` };
   if (COMPRESSIBLE.has(ext) && body.length > 1024) {
     entry.br = zlib.brotliCompressSync(body, { params: { [zlib.constants.BROTLI_PARAM_QUALITY]: 9 } });
     entry.gzip = zlib.gzipSync(body, { level: 9 });
   }
-  cache.set(file, entry);
   return entry;
+}
+
+// the site's pages, with the admin panel's edits applied; rebuilt when the file or the content changes
+const rendered = new Map(); // abs path → { key, entry }
+async function pageEntry(file) {
+  const base = await load(file);
+  const rel = path.relative(ROOT, file).split(path.sep);
+  const page = rel[rel.length - 1];
+  const isPage = PAGES.includes(page) && (rel.length === 1 || (rel.length === 2 && rel[0] === 'en'));
+  if (!isPage) return base;
+  const key = `${base.etag}|${store.version}`;
+  const hit = rendered.get(file);
+  if (hit && hit.key === key) return hit.entry;
+  const html = content.renderPage(page, rel[0] === 'en' ? 'en' : 'ar', base.body.toString('utf8'));
+  const entry = makeEntry(Buffer.from(html), '.html');
+  rendered.set(file, { key, entry });
+  return entry;
+}
+
+// sitemap.xml: the pages plus every project in the admin panel, each in both languages
+let sitemap = null; // { version, entry }
+function sitemapEntry() {
+  if (!sitemap || sitemap.version !== store.version) {
+    const paths = ['', 'about.html', 'services.html', 'work.html', 'contact.html',
+      ...store.read('projects.json', { projects: [] }).projects.map((p) => `project.html?id=${encodeURIComponent(p.id)}`)];
+    const url = (lang, p) => esc(`${SITE_URL}/${lang === 'en' ? 'en/' : ''}${p}`);
+    const xml = `<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:xhtml="http://www.w3.org/1999/xhtml">
+${paths.flatMap((p) => ['ar', 'en'].map((lang) => `  <url>
+    <loc>${url(lang, p)}</loc>
+    <xhtml:link rel="alternate" hreflang="ar" href="${url('ar', p)}"/>
+    <xhtml:link rel="alternate" hreflang="en" href="${url('en', p)}"/>
+  </url>`)).join('\n')}
+</urlset>
+`;
+    sitemap = { version: store.version, entry: makeEntry(Buffer.from(xml), '.xml') };
+  }
+  return sitemap.entry;
+}
+
+let projectsJs = null; // { version, entry }
+function projectsEntry() {
+  if (!projectsJs || projectsJs.version !== store.version) {
+    const js = projectsScript(store.read('projects.json', { sectors: {}, projects: [] }));
+    projectsJs = { version: store.version, entry: makeEntry(Buffer.from(js), '.js') };
+  }
+  return projectsJs.entry;
 }
 
 // URL path → file on disk, or null
@@ -98,25 +161,21 @@ function cacheControl(ext, query) {
 }
 
 /* ---------- per-project share previews (project.html?id=…) ---------- */
-// projects.js is the browser's data file: run it in a sandbox to read the same list here
-let projects = null;
-function loadProjects() {
-  const code = fs.readFileSync(path.join(ROOT, 'projects.js'), 'utf8');
-  const read = (lang) => vm.runInNewContext(`${code}\n;({ PROJECTS, SECTORS })`, { document: { documentElement: { lang } } });
-  projects = { ar: read('ar'), en: read('en') };
-}
+// the projects come from the admin panel's projects.json (lib/store.js)
 const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
 
 function projectPage(html, id, en) {
-  const p = projects[en ? 'en' : 'ar'].PROJECTS.find((x) => x.id === id);
+  const p = store.read('projects.json', { projects: [] }).projects.find((x) => x.id === id);
   if (!p) return null;
-  const title = `${p.title} — ${p.client} | PuzzleX Media`;
+  const pick = (v) => (en ? v.en || v.ar : v.ar);
+  const title = `${pick(p.title)} — ${pick(p.client)} | PuzzleX Media`;
+  const summary = pick(p.summary);
   const url = `${SITE_URL}/${en ? 'en/' : ''}project.html?id=${encodeURIComponent(p.id)}`;
   return html
     .replace(/<title>[^<]*<\/title>/, `<title>${esc(title)}</title>`)
-    .replace(/(<meta name="description" content=")[^"]*"/, `$1${esc(p.summary)}"`)
+    .replace(/(<meta name="description" content=")[^"]*"/, `$1${esc(summary)}"`)
     .replace(/(<meta property="og:title" content=")[^"]*"/, `$1${esc(title)}"`)
-    .replace(/(<meta property="og:description" content=")[^"]*"/, `$1${esc(p.summary)}"`)
+    .replace(/(<meta property="og:description" content=")[^"]*"/, `$1${esc(summary)}"`)
     .replace(/(<meta property="og:url" content=")[^"]*"/, `$1${esc(url)}"`);
 }
 
@@ -221,9 +280,9 @@ async function handleContact(req, res) {
   m.id = crypto.randomUUID();
   m.date = new Date().toISOString();
   m.ip = ip;
+  m.read = false;
   try {
-    await fsp.mkdir(DATA_DIR, { recursive: true });
-    await fsp.appendFile(path.join(DATA_DIR, 'messages.jsonl'), JSON.stringify(m) + '\n', 'utf8');
+    await store.appendMessage(m); // queued with the admin panel's mark-read / delete, so nothing is lost
   } catch (err) {
     console.error('[contact] could not save message', err);
     return json(res, 500, { ok: false, error: 'save' });
@@ -240,28 +299,56 @@ async function handleContact(req, res) {
 async function notFound(req, res, urlPath) {
   const en = urlPath === '/en' || urlPath.startsWith('/en/');
   const file = path.join(ROOT, en ? 'en' : '', '404.html');
-  send(req, res, 404, await load(file), '.html', { 'Cache-Control': 'no-cache' });
+  send(req, res, 404, await pageEntry(file), '.html', { 'Cache-Control': 'no-cache' });
 }
+
+// a request body, up to `limit` bytes
+async function readBody(req, limit) {
+  const chunks = [];
+  let size = 0;
+  for await (const chunk of req) {
+    size += chunk.length;
+    if (size > limit) throw Object.assign(new Error('too large'), { status: 413 });
+    chunks.push(chunk);
+  }
+  return Buffer.concat(chunks);
+}
+
+const admin = createAdmin({ store, auth, content, clientIp, json, readBody, serviceLabels: SERVICES });
 
 const server = http.createServer(async (req, res) => {
   try {
     const url = new URL(req.url, 'http://localhost');
     const p = url.pathname;
 
-    if (p === '/healthz') return json(res, 200, { ok: true });
+    if (p === '/healthz' || p === '/health') return json(res, 200, { ok: true });
     if (p === '/api/contact') {
       if (req.method !== 'POST') { res.setHeader('Allow', 'POST'); return json(res, 405, { ok: false }); }
       return await handleContact(req, res);
     }
+    if (p.startsWith('/api/admin/')) return await admin(req, res, p);
     if (req.method !== 'GET' && req.method !== 'HEAD') { res.setHeader('Allow', 'GET, HEAD'); return json(res, 405, { ok: false }); }
 
-    // the English pages use relative links: they need the trailing slash
-    if (p === '/en') { res.writeHead(301, { Location: '/en/' + url.search }); return res.end(); }
+    // the English pages use relative links: they need the trailing slash; so does the admin panel
+    if (p === '/en' || p === '/admin') { res.writeHead(301, { Location: p + '/' + url.search }); return res.end(); }
+    if (p.startsWith('/admin/')) res.setHeader('X-Robots-Tag', 'noindex, nofollow');
+
+    // project data, generated from the admin panel's projects.json (shared by /projects.js and /en/../projects.js)
+    if (p === '/projects.js') return send(req, res, 200, projectsEntry(), '.js', { 'Cache-Control': 'no-cache' });
+    if (p === '/sitemap.xml') return send(req, res, 200, sitemapEntry(), '.xml', { 'Cache-Control': 'no-cache' });
+
+    // images uploaded from the admin panel
+    const up = p.match(/^\/uploads\/([a-f0-9]{24}\.(webp|png|jpg))$/);
+    if (up) {
+      let entry;
+      try { entry = await load(path.join(store.uploadsDir, up[1])); } catch { return await notFound(req, res, p); }
+      return send(req, res, 200, entry, '.' + up[2], { 'Cache-Control': 'public, max-age=31536000, immutable' });
+    }
 
     const file = resolve(p);
     if (!file) return await notFound(req, res, p);
     const ext = path.extname(file).toLowerCase();
-    let entry = await load(file);
+    let entry = await pageEntry(file);
 
     if (path.basename(file) === 'project.html' && url.searchParams.get('id')) {
       const html = projectPage(entry.body.toString('utf8'), url.searchParams.get('id'), file.includes(`${path.sep}en${path.sep}`));
@@ -278,9 +365,9 @@ const server = http.createServer(async (req, res) => {
   }
 });
 
-loadProjects();
-server.listen(PORT, () => {
-  console.log(`PuzzleX Media on http://localhost:${PORT} · messages → ${DATA_DIR} · email ${mailer ? `→ ${process.env.CONTACT_TO}` : 'off (no SMTP set)'}`);
+if (!store.read('users.json', []).length) console.warn('[admin] no admin users yet — add one with: node tools/admin-user.js add <username> <display name>');
+server.listen(PORT, HOST, () => {
+  console.log(`PuzzleX Media on http://${HOST}:${PORT} · messages → ${DATA_DIR} · email ${mailer ? `→ ${process.env.CONTACT_TO}` : 'off (no SMTP set)'}`);
 });
 const stop = () => server.close(() => process.exit(0));
 process.on('SIGTERM', stop);

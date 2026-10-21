@@ -1,0 +1,1293 @@
+{
+  "meta": {
+    "language": "en",
+    "title": "Admin Panel User Guide",
+    "subtitle": "How to edit the website's texts, projects and logos, and follow up client messages — step by step",
+    "client_name": "PuzzleX Media",
+    "product_name": "PuzzleX Media Admin Panel",
+    "version": "1.0",
+    "date": "October 2026",
+    "confidential": "For internal use only"
+  },
+  "brand": {
+    "primary": "#D7FF00",
+    "logo": "../assets/icon.svg",
+    "extra_css": "/* lime is too light for text on white: text accents use the site's own dark olive (#5d7400); lime stays for fills */\n:root { --brand-deep: #4a5c00; --brand-mid: #c8e64d; }\n.section-head .kicker, .chapter > header .kicker, .toc .toc-part > .part-row .num { color: #5d7400; }\ntable.ref { overflow: visible; }\n/* Arabic on-screen labels inside English text */\n.ui { unicode-bidi: isolate; }\nkbd { direction: ltr; unicode-bidi: isolate; }\nem { unicode-bidi: isolate; font-style: normal; font-weight: 600; color: #2b3240; }"
+  },
+  "labels": {
+    "role_manager": "Site admins"
+  },
+  "intro": {
+    "text": "The admin panel is where you change everything on the PuzzleX Media website without a developer. Whatever you save appears on the website straight away. The panel's screens are in Arabic: this guide shows every button with its **Arabic label** exactly as on screen, followed by what it means in English. Read **Getting started** first, then go to the chapter you need.",
+    "cards": [
+      {
+        "title": "One task per section",
+        "text": "Each heading is something you want to get done, like \"Add a new project\". Follow the steps in order."
+      },
+      {
+        "title": "Pictures show where to click",
+        "text": "The letters on the screenshots (A, B, C…) point at the buttons. The list under each picture explains every letter."
+      },
+      {
+        "title": "Nothing changes until you save",
+        "text": "You can try things safely: until you press **حفظ التغييرات** (Save changes) the website stays as it is, and **تراجع** (Undo) throws your edits away."
+      },
+      {
+        "title": "Reference pages at the back",
+        "text": "At the end: a one-page quick reference, common questions, fixes for problems, and a glossary."
+      }
+    ]
+  },
+  "parts": [
+    {
+      "title": "The admin panel",
+      "audience": [
+        "manager"
+      ],
+      "chapters": [
+        {
+          "id": "start",
+          "title": "Getting started",
+          "intro": "Signing in, finding your way around, and saving your changes.",
+          "tasks": [
+            {
+              "id": "sign-in",
+              "title": "Sign in to the admin panel",
+              "goal": "Every time you want to change something on the website.",
+              "time": "1 min",
+              "before": [
+                "Your username and password",
+                "An up-to-date browser on a computer or phone (Chrome, Safari or Edge)"
+              ],
+              "steps": [
+                "Open your browser, type `www.puzzlexmedia.com/admin` and press `Enter`.",
+                {
+                  "text": "Type your username in [[user]] **اسم المستخدم** (Username) and your password in [[pass]] **كلمة المرور** (Password), then press [[go]] **دخول** (Sign in).",
+                  "shot": {
+                    "id": "login",
+                    "callouts": [
+                      {
+                        "key": "user",
+                        "label": "**اسم المستخدم** (Username) — in English letters, e.g. hussein. Capitals don't matter"
+                      },
+                      {
+                        "key": "pass",
+                        "label": "**كلمة المرور** (Password) — shown as dots"
+                      },
+                      {
+                        "key": "go",
+                        "label": "**دخول** (Sign in)"
+                      }
+                    ]
+                  },
+                  "warning": "After 8 wrong attempts within 15 minutes, sign-in pauses and the panel says *محاولات كثيرة — انتظر 15 دقيقة* (Too many attempts — wait 15 minutes). Wait, then try again."
+                }
+              ],
+              "result": "The panel's home page opens with a greeting with your name, such as *مساء الخير، حسين* (Good evening, Hussein).",
+              "tip": "Bookmark the panel's address in your browser so it's one click away."
+            },
+            {
+              "id": "tour",
+              "title": "Find your way around the panel",
+              "goal": "A quick tour so you know where everything is.",
+              "overview_shot": {
+                "id": "dashboard",
+                "callouts": [
+                  {
+                    "key": "menu",
+                    "label": "The menu — moves you between the panel's sections"
+                  },
+                  {
+                    "key": "stats",
+                    "label": "At a glance: new messages, number of projects and logos, edited texts"
+                  },
+                  {
+                    "key": "site",
+                    "label": "**عرض الموقع ↗** (View website) — opens the website in a new tab to see your changes"
+                  },
+                  {
+                    "key": "who",
+                    "label": "Who is signed in"
+                  }
+                ]
+              },
+              "steps": [
+                {
+                  "text": "Use the menu on the right to move between sections. Each section has its own chapter in this guide.",
+                  "shot": {
+                    "id": "nav",
+                    "size": "small",
+                    "callouts": [
+                      {
+                        "key": "texts",
+                        "label": "**النصوص** (Texts) — every heading, paragraph and button on the website"
+                      },
+                      {
+                        "key": "projects",
+                        "label": "**المشاريع** (Projects) — the Work page and each project's page"
+                      },
+                      {
+                        "key": "partners",
+                        "label": "**شعارات الشركاء** (Partner logos) — the partners puzzle"
+                      },
+                      {
+                        "key": "contact",
+                        "label": "**التواصل والروابط** (Contact & links) — phone, email, social accounts"
+                      },
+                      {
+                        "key": "messages",
+                        "label": "**الرسائل** (Messages) — what visitors send through the contact form. Red number = unread"
+                      },
+                      {
+                        "key": "account",
+                        "label": "**حسابي** (My account) — change password, sign out"
+                      }
+                    ]
+                  }
+                },
+                {
+                  "text": "Press any box in the summary to jump to its section. A red box [[unread]] means new messages are waiting.",
+                  "shot": {
+                    "id": "stats",
+                    "callouts": [
+                      {
+                        "key": "unread",
+                        "label": "Unread messages — press to open the inbox"
+                      },
+                      {
+                        "key": "projects",
+                        "label": "Number of projects shown on the Work page"
+                      }
+                    ]
+                  }
+                }
+              ],
+              "note": "The panel works on phones too: the sections appear in a bar across the top that you swipe left and right."
+            },
+            {
+              "id": "saving",
+              "title": "Save your changes, or undo them",
+              "goal": "This works the same in every part of the panel: make your edits, then save once.",
+              "new_page": true,
+              "steps": [
+                {
+                  "text": "Change any field. Its border [[ar]] turns lime so you can see it changed and isn't saved yet.",
+                  "shot": {
+                    "id": "text-item-dirty",
+                    "callouts": [
+                      {
+                        "key": "ar",
+                        "label": "A field that changed and isn't saved yet"
+                      }
+                    ]
+                  }
+                },
+                {
+                  "text": "A bar appears at the bottom of the screen with the number of changes [[count]]. Press [[save]] **حفظ التغييرات** (Save changes).",
+                  "shot": {
+                    "id": "savebar",
+                    "size": "small",
+                    "callouts": [
+                      {
+                        "key": "count",
+                        "label": "Unsaved changes and the section's name"
+                      },
+                      {
+                        "key": "save",
+                        "label": "**حفظ التغييرات** (Save changes) — publishes your changes"
+                      },
+                      {
+                        "key": "undo",
+                        "label": "**تراجع** (Undo) — throws away everything since the last save"
+                      }
+                    ]
+                  },
+                  "sub": [
+                    "Or press `Ctrl + S` on the keyboard (`⌘ + S` on a Mac)."
+                  ]
+                },
+                "A message *تم الحفظ — التغييرات ظاهرة الآن على الموقع* (Saved — the changes are live on the website) appears at the top, and the bar disappears.",
+                "To throw your edits away instead: press **تراجع** (Undo), then confirm *تجاهل كل التغييرات غير المحفوظة؟* (Discard all unsaved changes?)."
+              ],
+              "result": "The bar at the bottom is gone. Open the website (or refresh its page) to see the change.",
+              "warning": "If you go to another section or close the page before saving, the panel asks *لديك تغييرات غير محفوظة. المغادرة بدون حفظ؟* (You have unsaved changes. Leave without saving?). Choose **Cancel** to go back and save.",
+              "note": "If a colleague edits the same section and saves before you, you'll see *حفظ مستخدم آخر تغييرات هنا قبلك* (Another user saved changes here before you). Copy what you typed, refresh the page and enter it again — that way nobody's work is overwritten."
+            },
+            {
+              "id": "password",
+              "title": "Change your password",
+              "goal": "When you first sign in, or if you think someone else knows your password.",
+              "time": "2 min",
+              "steps": [
+                "Press **حسابي** (My account) in the menu.",
+                {
+                  "text": "Type your current password in [[current]], the new one in [[new]], the new one again in [[again]], and press [[go]] **تغيير كلمة المرور** (Change password).",
+                  "shot": {
+                    "id": "account",
+                    "callouts": [
+                      {
+                        "key": "current",
+                        "label": "**كلمة المرور الحالية** (Current password)"
+                      },
+                      {
+                        "key": "new",
+                        "label": "**كلمة المرور الجديدة** (New password) — at least 10 characters"
+                      },
+                      {
+                        "key": "again",
+                        "label": "**تأكيد كلمة المرور الجديدة** (Confirm new password) — exactly the same"
+                      },
+                      {
+                        "key": "go",
+                        "label": "**تغيير كلمة المرور** (Change password)"
+                      }
+                    ]
+                  }
+                }
+              ],
+              "result": "A message confirms the change and says your other sessions were signed out: any other device you were signed in on now asks for the new password.",
+              "tip": "A long phrase you can remember (like *morning-coffee-by-the-sea*) is stronger and easier than a short complicated word. Don't reuse your email password."
+            },
+            {
+              "id": "sign-out",
+              "title": "Sign out",
+              "goal": "When you're done, especially on a computer other people use.",
+              "steps": [
+                "Press **حسابي** (My account) in the menu.",
+                {
+                  "text": "Press [[out]] **تسجيل الخروج** (Sign out) at the bottom of the page.",
+                  "shot": {
+                    "id": "logout",
+                    "size": "small",
+                    "callouts": [
+                      {
+                        "key": "out",
+                        "label": "**تسجيل الخروج** (Sign out)"
+                      }
+                    ]
+                  }
+                }
+              ],
+              "result": "The sign-in page appears.",
+              "note": "If the panel is left unused for 12 hours you're signed out automatically and asked to sign in again."
+            }
+          ]
+        },
+        {
+          "id": "texts",
+          "title": "Texts",
+          "intro": "Every text on the website — headings, paragraphs, buttons and page titles — in Arabic and English side by side.",
+          "tasks": [
+            {
+              "id": "find-text",
+              "title": "Find the text you want to change",
+              "goal": "Before any edit: find the text by page or by searching.",
+              "overview_shot": {
+                "id": "texts",
+                "callouts": [
+                  {
+                    "key": "search",
+                    "label": "Search every text"
+                  },
+                  {
+                    "key": "chips",
+                    "label": "Pages — pick one to see only its texts"
+                  },
+                  {
+                    "key": "open",
+                    "label": "**افتح الصفحة ↗** (Open page) — opens the chosen page on the website to compare"
+                  }
+                ]
+              },
+              "steps": [
+                "Press **النصوص** (Texts) in the menu.",
+                {
+                  "text": "Pick the page with the buttons [[page]], or type a few words of the text in the search box [[search]]. Search works in Arabic and English, across all pages.",
+                  "shot": {
+                    "id": "texts-toolbar",
+                    "callouts": [
+                      {
+                        "key": "search",
+                        "label": "Type part of the text you see on the website"
+                      },
+                      {
+                        "key": "page",
+                        "label": "The page shown now (lime). The number is how many texts it has"
+                      },
+                      {
+                        "key": "shared",
+                        "label": "**مشترك بين الصفحات** (Shared) — texts on several pages, like the menu and footer"
+                      },
+                      {
+                        "key": "edited",
+                        "label": "**المعدّلة فقط** (Edited only) — shows what has been changed"
+                      }
+                    ]
+                  }
+                }
+              ],
+              "tip": "Can't find a text under its page? Search for it: texts that appear on several pages live under **مشترك بين الصفحات** (Shared).",
+              "note": "Two more groups: **عناوين الصفحات ووصف المشاركة** (Page titles & share descriptions — what Google and link previews show), and **الرسوم المتحركة والتفاعلات** (Animations & interactions — words inside the home page animations and form messages)."
+            },
+            {
+              "id": "edit-text",
+              "title": "Edit a text in Arabic and English",
+              "goal": "Change a heading, a paragraph or the words on a button.",
+              "time": "1 min",
+              "steps": [
+                {
+                  "text": "In the text's card, type the new Arabic in [[ar]] **العربية** (Arabic) and the English in [[en]] **English**.",
+                  "shot": {
+                    "id": "text-item",
+                    "callouts": [
+                      {
+                        "key": "kind",
+                        "label": "What kind of text: heading, paragraph, button…"
+                      },
+                      {
+                        "key": "where",
+                        "label": "The pages it appears on"
+                      },
+                      {
+                        "key": "ar",
+                        "label": "**العربية** (Arabic) — the text on the Arabic website"
+                      },
+                      {
+                        "key": "en",
+                        "label": "**English** — the same text on the English website"
+                      }
+                    ]
+                  },
+                  "sub": [
+                    "Changing only one language? Leave the other as it is."
+                  ]
+                },
+                "Press **حفظ التغييرات** (Save changes) in the bar at the bottom.",
+                "Press **عرض الموقع ↗** (View website) and check the text looks right. If the page was already open, refresh it (`F5`)."
+              ],
+              "result": "The new text is on the website, and its card in the panel shows the tag **معدّل** (Edited).",
+              "warning": "Shared texts (like **من نحن** — About, in the menu) change on every page at once. That's intended.",
+              "tip": "Keep roughly the original length, especially for big headings and buttons, so lines don't break awkwardly on phones."
+            },
+            {
+              "id": "restore-text",
+              "title": "Put a text back to the original",
+              "goal": "If you don't like an earlier edit and want the original wording back.",
+              "steps": [
+                "Press **المعدّلة فقط** (Edited only) to see every text that was changed.",
+                {
+                  "text": "In the text's card, press [[restore]] **استرجاع الأصل** (Restore original). The original text comes back in both boxes.",
+                  "shot": {
+                    "id": "text-item-edited",
+                    "callouts": [
+                      {
+                        "key": "badge",
+                        "label": "**معدّل** (Edited) — this text differs from the original"
+                      },
+                      {
+                        "key": "restore",
+                        "label": "**استرجاع الأصل** (Restore original)"
+                      },
+                      {
+                        "key": "original",
+                        "label": "**الأصل:** (Original) — the original Arabic and English, to compare"
+                      }
+                    ]
+                  }
+                },
+                "Press **حفظ التغييرات** (Save changes)."
+              ],
+              "result": "The **معدّل** (Edited) tag disappears and the website shows the original text again.",
+              "note": "Emptying a box completely and saving does the same: an empty box means \"use the original\"."
+            },
+            {
+              "id": "seo-text",
+              "title": "Edit a page's title and its Google / share description",
+              "goal": "The text in the browser tab, in Google results, and in the preview when someone sends a link on WhatsApp or Facebook.",
+              "steps": [
+                "In **النصوص** (Texts), press **عناوين الصفحات ووصف المشاركة** (Page titles & share descriptions).",
+                {
+                  "text": "Each card says where it's used [[kind]], e.g. *وصف الصفحة في محركات البحث* (Description in search engines) or *عنوان المشاركة* (Share title). Edit the text [[ar]] and save.",
+                  "shot": {
+                    "id": "texts-seo",
+                    "callouts": [
+                      {
+                        "key": "kind",
+                        "label": "Where this text is shown"
+                      },
+                      {
+                        "key": "ar",
+                        "label": "The Arabic text"
+                      }
+                    ]
+                  }
+                }
+              ],
+              "tip": "Keep descriptions to one or two sentences (about 160 characters) saying what the company offers. Google cuts longer ones.",
+              "note": "WhatsApp and Facebook keep an old preview for a while, so a new description may take time to show up when sharing."
+            }
+          ]
+        },
+        {
+          "id": "projects",
+          "title": "Projects",
+          "intro": "The projects on the Work page. Each project also has its own page with photos and a description.",
+          "tasks": [
+            {
+              "id": "projects-list",
+              "title": "Change the order of projects on the Work page",
+              "goal": "Bring the most important or newest projects to the top.",
+              "overview_shot": {
+                "id": "projects",
+                "callouts": [
+                  {
+                    "key": "new",
+                    "label": "**+ مشروع جديد** (New project)"
+                  },
+                  {
+                    "key": "open",
+                    "label": "**افتح صفحة الأعمال ↗** (Open Work page) — see the order on the website"
+                  },
+                  {
+                    "key": "row",
+                    "label": "A project — in the same order as on the website"
+                  }
+                ]
+              },
+              "steps": [
+                "Press **المشاريع** (Projects) in the menu.",
+                {
+                  "text": "Press [[up]] **↑** to move a project up one place, or [[down]] **↓** to move it down. Repeat until it's where you want it.",
+                  "shot": {
+                    "id": "project-row",
+                    "callouts": [
+                      {
+                        "key": "thumb",
+                        "label": "Cover photo (or the logo if there's no cover yet)"
+                      },
+                      {
+                        "key": "up",
+                        "label": "**↑** Move up"
+                      },
+                      {
+                        "key": "down",
+                        "label": "**↓** Move down"
+                      },
+                      {
+                        "key": "edit",
+                        "label": "**تعديل** (Edit) — opens the project"
+                      }
+                    ]
+                  }
+                },
+                "Press **حفظ التغييرات** (Save changes)."
+              ],
+              "result": "The project shows in its new place on the Work page; the previous/next links between projects follow the same order."
+            },
+            {
+              "id": "edit-project",
+              "title": "Edit a project's texts",
+              "goal": "Correct the client's name, the title, the description or the services.",
+              "time": "3 min",
+              "overview_shot": {
+                "id": "project-editor",
+                "callouts": [
+                  {
+                    "key": "back",
+                    "label": "**→ كل المشاريع** (All projects) — back to the list"
+                  },
+                  {
+                    "key": "view",
+                    "label": "**عرض على الموقع ↗** (View on website)"
+                  },
+                  {
+                    "key": "delete",
+                    "label": "**حذف المشروع** (Delete project)"
+                  }
+                ]
+              },
+              "steps": [
+                "In **المشاريع** (Projects), press **تعديل** (Edit) next to the project.",
+                {
+                  "text": "Change what you need in the **النصوص** (Texts) card. Every field has two boxes: **بالعربية** (Arabic) and **English**.",
+                  "shot": {
+                    "id": "editor-texts",
+                    "size": "tall",
+                    "callouts": [
+                      {
+                        "key": "client",
+                        "label": "**اسم العميل** (Client name) — shown above the title"
+                      },
+                      {
+                        "key": "title",
+                        "label": "**عنوان المشروع** (Project title)"
+                      },
+                      {
+                        "key": "summary",
+                        "label": "**وصف المشروع** (Description) — on the project page and in link previews"
+                      },
+                      {
+                        "key": "services",
+                        "label": "**الخدمات المقدّمة** (Services) — separate them with commas"
+                      }
+                    ]
+                  }
+                },
+                "Press **حفظ التغييرات** (Save changes)."
+              ],
+              "result": "The project changes on the Work page, on its own page, in the browser tab title and in link previews.",
+              "note": "Fields with a star (*) need the Arabic. If the English is left empty, the Arabic shows on the English website."
+            },
+            {
+              "id": "new-project",
+              "title": "Add a new project",
+              "goal": "When you finish new work for a client and want to show it on the Work page.",
+              "time": "10 min",
+              "new_page": true,
+              "before": [
+                "Client name and project title in Arabic and English",
+                "A short description",
+                "A cover photo and gallery photos (optional) — JPG or PNG"
+              ],
+              "steps": [
+                "In **المشاريع** (Projects), press **+ مشروع جديد** (New project). An empty project is added at the top of the list and opens.",
+                {
+                  "text": "Fill in [[client]] **اسم العميل** (Client name) and [[title]] **عنوان المشروع** (Project title) in Arabic and English, then the description and services.",
+                  "shot": {
+                    "id": "project-new",
+                    "size": "tall",
+                    "callouts": [
+                      {
+                        "key": "client",
+                        "label": "**اسم العميل** (Client name) — Arabic required (*)"
+                      },
+                      {
+                        "key": "title",
+                        "label": "**عنوان المشروع** (Project title) — Arabic required (*)"
+                      }
+                    ]
+                  }
+                },
+                {
+                  "text": "In the **التصنيف** (Category) card, pick the **القطاع** (Sector) and the year. Notice [[link]] **اسم الرابط** (Link name): it's filled in from the English name and title, and [[address]] shows the project page's address.",
+                  "shot": {
+                    "id": "project-new-link",
+                    "callouts": [
+                      {
+                        "key": "link",
+                        "label": "**اسم الرابط (بالإنجليزية)** (Link name) — lowercase English letters, numbers and - only"
+                      },
+                      {
+                        "key": "address",
+                        "label": "The project page's address on the website"
+                      }
+                    ]
+                  }
+                },
+                "Add the logo, cover photo and gallery photos — see the next tasks.",
+                "Press **حفظ التغييرات** (Save changes)."
+              ],
+              "result": "The project appears first on the Work page, under the sector you picked, and in the sitemap for search engines.",
+              "warning": "Avoid changing the **اسم الرابط** (Link name) of an existing project: links people shared earlier stop working.",
+              "tip": "Without a cover photo, the project shows a placeholder cover in its colours with its logo. Pick the two colours in the **ألوان الغلاف المؤقت** (Placeholder colours) card at the bottom."
+            },
+            {
+              "id": "project-cover",
+              "title": "Upload a cover photo",
+              "goal": "The photo on the project's card on the Work page.",
+              "steps": [
+                "Open the project (**تعديل** — Edit) and scroll to the **صورة الغلاف** (Cover photo) card.",
+                "Press **رفع صورة الغلاف** (Upload cover photo) and pick the photo, or drag it from a folder onto the dashed box.",
+                {
+                  "text": "A message says the photo is uploading, then it appears [[img]]. To replace it, press [[remove]] **إزالة** (Remove) and upload another.",
+                  "shot": {
+                    "id": "editor-cover",
+                    "callouts": [
+                      {
+                        "key": "img",
+                        "label": "The cover photo after uploading"
+                      },
+                      {
+                        "key": "remove",
+                        "label": "**إزالة** (Remove) — goes back to the placeholder cover"
+                      }
+                    ]
+                  }
+                },
+                "Press **حفظ التغييرات** (Save changes)."
+              ],
+              "result": "The photo shows on the project's card on the Work page.",
+              "tip": "Best cover: a landscape photo with the important part in the middle — the edges are trimmed a little to fill the card. The panel shrinks big photos automatically before uploading, so don't resize them yourself.",
+              "note": "Accepted: JPG, PNG and WebP, up to 8 MB per photo."
+            },
+            {
+              "id": "project-gallery",
+              "title": "Add and arrange a project's gallery photos",
+              "goal": "The large photos on the project's own page.",
+              "time": "5 min",
+              "new_page": true,
+              "steps": [
+                "Open the project and scroll to the **معرض الصور** (Gallery) card.",
+                {
+                  "text": "Press [[add]] **إضافة صور** (Add photos) and pick one or more photos (or drag them onto the box). They upload one after another.",
+                  "shot": {
+                    "id": "editor-gallery",
+                    "callouts": [
+                      {
+                        "key": "first",
+                        "label": "The first photo — shown wide at the top of the page"
+                      },
+                      {
+                        "key": "earlier",
+                        "label": "**→** Move earlier"
+                      },
+                      {
+                        "key": "del",
+                        "label": "**✕** Remove from the gallery"
+                      },
+                      {
+                        "key": "later",
+                        "label": "**←** Move later"
+                      },
+                      {
+                        "key": "add",
+                        "label": "**إضافة صور** (Add photos)"
+                      }
+                    ]
+                  }
+                },
+                "Arrange them with the **→** and **←** arrows. The panel reads right to left: the first photo is on the right. On the page it's shown wide, then two side by side, then wide again, and so on.",
+                "Press **حفظ التغييرات** (Save changes)."
+              ],
+              "result": "The photos appear on the project page in the order you chose.",
+              "note": "Until a project has real photos, its page shows placeholder images in its colours with its logo."
+            },
+            {
+              "id": "project-logo",
+              "title": "Choose the client's logo",
+              "goal": "The logo on the project page and on the placeholder cover.",
+              "new_page": true,
+              "steps": [
+                {
+                  "text": "In the **الشعار** (Logo) card, press [[pick]] **اختيار من شعارات الشركاء** (Choose from partner logos) if the client's logo is already in the partners puzzle, or [[upload]] **رفع شعار جديد** (Upload new logo) to upload a file.",
+                  "shot": {
+                    "id": "editor-logo",
+                    "callouts": [
+                      {
+                        "key": "logo",
+                        "label": "The current logo"
+                      },
+                      {
+                        "key": "pick",
+                        "label": "**اختيار من شعارات الشركاء** (Choose from partner logos)"
+                      },
+                      {
+                        "key": "upload",
+                        "label": "**رفع شعار جديد** (Upload new logo)"
+                      }
+                    ]
+                  }
+                },
+                {
+                  "text": "In the window, press the logo you want [[grid]]. The window closes and the logo appears in the card. To close without choosing, press **إغلاق** (Close) at the bottom.",
+                  "shot": {
+                    "id": "logo-picker",
+                    "callouts": [
+                      {
+                        "key": "grid",
+                        "label": "Press any logo to choose it"
+                      }
+                    ]
+                  }
+                },
+                "Press **حفظ التغييرات** (Save changes)."
+              ],
+              "result": "The new logo shows on the project page."
+            },
+            {
+              "id": "delete-project",
+              "title": "Delete a project",
+              "goal": "Remove a project you no longer want to show.",
+              "steps": [
+                "Open the project (**تعديل** — Edit).",
+                "Press **حذف المشروع** (Delete project) at the top, then confirm the message asking whether to delete it (you can still undo before saving).",
+                "You're back in the project list without it. Press **حفظ التغييرات** (Save changes) to complete the deletion — or **تراجع** (Undo) if you changed your mind."
+              ],
+              "result": "The project disappears from the Work page, and its page link shows *Project not found*.",
+              "danger": "After **حفظ التغييرات** (Save changes) a deleted project can't be brought back from the panel. If you might want it again, copy its texts somewhere first."
+            },
+            {
+              "id": "sectors",
+              "title": "Rename the sectors",
+              "goal": "The filter buttons at the top of the Work page (e.g. *International & development*) and the sector shown on each project page.",
+              "steps": [
+                "In **المشاريع** (Projects), scroll to the **أسماء القطاعات** (Sector names) card.",
+                {
+                  "text": "Change the Arabic [[ar]] and English names, then press **حفظ التغييرات** (Save changes).",
+                  "shot": {
+                    "id": "sectors",
+                    "callouts": [
+                      {
+                        "key": "ar",
+                        "label": "The sector's Arabic name"
+                      }
+                    ]
+                  }
+                }
+              ],
+              "note": "There are always three sectors; you can rename them but not add more. To move a project to another sector, change **القطاع** (Sector) on the project's page."
+            }
+          ]
+        },
+        {
+          "id": "partners",
+          "title": "Partner logos",
+          "intro": "The logos that come together in the \"Partners in success\" puzzle on the home page.",
+          "tasks": [
+            {
+              "id": "add-logos",
+              "title": "Add new logos",
+              "goal": "When you start working with a new client whose logo you want to show.",
+              "before": [
+                "The logo file — ideally a PNG with a transparent background"
+              ],
+              "overview_shot": {
+                "id": "partners",
+                "callouts": [
+                  {
+                    "key": "info",
+                    "label": "Number of logos and the current puzzle size"
+                  },
+                  {
+                    "key": "tile",
+                    "label": "A logo — in the order it goes into the puzzle"
+                  },
+                  {
+                    "key": "open",
+                    "label": "**افتح الصفحة الرئيسية ↗** (Open home page) — see the puzzle"
+                  }
+                ]
+              },
+              "steps": [
+                "Press **شعارات الشركاء** (Partner logos) in the menu and scroll to the end of the page.",
+                {
+                  "text": "Press [[add]] **إضافة شعارات** (Add logos) and pick one or more files, or drag them onto the box.",
+                  "shot": {
+                    "id": "partners-add",
+                    "size": "small",
+                    "callouts": [
+                      {
+                        "key": "add",
+                        "label": "**إضافة شعارات** (Add logos)"
+                      }
+                    ]
+                  }
+                },
+                "Each logo appears at the end of the list with its file name as its name. Correct the name if needed.",
+                "Press **حفظ التغييرات** (Save changes)."
+              ],
+              "result": "The logo appears in the \"Partners in success\" puzzle on the home page.",
+              "tip": "The puzzle resizes itself: up to 24 logos → 5×5, up to 48 → 7×7, up to 80 → 9×9. Any pieces without a logo show as plain white.",
+              "note": "Each logo sits on a white piece, so an all-white logo won't show — use the coloured or dark version."
+            },
+            {
+              "id": "order-logos",
+              "title": "Name and arrange the logos",
+              "goal": "Bring the most important partners forward and give each its name.",
+              "steps": [
+                {
+                  "text": "In the logo's card, type the partner's name in [[name]]. Use [[earlier]] **→** to move it earlier and [[later]] **←** to move it later.",
+                  "shot": {
+                    "id": "partner-tile",
+                    "size": "small",
+                    "callouts": [
+                      {
+                        "key": "num",
+                        "label": "Its position"
+                      },
+                      {
+                        "key": "name",
+                        "label": "**اسم الشريك (اختياري)** (Partner name, optional) — shown when the mouse is over the logo in the puzzle"
+                      },
+                      {
+                        "key": "earlier",
+                        "label": "**→** Move earlier"
+                      },
+                      {
+                        "key": "del",
+                        "label": "**✕** Remove"
+                      },
+                      {
+                        "key": "later",
+                        "label": "**←** Move later"
+                      }
+                    ]
+                  }
+                },
+                "Press **حفظ التغييرات** (Save changes)."
+              ],
+              "result": "The logos appear in the new order in the puzzle, and a partner's name shows when the mouse is over its logo."
+            },
+            {
+              "id": "remove-logo",
+              "title": "Remove a logo",
+              "goal": "Take a partner's logo out of the puzzle.",
+              "steps": [
+                "Press **✕** in the logo's card. It disappears from the list straight away.",
+                "Press **حفظ التغييرات** (Save changes)."
+              ],
+              "result": "The logo is gone from the puzzle and the rest come together again.",
+              "warning": "If a project uses this logo, it stays on that project's page. Change the project's logo there if needed."
+            }
+          ]
+        },
+        {
+          "id": "contact",
+          "title": "Contact & links",
+          "intro": "Phone numbers, email and social accounts. They appear in every page's footer and on the Contact page.",
+          "tasks": [
+            {
+              "id": "contact-details",
+              "title": "Add the phone, WhatsApp and email",
+              "goal": "So visitors can call or message you with one tap.",
+              "time": "2 min",
+              "steps": [
+                "Press **التواصل والروابط** (Contact & links) in the menu.",
+                {
+                  "text": "Type the number in [[phone]] **رقم الهاتف** (Phone) and the WhatsApp number in [[wa]] **رقم واتساب** (WhatsApp), with the country code (e.g. `+971 50 123 4567`), and the email in [[email]].",
+                  "shot": {
+                    "id": "contact",
+                    "callouts": [
+                      {
+                        "key": "phone",
+                        "label": "**رقم الهاتف** (Phone) — starts with + and the country code"
+                      },
+                      {
+                        "key": "wa",
+                        "label": "**رقم واتساب** (WhatsApp) — the WhatsApp button opens a chat directly"
+                      },
+                      {
+                        "key": "email",
+                        "label": "**البريد الإلكتروني** (Email)"
+                      },
+                      {
+                        "key": "site",
+                        "label": "**الموقع** (Website) — your website address"
+                      }
+                    ]
+                  }
+                },
+                "Press **حفظ التغييرات** (Save changes)."
+              ],
+              "result": "The numbers and email appear on the Contact page and in every page's footer, all tappable.",
+              "tip": "Open the Contact page on your phone and tap **واتساب** (WhatsApp) to check it opens a chat with the right number."
+            },
+            {
+              "id": "socials",
+              "title": "Add links to your social media accounts",
+              "goal": "LinkedIn, Instagram, X and Facebook links on the website.",
+              "steps": [
+                "Open your account on that platform in the browser and copy the address from the address bar.",
+                {
+                  "text": "Paste it in its box, e.g. [[li]] **LinkedIn**. It must start with `https://`.",
+                  "shot": {
+                    "id": "socials",
+                    "callouts": [
+                      {
+                        "key": "li",
+                        "label": "**LinkedIn** — e.g. https://www.linkedin.com/company/…"
+                      },
+                      {
+                        "key": "x",
+                        "label": "An empty box — the website keeps showing \"coming soon\" for it"
+                      }
+                    ]
+                  }
+                },
+                "Press **حفظ التغييرات** (Save changes)."
+              ],
+              "result": "The social icons in the website's footer and on the Contact page work and open the account in a new tab."
+            },
+            {
+              "id": "contact-result",
+              "title": "Check the result on the website",
+              "goal": "After every change to the contact details.",
+              "steps": [
+                "Press **افتح صفحة التواصل ↗** (Open Contact page) at the top.",
+                {
+                  "text": "Check the number [[phone]], that the [[wa]] **واتساب** (WhatsApp) button works, and that the social icons [[socials]] open the right pages.",
+                  "shot": {
+                    "id": "site-contact",
+                    "callouts": [
+                      {
+                        "key": "phone",
+                        "label": "The number — tap it to call"
+                      },
+                      {
+                        "key": "wa",
+                        "label": "**واتساب** (WhatsApp) button"
+                      },
+                      {
+                        "key": "socials",
+                        "label": "Social icons"
+                      }
+                    ]
+                  }
+                }
+              ],
+              "note": "To hide any detail or link: empty its box and save. The website goes back to showing \"coming soon\" in its place."
+            }
+          ]
+        },
+        {
+          "id": "messages",
+          "title": "Messages",
+          "intro": "Every message a visitor sends from the \"Contact us\" form arrives here, newest first.",
+          "tasks": [
+            {
+              "id": "read-messages",
+              "title": "Read new messages",
+              "goal": "Follow up new client requests every day.",
+              "overview_shot": {
+                "id": "messages",
+                "callouts": [
+                  {
+                    "key": "badge",
+                    "label": "Number of unread messages"
+                  },
+                  {
+                    "key": "filter",
+                    "label": "**الكل** (All) / **غير المقروءة** (Unread)"
+                  },
+                  {
+                    "key": "unread",
+                    "label": "A new message — lime dot and name in bold"
+                  },
+                  {
+                    "key": "read",
+                    "label": "A message already read"
+                  }
+                ]
+              },
+              "steps": [
+                "Press **الرسائل** (Messages) in the menu. The red number next to it is how many are new.",
+                "Press **غير المقروءة** (Unread) to see only the new ones.",
+                "Press the sender's name to open the message. It's marked as read automatically."
+              ],
+              "result": "The lime dot disappears and the red number goes down."
+            },
+            {
+              "id": "reply-message",
+              "title": "Reply to a message, or delete it",
+              "goal": "After reading a client's request.",
+              "steps": [
+                {
+                  "text": "An open message shows the sender's email [[email]], phone and company, the services they picked [[services]], then their message.",
+                  "shot": {
+                    "id": "message-open",
+                    "callouts": [
+                      {
+                        "key": "email",
+                        "label": "Email — press it to write to them"
+                      },
+                      {
+                        "key": "services",
+                        "label": "**القطع المطلوبة** (Requested services) — what they picked in the form"
+                      },
+                      {
+                        "key": "reply",
+                        "label": "**رد بالبريد** (Reply by email)"
+                      },
+                      {
+                        "key": "unread",
+                        "label": "**تعليم كغير مقروءة** (Mark as unread) — to come back to it"
+                      },
+                      {
+                        "key": "delete",
+                        "label": "**حذف** (Delete) — permanently"
+                      }
+                    ]
+                  }
+                },
+                "Press **رد بالبريد** (Reply by email). Your email program opens with a message to the client ready to write.",
+                "To remember to come back to it, press **تعليم كغير مقروءة** (Mark as unread).",
+                "To delete a message (spam, for example), press **حذف** (Delete) and confirm."
+              ],
+              "danger": "A deleted message can't be brought back. Only delete messages you no longer need.",
+              "note": "The form blocks automated spam and accepts at most 5 messages from the same visitor every 10 minutes."
+            }
+          ]
+        }
+      ]
+    }
+  ],
+  "quick_reference": [
+    {
+      "group": "Every day"
+    },
+    {
+      "action": "Sign in",
+      "how": "`www.puzzlexmedia.com/admin` → **اسم المستخدم** (Username) and **كلمة المرور** (Password) → **دخول** (Sign in)"
+    },
+    {
+      "action": "Read new messages",
+      "how": "**الرسائل** (Messages) → **غير المقروءة** (Unread) → press the sender's name"
+    },
+    {
+      "action": "Reply to a client",
+      "how": "Open the message → **رد بالبريد** (Reply by email)"
+    },
+    {
+      "action": "Save any change",
+      "how": "**حفظ التغييرات** (Save changes) in the bottom bar, or `Ctrl + S`"
+    },
+    {
+      "action": "Throw edits away",
+      "how": "**تراجع** (Undo) in the bottom bar"
+    },
+    {
+      "group": "Texts"
+    },
+    {
+      "action": "Edit a text",
+      "how": "**النصوص** (Texts) → pick the page or search → type → **حفظ التغييرات** (Save changes)"
+    },
+    {
+      "action": "Restore an original text",
+      "how": "**النصوص** → **المعدّلة فقط** (Edited only) → **استرجاع الأصل** (Restore original) → save"
+    },
+    {
+      "action": "Edit Google / share descriptions",
+      "how": "**النصوص** → **عناوين الصفحات ووصف المشاركة** (Page titles & share descriptions)"
+    },
+    {
+      "group": "Projects"
+    },
+    {
+      "action": "Add a project",
+      "how": "**المشاريع** (Projects) → **+ مشروع جديد** (New project) → fill in → save"
+    },
+    {
+      "action": "Upload a cover photo",
+      "how": "**المشاريع** → **تعديل** (Edit) → **رفع صورة الغلاف** (Upload cover photo)"
+    },
+    {
+      "action": "Add gallery photos",
+      "how": "**المشاريع** → **تعديل** → **معرض الصور** (Gallery) → **إضافة صور** (Add photos)"
+    },
+    {
+      "action": "Reorder projects",
+      "how": "**المشاريع** → **↑** / **↓** → save"
+    },
+    {
+      "action": "Delete a project",
+      "how": "**المشاريع** → **تعديل** → **حذف المشروع** (Delete project) → save"
+    },
+    {
+      "group": "Logos & contact"
+    },
+    {
+      "action": "Add a partner logo",
+      "how": "**شعارات الشركاء** (Partner logos) → **إضافة شعارات** (Add logos) → save"
+    },
+    {
+      "action": "Change phone or WhatsApp",
+      "how": "**التواصل والروابط** (Contact & links) → **رقم الهاتف** / **رقم واتساب** → save"
+    },
+    {
+      "action": "Add a social link",
+      "how": "**التواصل والروابط** → paste the link → save"
+    },
+    {
+      "group": "Account"
+    },
+    {
+      "action": "Change your password",
+      "how": "**حسابي** (My account) → **تغيير كلمة المرور** (Change password)"
+    },
+    {
+      "action": "Sign out",
+      "how": "**حسابي** → **تسجيل الخروج** (Sign out)"
+    }
+  ],
+  "faq": [
+    {
+      "q": "When does my change appear on the website?",
+      "a": "As soon as you press **حفظ التغييرات** (Save changes). If the website page is already open, refresh it (`F5`)."
+    },
+    {
+      "q": "I saved a wrong text by mistake. Can I undo it?",
+      "a": "Yes. In **النصوص** (Texts) press **المعدّلة فقط** (Edited only), then **استرجاع الأصل** (Restore original) on the text, then save."
+    },
+    {
+      "q": "Can my colleague and I work in the panel at the same time?",
+      "a": "Yes. If your colleague saves the same section before you, you'll see a message that another user saved first. Copy what you typed, refresh the page, enter it again and save — nobody's work gets overwritten."
+    },
+    {
+      "q": "Can I use the panel on my phone?",
+      "a": "Yes. The sections show in a bar across the top that you swipe. Uploading photos from the phone (camera or gallery) works too."
+    },
+    {
+      "q": "What size should photos be?",
+      "a": "Upload them as they are: the panel shrinks them and converts them to a lighter format automatically. They just need to be sharp, JPG, PNG or WebP, and under 8 MB."
+    },
+    {
+      "q": "I forgot my password. What do I do?",
+      "a": "Ask your colleague or your technical contact to reset it. You'll get a new password; change it in **حسابي** (My account) after signing in."
+    },
+    {
+      "q": "Why doesn't my change show in the WhatsApp link preview?",
+      "a": "WhatsApp and Facebook keep the old preview for a while. The website itself changes straight away; the preview catches up later."
+    },
+    {
+      "q": "Do new messages arrive by email too?",
+      "a": "The panel always keeps every message. Sending a copy by email needs a one-time setup by your technical contact."
+    },
+    {
+      "q": "Why does Arabic text show on the English website?",
+      "a": "Because the English box for that field is empty. Type the translation in the **English** box and save."
+    },
+    {
+      "q": "Can we add a fourth project sector?",
+      "a": "Not from the panel: there are always three sectors, which you can rename. To add one, contact your technical contact."
+    }
+  ],
+  "troubleshooting": [
+    {
+      "problem": "*اسم المستخدم أو كلمة المرور غير صحيحة* (Wrong username or password)",
+      "cause": "A typo, the keyboard set to Arabic, or Caps Lock on.",
+      "fix": "Switch the keyboard to English and type again carefully."
+    },
+    {
+      "problem": "*محاولات كثيرة — انتظر 15 دقيقة* (Too many attempts — wait 15 minutes)",
+      "cause": "8 wrong sign-in attempts within 15 minutes.",
+      "fix": "Wait 15 minutes, then try once, carefully."
+    },
+    {
+      "problem": "*سجّل الدخول أولًا* (Sign in first), or the sign-in page appears suddenly",
+      "cause": "The session ended (12 hours unused), or the password was changed on another device.",
+      "fix": "Sign in again. Unsaved changes are lost — save as you go."
+    },
+    {
+      "problem": "*حفظ مستخدم آخر تغييرات هنا قبلك…* (Another user saved here before you)",
+      "cause": "Your colleague saved the same section after you opened it.",
+      "fix": "Copy what you typed, refresh the page (`F5`), enter it again and save."
+    },
+    {
+      "problem": "*الصور بصيغة JPG أو PNG أو WebP فقط* (Only JPG, PNG or WebP)",
+      "cause": "The file is another format (PDF, HEIC, SVG…).",
+      "fix": "Save the image as JPG or PNG, then upload. iPhone photos: export as JPG."
+    },
+    {
+      "problem": "*… أكبر من 8 ميغابايت* (Larger than 8 MB)",
+      "cause": "The file is too big.",
+      "fix": "Export the image at lower quality or smaller size, then upload."
+    },
+    {
+      "problem": "*… يجب أن يبدأ الرابط بـ* `https://` (Link must start with https://)",
+      "cause": "The link is incomplete or wrongly copied.",
+      "fix": "Copy the whole address from the browser's address bar, including `https://`."
+    },
+    {
+      "problem": "*… النص العربي مطلوب* (Arabic text required)",
+      "cause": "A required field (*) is empty in one of the projects.",
+      "fix": "The message names the project number and field. Open it and fill in the Arabic."
+    },
+    {
+      "problem": "*… اسم الرابط بحروف إنجليزية صغيرة…* (Link name: lowercase letters…) or *مستخدم لمشروع آخر* (used by another project)",
+      "cause": "The **اسم الرابط** (Link name) has spaces or Arabic letters, or is already taken.",
+      "fix": "Use only lowercase English letters, numbers and dashes, like `al-waha-bakery`, and a name not used yet."
+    },
+    {
+      "problem": "*الهاتف: أرقام ومسافات و + ( ) - فقط* (Phone: digits only)",
+      "cause": "The number contains letters or other symbols.",
+      "fix": "Type digits only with the country code, like `+971 50 123 4567`."
+    },
+    {
+      "problem": "Saved, but the website didn't change",
+      "cause": "The open website page is out of date.",
+      "fix": "Refresh the page (`F5`, or pull down on a phone)."
+    },
+    {
+      "problem": "*تعذّر الاتصال بالخادم* (Can't reach the server)",
+      "cause": "The internet connection dropped.",
+      "fix": "Don't close the page: wait for the connection, then press **حفظ التغييرات** (Save changes) again."
+    }
+  ],
+  "glossary": [
+    {
+      "term": "Admin panel",
+      "definition": "Your team's private site for editing the public website: `www.puzzlexmedia.com/admin`."
+    },
+    {
+      "term": "Save changes (حفظ التغييرات)",
+      "definition": "The button that publishes your edits. Nothing changes on the website before it."
+    },
+    {
+      "term": "Undo (تراجع)",
+      "definition": "Throws away everything since the last save; the website doesn't change."
+    },
+    {
+      "term": "Shared text",
+      "definition": "A text that appears on several pages (like the menu links). Editing it once changes it everywhere."
+    },
+    {
+      "term": "Edited (معدّل)",
+      "definition": "Tag on a text that differs from the website's original wording."
+    },
+    {
+      "term": "Restore original (استرجاع الأصل)",
+      "definition": "Puts an edited text back to its original wording."
+    },
+    {
+      "term": "Share description",
+      "definition": "The title and description shown when the website's link is sent on WhatsApp or Facebook, and in Google results."
+    },
+    {
+      "term": "Sector (القطاع)",
+      "definition": "A project's category (International & development, Education & research, Brands) — the filter buttons on the Work page."
+    },
+    {
+      "term": "Link name (اسم الرابط)",
+      "definition": "The English part of a project page's address, like `coffee-021` in `project.html?id=coffee-021`."
+    },
+    {
+      "term": "Cover photo",
+      "definition": "The project's photo on its card on the Work page."
+    },
+    {
+      "term": "Gallery",
+      "definition": "The large photos on the project's own page."
+    },
+    {
+      "term": "Placeholder cover",
+      "definition": "A cover in the project's colours with its logo, shown automatically until real photos are uploaded."
+    },
+    {
+      "term": "Partners puzzle",
+      "definition": "The \"Partners in success\" section on the home page, where the logos come together as a puzzle."
+    },
+    {
+      "term": "Unread message",
+      "definition": "A new message nobody has opened yet; it has a lime dot."
+    }
+  ],
+  "support": {
+    "title": "Need help?",
+    "text": "If what you see doesn't match this guide, you forgot your password, or you need a new section in the panel, contact:",
+    "contacts": [
+      {
+        "label": "Website contact",
+        "value": "[[to fill: name]]"
+      },
+      {
+        "label": "Phone / WhatsApp",
+        "value": "[[to fill: number]]"
+      },
+      {
+        "label": "Email",
+        "value": "[[to fill: email]]"
+      }
+    ]
+  }
+}

@@ -1,0 +1,18 @@
+{
+  "image": "text-item-dirty.png",
+  "width": 954,
+  "height": 163.1875,
+  "url": "http://localhost:5180/admin/#/texts",
+  "display_url": "www.puzzlexmedia.com/admin/#/texts",
+  "clipped": true,
+  "device": "desktop",
+  "boxes": {
+    "ar": [
+      483,
+      87.2,
+      444,
+      49
+    ]
+  },
+  "captured": "2026-10-17 11:16"
+}

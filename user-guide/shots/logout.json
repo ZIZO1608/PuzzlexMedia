@@ -1,0 +1,18 @@
+{
+  "image": "logout.png",
+  "width": 954,
+  "height": 62,
+  "url": "http://localhost:5180/admin/#/account",
+  "display_url": "www.puzzlexmedia.com/admin/#/account",
+  "clipped": true,
+  "device": "desktop",
+  "boxes": {
+    "out": [
+      814,
+      10,
+      130,
+      42
+    ]
+  },
+  "captured": "2026-10-17 11:17"
+}
