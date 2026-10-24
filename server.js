@@ -16,6 +16,7 @@ const { createStore } = require('./lib/store');
 const { createAuth } = require('./lib/auth');
 const { createContent, projectsScript, PAGES } = require('./lib/content');
 const { createAdmin } = require('./lib/admin');
+const { createIndexNow } = require('./lib/indexnow');
 
 const ROOT = __dirname;
 const PORT = Number(process.argv[2] || process.env.PORT || 8080);
@@ -32,6 +33,16 @@ const store = createStore({ dataDir: DATA_DIR, root: ROOT });
 store.seed();
 const auth = createAuth({ store, secureCookies: () => process.env.COOKIE_SECURE !== '0' });
 const content = createContent({ root: ROOT, store, siteUrl: SITE_URL });
+// IndexNow (Bing & co.): on with INDEXNOW=1; see lib/indexnow.js. The signature changes when a deploy changes the pages.
+const indexNow = createIndexNow({
+  store, siteUrl: SITE_URL, urls: () => siteUrls(), enabled: process.env.INDEXNOW === '1',
+  signature: () => {
+    const h = crypto.createHash('sha1');
+    for (const page of PAGES) for (const f of [page, path.join('en', page)]) { try { h.update(fs.readFileSync(path.join(ROOT, f))); } catch { /* no such page */ } }
+    for (const name of ['texts.json', 'projects.json', 'partners.json', 'settings.json']) h.update(JSON.stringify(store.read(name, null)));
+    return h.digest('hex');
+  },
+});
 
 /* ---------- what may be served ---------- */
 const MIME = {
@@ -119,10 +130,14 @@ async function pageEntry(file) {
 
 // sitemap.xml: the pages plus every project in the admin panel, each in both languages
 let sitemap = null; // { version, entry }
+const sitePaths = () => ['', 'about.html', 'services.html', 'work.html', 'contact.html', 'privacy.html',
+  ...store.read('projects.json', { projects: [] }).projects.map((p) => `project.html?id=${encodeURIComponent(p.id)}`)];
+// every indexable address, both languages (the sitemap's <loc>s; also what IndexNow submits)
+const siteUrls = () => sitePaths().flatMap((p) => [`${SITE_URL}/${p}`, `${SITE_URL}/en/${p}`]);
+
 function sitemapEntry() {
   if (!sitemap || sitemap.version !== store.version) {
-    const paths = ['', 'about.html', 'services.html', 'work.html', 'contact.html', 'privacy.html',
-      ...store.read('projects.json', { projects: [] }).projects.map((p) => `project.html?id=${encodeURIComponent(p.id)}`)];
+    const paths = sitePaths();
     const url = (lang, p) => esc(`${SITE_URL}/${lang === 'en' ? 'en/' : ''}${p}`);
     const xml = `<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9" xmlns:xhtml="http://www.w3.org/1999/xhtml">
@@ -435,6 +450,7 @@ const server = http.createServer(async (req, res) => {
     if (p === '/projects.js') return send(req, res, 200, projectsEntry(), '.js', { 'Cache-Control': 'no-cache' });
     if (p === '/sitemap.xml') return send(req, res, 200, sitemapEntry(), '.xml', { 'Cache-Control': 'no-cache' });
     if (p === '/llms.txt') return send(req, res, 200, await llmsEntry(), '.txt', { 'Cache-Control': 'no-cache' });
+    if (indexNow.enabled && p === indexNow.keyPath) return send(req, res, 200, makeEntry(Buffer.from(indexNow.key), '.txt'), '.txt', { 'Cache-Control': 'no-cache' });
 
     // images uploaded from the admin panel
     const up = p.match(/^\/uploads\/([a-f0-9]{24}\.(webp|png|jpg))$/);

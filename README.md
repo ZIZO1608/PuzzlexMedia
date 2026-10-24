@@ -102,7 +102,9 @@ Needs only Node and Chrome. `--preview` writes a PNG per page plus `overview.png
 | Name | What it does |
 | --- | --- |
 | `SITE_URL` | Public address used in share previews and the sitemap (default `https://www.puzzlexmedia.com`) |
-| `TRUST_PROXY` | `1` behind a reverse proxy, so rate limits use the visitor's real IP |
+| `TRUST_PROXY` | `1` behind a reverse proxy, so rate limits use the visitor's real IP and HTTPS is recognised (HSTS) |
+| `INDEXNOW` | `1` on the live site only: submit changed pages to Bing & co. (see "Search engines and AI assistants") |
+| `CSP_ENFORCE` | `1` to enforce the Content-Security-Policy instead of only reporting |
 | `CONTACT_TO` | Where contact messages are emailed |
 | `SMTP_HOST`, `SMTP_PORT`, `SMTP_SECURE`, `SMTP_USER`, `SMTP_PASS`, `SMTP_FROM` | Your mail provider's SMTP details |
 
@@ -134,6 +136,10 @@ Most crawlers, and nearly all AI crawlers, don't run JavaScript, so the server p
 - `/llms.txt`: the company, services, projects and contact details as plain text for AI assistants, built from the
   live content (so it updates with the admin panel)
 
+- IndexNow (`lib/indexnow.js`, on with `INDEXNOW=1`): every page is submitted to Bing / Yandex / Naver / Seznam / Yep a
+  minute after an admin-panel save, and once after a deploy that changed the pages. The key is made on first start,
+  kept in `DATA_DIR/indexnow.json`, and served at `/<key>.txt`; submissions are logged as `[indexnow] …` lines
+
 Titles and descriptions are ordinary texts: edit them in the admin panel (Texts → «عناوين الصفحات ووصف المشاركة»).
 
 ## Run locally
@@ -157,7 +163,7 @@ projects.js           project data (Arabic + English); also read by the server
 loader.js, cursor.js, theme.js
 privacy.html          privacy policy (linked from the form and every footer)
 assets/               icon, fonts, partner logos (WebP), share image, vendor/ (GSAP)
-server.js             the web server (lib/: content, SEO, admin API, sign-in, storage)
+server.js             the web server (lib/: content, SEO, IndexNow, admin API, sign-in, storage)
 admin/                the admin panel (/admin)
 tools/admin-user.js   add / reset / remove admin users
 Dockerfile, docker-compose.yml, .env.example
