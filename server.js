@@ -31,7 +31,7 @@ const TRUST_PROXY = process.env.TRUST_PROXY === '1';
 const store = createStore({ dataDir: DATA_DIR, root: ROOT });
 store.seed();
 const auth = createAuth({ store, secureCookies: () => process.env.COOKIE_SECURE !== '0' });
-const content = createContent({ root: ROOT, store });
+const content = createContent({ root: ROOT, store, siteUrl: SITE_URL });
 
 /* ---------- what may be served ---------- */
 const MIME = {
@@ -51,6 +51,26 @@ const SECURITY_HEADERS = {
   'X-Frame-Options': 'SAMEORIGIN',
   'Permissions-Policy': 'camera=(), microphone=(), geolocation=()',
 };
+// HTTPS only from now on, for this host alone (no includeSubDomains / preload: those need every subdomain checked first)
+const HSTS = 'max-age=31536000';
+// Content-Security-Policy, sent as Report-Only until CSP_ENFORCE=1: browsers report what it would block
+// (to /api/csp-report, logged) without blocking it. Inline scripts are allowed by their hash, worked out per page.
+const CSP_HEADER = process.env.CSP_ENFORCE === '1' ? 'Content-Security-Policy' : 'Content-Security-Policy-Report-Only';
+const cspFor = (hashes) => [
+  "default-src 'self'",
+  `script-src 'self'${hashes.map((h) => ` 'sha256-${h}'`).join('')}`,
+  "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com", // style="" attributes and the animations' inline styles
+  "font-src 'self' https://fonts.gstatic.com",
+  "img-src 'self' data: blob:",
+  "connect-src 'self'",
+  "object-src 'none'",
+  "base-uri 'self'",
+  "form-action 'self'",
+  "frame-ancestors 'self'",
+  'report-uri /api/csp-report',
+].join('; ');
+const inlineScriptHashes = (html) => [...html.matchAll(/<script(?![^>]*\ssrc=)[^>]*>([\s\S]*?)<\/script>/gi)]
+  .map((m) => crypto.createHash('sha256').update(m[1], 'utf8').digest('base64'));
 
 /* ---------- static files (read once, kept compressed in memory) ---------- */
 const cache = new Map(); // abs path → { mtimeMs, body, gzip, br, etag }
@@ -72,6 +92,7 @@ async function load(file) {
 
 function makeEntry(body, ext) {
   const entry = { body, etag: `"${crypto.createHash('sha1').update(body).digest('base64url').slice(0, 20)}"` };
+  if (ext === '.html') entry.csp = cspFor(inlineScriptHashes(body.toString('utf8')));
   if (COMPRESSIBLE.has(ext) && body.length > 1024) {
     entry.br = zlib.brotliCompressSync(body, { params: { [zlib.constants.BROTLI_PARAM_QUALITY]: 9 } });
     entry.gzip = zlib.gzipSync(body, { level: 9 });
@@ -100,7 +121,7 @@ async function pageEntry(file) {
 let sitemap = null; // { version, entry }
 function sitemapEntry() {
   if (!sitemap || sitemap.version !== store.version) {
-    const paths = ['', 'about.html', 'services.html', 'work.html', 'contact.html',
+    const paths = ['', 'about.html', 'services.html', 'work.html', 'contact.html', 'privacy.html',
       ...store.read('projects.json', { projects: [] }).projects.map((p) => `project.html?id=${encodeURIComponent(p.id)}`)];
     const url = (lang, p) => esc(`${SITE_URL}/${lang === 'en' ? 'en/' : ''}${p}`);
     const xml = `<?xml version="1.0" encoding="UTF-8"?>
@@ -109,12 +130,29 @@ ${paths.flatMap((p) => ['ar', 'en'].map((lang) => `  <url>
     <loc>${url(lang, p)}</loc>
     <xhtml:link rel="alternate" hreflang="ar" href="${url('ar', p)}"/>
     <xhtml:link rel="alternate" hreflang="en" href="${url('en', p)}"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="${url('ar', p)}"/>
   </url>`)).join('\n')}
 </urlset>
 `;
     sitemap = { version: store.version, entry: makeEntry(Buffer.from(xml), '.xml') };
   }
   return sitemap.entry;
+}
+
+// llms.txt: the company in plain text for AI assistants, from the live services pages, projects and contact details
+let llms = null; // { key, entry }
+async function llmsEntry() {
+  const [ar, en] = await Promise.all([pageEntry(path.join(ROOT, 'services.html')), pageEntry(path.join(ROOT, 'en', 'services.html'))]);
+  const key = `${ar.etag}|${en.etag}|${store.version}`;
+  if (!llms || llms.key !== key) {
+    const txt = content.seo.llmsTxt({
+      settings: store.read('settings.json', {}),
+      projects: store.read('projects.json', { sectors: {}, projects: [] }),
+      services: { ar: content.seo.servicesFrom(ar.body.toString('utf8')), en: content.seo.servicesFrom(en.body.toString('utf8')) },
+    });
+    llms = { key, entry: makeEntry(Buffer.from(txt), '.txt') };
+  }
+  return llms.entry;
 }
 
 let projectsJs = null; // { version, entry }
@@ -145,6 +183,7 @@ function resolve(urlPath) {
 
 function send(req, res, status, entry, ext, headers = {}) {
   const h = { ...SECURITY_HEADERS, 'Content-Type': MIME[ext], ETag: entry.etag, Vary: 'Accept-Encoding', ...headers };
+  if (entry.csp) h[CSP_HEADER] = entry.csp;
   if (status === 200 && req.headers['if-none-match'] === entry.etag) { res.writeHead(304, h); return res.end(); }
   const accept = req.headers['accept-encoding'] || '';
   let body = entry.body;
@@ -166,12 +205,27 @@ function cacheControl(ext, query) {
 const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
 
 function projectPage(html, id, en) {
-  const p = store.read('projects.json', { projects: [] }).projects.find((x) => x.id === id);
+  const data = store.read('projects.json', { sectors: {}, projects: [] });
+  const p = data.projects.find((x) => x.id === id);
   if (!p) return null;
+  // the project's text in the HTML itself, plus its schema.org data (lib/seo.js)
+  html = content.seo.projectPage(html, p, en ? 'en' : 'ar', data, store.read('settings.json', {}));
   const pick = (v) => (en ? v.en || v.ar : v.ar);
   const title = `${pick(p.title)} — ${pick(p.client)} | PuzzleX Media`;
   const summary = pick(p.summary);
-  const url = `${SITE_URL}/${en ? 'en/' : ''}project.html?id=${encodeURIComponent(p.id)}`;
+  const page = (lang) => `${SITE_URL}/${lang === 'en' ? 'en/' : ''}project.html?id=${encodeURIComponent(p.id)}`;
+  const url = page(en ? 'en' : 'ar');
+  // the project's own cover as its share image, once one is uploaded
+  const image = /^\/?(uploads|assets)\/[\w./-]+$/.test(p.cover || '') ? `${SITE_URL}/${p.cover.replace(/^\//, '')}` : null;
+  html = html
+    .replace(/(<link rel="canonical" href=")[^"]*"/, `$1${esc(url)}"`)
+    .replace(/(<link rel="alternate" hreflang="ar" href=")[^"]*"/, `$1${esc(page('ar'))}"`)
+    .replace(/(<link rel="alternate" hreflang="en" href=")[^"]*"/, `$1${esc(page('en'))}"`);
+  if (image) {
+    html = html
+      .replace(/(<meta property="og:image" content=")[^"]*"/, `$1${esc(image)}"`)
+      .replace(/\s*<meta property="og:image:(?:width|height)" content="[^"]*">/g, '');
+  }
   return html
     .replace(/<title>[^<]*<\/title>/, `<title>${esc(title)}</title>`)
     .replace(/(<meta name="description" content=")[^"]*"/, `$1${esc(summary)}"`)
@@ -194,9 +248,12 @@ const LIMITS = { name: 120, company: 160, email: 200, phone: 40, message: 5000 }
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 const PHONE_RE = /^\+?[\d\s()-]{7,20}$/;
 
+// Arabic-Indic (٠–٩) and Persian (۰–۹) digits → 0–9, so a number typed on an Arabic keyboard passes and is saved readable
+const latinDigits = (s) => s.replace(/[٠-٩۰-۹]/g, (d) => String(d.charCodeAt(0) & 0xf));
+
 function validate(b) {
   const str = (k) => (typeof b[k] === 'string' ? b[k].trim().slice(0, LIMITS[k]) : '');
-  const m = { name: str('name'), company: str('company'), email: str('email'), phone: str('phone'), message: str('message') };
+  const m = { name: str('name'), company: str('company'), email: str('email'), phone: latinDigits(str('phone')), message: str('message') };
   m.services = Array.isArray(b.services) ? [...new Set(b.services.filter((s) => typeof s === 'string' && SERVICES[s]))] : [];
   m.lang = b.lang === 'en' ? 'en' : 'ar';
   const ok = m.name.length >= 2 && EMAIL_RE.test(m.email) && (!m.phone || PHONE_RE.test(m.phone))
@@ -296,7 +353,38 @@ async function handleContact(req, res) {
   json(res, 200, { ok: true });
 }
 
+/* ---------- CSP reports: what the policy would block, written to the log while it is Report-Only ---------- */
+let cspReports = 0;
+setInterval(() => { cspReports = 0; }, 60 * 60 * 1000).unref();
+async function handleCspReport(req, res) {
+  if (req.method !== 'POST') { res.setHeader('Allow', 'POST'); return json(res, 405, { ok: false }); }
+  let raw;
+  try { raw = await readBody(req, 8 * 1024); } catch { return json(res, 413, { ok: false }); }
+  // at most 100 lines an hour, whatever anyone sends
+  if (++cspReports <= 100) {
+    let r = {};
+    try { r = JSON.parse(raw.toString('utf8'))['csp-report'] || {}; } catch { /* not a report */ }
+    const field = (k) => String(r[k] || '').replace(/[\r\n]/g, ' ').slice(0, 300);
+    console.warn(`[csp] ${field('violated-directive')} blocked ${field('blocked-uri')} on ${field('document-uri')}`);
+  }
+  res.writeHead(204, SECURITY_HEADERS);
+  res.end();
+}
+
 /* ---------- routing ---------- */
+const SITE_HOST = new URL(SITE_URL).host.toLowerCase();
+
+function redirect(res, location) {
+  res.writeHead(301, { ...SECURITY_HEADERS, Location: location });
+  res.end();
+}
+
+// behind a proxy the visitor's protocol arrives in X-Forwarded-Proto
+function isHttps(req) {
+  if (req.socket.encrypted) return true;
+  return TRUST_PROXY && String(req.headers['x-forwarded-proto'] || '').split(',')[0].trim().toLowerCase() === 'https';
+}
+
 async function notFound(req, res, urlPath) {
   const en = urlPath === '/en' || urlPath.startsWith('/en/');
   const file = path.join(ROOT, en ? 'en' : '', '404.html');
@@ -321,8 +409,10 @@ const server = http.createServer(async (req, res) => {
   try {
     const url = new URL(req.url, 'http://localhost');
     const p = url.pathname;
+    if (isHttps(req)) res.setHeader('Strict-Transport-Security', HSTS);
 
     if (p === '/healthz' || p === '/health') return json(res, 200, { ok: true });
+    if (p === '/api/csp-report') return await handleCspReport(req, res);
     if (p === '/api/contact') {
       if (req.method !== 'POST') { res.setHeader('Allow', 'POST'); return json(res, 405, { ok: false }); }
       return await handleContact(req, res);
@@ -330,13 +420,21 @@ const server = http.createServer(async (req, res) => {
     if (p.startsWith('/api/admin/')) return await admin(req, res, p);
     if (req.method !== 'GET' && req.method !== 'HEAD') { res.setHeader('Allow', 'GET, HEAD'); return json(res, 405, { ok: false }); }
 
+    // one address per page, so search engines don't see the same page several times:
+    // puzzlexmedia.com → www.puzzlexmedia.com, /index.html → /, /about → /about.html
+    const host = String(req.headers.host || '').toLowerCase().replace(/:\d+$/, '');
+    if (host !== SITE_HOST && host.replace(/^www\./, '') === SITE_HOST.replace(/^www\./, '')) return redirect(res, SITE_URL + req.url);
+    const index = p.match(/^((?:\/en)?\/)index(?:\.html)?$/);
+    if (index) return redirect(res, index[1] + url.search);
+    if (!p.endsWith('/') && !path.extname(p) && p !== '/en' && p !== '/admin' && resolve(p + '.html')) return redirect(res, p + '.html' + url.search);
     // the English pages use relative links: they need the trailing slash; so does the admin panel
-    if (p === '/en' || p === '/admin') { res.writeHead(301, { Location: p + '/' + url.search }); return res.end(); }
+    if (p === '/en' || p === '/admin') return redirect(res, p + '/' + url.search);
     if (p.startsWith('/admin/')) res.setHeader('X-Robots-Tag', 'noindex, nofollow');
 
     // project data, generated from the admin panel's projects.json (shared by /projects.js and /en/../projects.js)
     if (p === '/projects.js') return send(req, res, 200, projectsEntry(), '.js', { 'Cache-Control': 'no-cache' });
     if (p === '/sitemap.xml') return send(req, res, 200, sitemapEntry(), '.xml', { 'Cache-Control': 'no-cache' });
+    if (p === '/llms.txt') return send(req, res, 200, await llmsEntry(), '.txt', { 'Cache-Control': 'no-cache' });
 
     // images uploaded from the admin panel
     const up = p.match(/^\/uploads\/([a-f0-9]{24}\.(webp|png|jpg))$/);
@@ -353,10 +451,7 @@ const server = http.createServer(async (req, res) => {
 
     if (path.basename(file) === 'project.html' && url.searchParams.get('id')) {
       const html = projectPage(entry.body.toString('utf8'), url.searchParams.get('id'), file.includes(`${path.sep}en${path.sep}`));
-      if (html) {
-        const body = Buffer.from(html);
-        entry = { body, etag: `"${crypto.createHash('sha1').update(body).digest('base64url').slice(0, 20)}"`, gzip: zlib.gzipSync(body) };
-      }
+      if (html) entry = makeEntry(Buffer.from(html), '.html');
     }
     send(req, res, 200, entry, ext, { 'Cache-Control': cacheControl(ext, url.search.slice(1)) });
   } catch (err) {

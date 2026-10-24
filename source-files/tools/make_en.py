@@ -5,7 +5,7 @@ import re, sys, os
 
 ROOT = sys.argv[1]
 SITE = 'https://www.puzzlexmedia.com'
-PAGES = ['index.html', 'about.html', 'services.html', 'work.html', 'project.html', 'contact.html', '404.html']
+PAGES = ['index.html', 'about.html', 'services.html', 'work.html', 'project.html', 'contact.html', 'privacy.html', '404.html']
 AR = re.compile('[؀-ۿ]')
 
 EN = {
@@ -19,12 +19,13 @@ EN = {
 'Instagram (الرابط يُضاف لاحقًا)': 'Instagram (link coming soon)', 'X (الرابط يُضاف لاحقًا)': 'X (link coming soon)',
 'Facebook (الرابط يُضاف لاحقًا)': 'Facebook (link coming soon)', 'كل قطعة لها مكان.': 'Every piece has its place.',
 'PuzzleX Media — نحن القطعة الناقصة في أحجيتك': 'PuzzleX Media — We are the missing piece in your puzzle',
-'ابدأ مشروعك': 'Start your project',
+'ابدأ مشروعك': 'Start your project', 'سياسة الخصوصية': 'Privacy policy',
 # home
 'PuzzleX Media — قسمك الإبداعي الجاهز': 'PuzzleX Media — Your ready-made creative department',
 'نحن القطعة الناقصة في أحجيتك: تصميم، محتوى، تسويق وخدمات لينكدإن — قسمك الإبداعي الجاهز في الخليج.': 'We are the missing piece in your puzzle: design, content, marketing and LinkedIn services — your ready-made creative department in the Gulf.',
 'الواجهة الرئيسية': 'Home hero', 'كل أحجية': 'Every puzzle', 'تنقصها قطعة': 'is missing a piece',
 'مرّر لتكتمل الصورة': 'Scroll to complete the picture',
+'وكالة تسويق وإبداع في الخليج وسوريا: هوية بصرية، سوشال ميديا، فيديو، محتوى تسويقي وخدمات لينكدإن.': 'A marketing and creative agency in the Gulf and Syria: visual identity, social media, video, copywriting and LinkedIn services.',
 'نحن القطعة الناقصة في أحجيتك — PuzzleX للتسويق والإنتاج الإعلامي': 'We are the missing piece in your puzzle — PuzzleX marketing and media production',
 'شاهد أعمالنا': 'See our work', 'وهذه القطعة…': 'And this piece…', 'نحن': 'is us',
 'قيمنا': 'Our values', 'الإبداع': 'Creativity',
@@ -123,6 +124,41 @@ EN = {
 '— وصلتنا رسالتك، وسنعود إليك قريبًا على بريدك الإلكتروني.': '— we’ve received your message and will get back to you by email soon.', 'تواصل مباشر': 'Direct contact', 'تفضّل بمراسلتنا عبر القناة التي تناسبك.': 'Reach us on whichever channel suits you.',
 'الهاتف': 'Phone', 'يُضاف لاحقًا': 'coming soon', 'نعمل في': 'Where we work', 'الخليج · سوريا': 'Gulf · Syria',
 'رقم واتساب يُضاف لاحقًا': 'WhatsApp number coming soon', 'واتساب': 'WhatsApp',
+# seo titles and descriptions
+'PuzzleX Media — وكالة تسويق وإبداع في الخليج وسوريا': 'PuzzleX Media — Marketing & Creative Agency in the Gulf and Syria',
+'PuzzleX Media قسمك الإبداعي الجاهز: هوية بصرية، تصميم سوشال ميديا وإعلانات، مونتاج وفيديو، محتوى تسويقي وخدمات لينكدإن في الخليج وسوريا.': 'PuzzleX Media, your ready-made creative department: visual identity, social media and ad design, video, marketing copy and LinkedIn services in the Gulf and Syria.',
+'من نحن: قسمك الإبداعي الجاهز في الخليج — PuzzleX Media': 'About PuzzleX Media — Your Ready-Made Creative Department',
+'PuzzleX Media قسمك الإبداعي الجاهز: شريك استراتيجي يفهم السوق الخليجي، يختصر عليك التوظيف والتدريب، ويحوّل أهدافك إلى حلول إبداعية متّسقة.': 'PuzzleX Media is your ready-made creative department: a strategic partner who knows the Gulf market, saves you the hiring and training, and turns your goals into consistent creative work.',
+'خدماتنا: هوية بصرية، سوشال ميديا، مونتاج ولينكدإن — PuzzleX Media': 'Services: Branding, Social Media, Video & LinkedIn — PuzzleX Media',
+'خدمات إبداعية وتسويقية وخدمات لينكدإن: هوية بصرية، تصميم سوشال ميديا وإعلانات، مطبوعات، مونتاج وفيديو، كتابة محتوى، خطط محتوى وحملات ممولة.': 'Creative, marketing and LinkedIn services: visual identity, social media and ad design, print, video editing, copywriting, content plans and paid campaigns.',
+'أعمالنا: مشاريع تصميم ومحتوى وفيديو — PuzzleX Media': 'Our Work: Design, Content & Video Projects — PuzzleX Media',
+'مختارات من مشاريع PuzzleX Media في التصميم والمحتوى والفيديو مع منظمات دولية وتنموية ومؤسسات تعليمية وعلامات تجارية في الخليج وسوريا.': 'Selected PuzzleX Media projects in design, content and video for international and development organizations, education institutions and brands in the Gulf and Syria.',
+'تواصل معنا وابدأ مشروعك — PuzzleX Media': 'Contact Us — Start Your Project with PuzzleX Media',
+'أخبرنا عن مشروعك واختر الخدمات التي تحتاجها: تصميم، فيديو، محتوى، تسويق أو لينكدإن، ونعود إليك قريبًا.': 'Tell us about your project and pick the services you need: design, video, content, marketing or LinkedIn, and we’ll get back to you soon.',
+'قسمك الإبداعي الجاهز.': 'Your ready-made creative department.',
+'شريك استراتيجي يفهم السوق الخليجي، ويحوّل أهدافك إلى حلول إبداعية تواكب تطلعاتك.': 'A strategic partner who understands the Gulf market and turns your goals into creative work that keeps up with your ambitions.',
+# privacy
+'سياسة الخصوصية — PuzzleX Media': 'Privacy policy — PuzzleX Media',
+'كيف تتعامل PuzzleX Media مع البيانات التي ترسلها عبر نموذج التواصل.': 'How PuzzleX Media handles the details you send through the contact form.',
+'ما الذي نجمعه عند استخدامك الموقع، ولماذا، وكم نحتفظ به، وكيف تطلب الاطلاع عليه أو حذفه.': 'What we collect when you use this site, why, how long we keep it, and how to ask to see or delete it.',
+'آخر تحديث: 24 أكتوبر 2026': 'Last updated: 24 October 2026',
+'ما الذي نجمعه': 'What we collect',
+'عند إرسال نموذج التواصل: الاسم، والشركة إن كتبتها، والبريد الإلكتروني، والهاتف إن كتبته، والخدمات التي اخترتها، ونص رسالتك، ولغة الصفحة.': 'When you send the contact form: your name, your company if you give it, your email, your phone if you give it, the services you picked, your message, and the language of the page.',
+'مع كل رسالة نسجّل وقت إرسالها وعنوان IP الذي أُرسلت منه، للحدّ من الرسائل المزعجة وإساءة الاستخدام.': 'With each message we record when it was sent and the IP address it came from, to limit spam and abuse.',
+'لماذا نستخدمها': 'Why we use it',
+'للرد على طلبك ومتابعته فقط. لا نرسل لك رسائل تسويقية بناءً على هذا النموذج، ولا نبيع بياناتك ولا نشاركها مع أي جهة لأغراضها الخاصة.': 'Only to reply to your request and follow it up. We don’t send you marketing because you used this form, and we don’t sell your details or share them with anyone for their own purposes.',
+'أين تُحفظ ومن يطّلع عليها': 'Where it is kept and who sees it',
+'تُحفظ الرسائل على خادم الموقع، ولا يطّلع عليها إلا فريق PuzzleX المخوّل عبر لوحة تحكم محمية بكلمة مرور. وقد تصل نسخة من الرسالة إلى بريد الفريق عبر مزوّد البريد الإلكتروني الذي نستخدمه.': 'Messages are kept on the website’s server, and only authorized PuzzleX team members can see them, through a password-protected admin panel. A copy may also reach the team’s inbox through the email provider we use.',
+'مدة الاحتفاظ': 'How long we keep it',
+'نحتفظ بالرسالة ما دامت لازمة للرد على طلبك ومتابعة العمل معك، ثم نحذفها. ويمكنك طلب حذفها قبل ذلك في أي وقت.': 'We keep a message for as long as we need it to reply to you and to work with you, then delete it. You can ask us to delete it sooner at any time.',
+'ما يحفظه متصفحك': 'What your browser keeps',
+'لا نستخدم ملفات تعريف الارتباط للإعلانات أو التتبّع، ولا أدوات تحليل الزيارات. يحفظ متصفحك على جهازك فقط: اختيارك للوضع الفاتح أو الداكن، وأن شاشة التحميل ظهرت لك، والخدمات التي اخترتها حتى ترسل النموذج. هذه المعلومات لا تصلنا.': 'We use no advertising or tracking cookies and no visitor analytics. Your browser keeps, on your device only: your light or dark mode choice, that you have seen the loading screen, and the services you picked until you send the form. This never reaches us.',
+'خدمات خارجية': 'Outside services',
+'تُحمَّل خطوط الموقع من Google Fonts، لذلك يصل إلى Google عنوان IP الخاص بك عند فتح الصفحة، كما يحدث مع أي ملف يُحمَّل من خادم آخر.': 'The site’s fonts load from Google Fonts, so Google receives your IP address when you open a page, as happens with any file loaded from another server.',
+'حقوقك والتواصل معنا': 'Your rights and how to reach us',
+'يمكنك طلب الاطلاع على بياناتك أو تصحيحها أو حذفها عبر': 'You can ask to see, correct or delete your details through the',
+'صفحة التواصل': 'contact page',
+'أو راسلنا مباشرة على البريد:': 'Or email us directly at:',
 # 404
 'الصفحة غير موجودة — PuzzleX Media': 'Page not found — PuzzleX Media',
 'هذه القطعة ليست في مكانها.': 'This piece isn’t where it belongs.',
@@ -161,12 +197,13 @@ def translate(html, page):
 
 def asset_up(m):
     attr, url = m.group(1), m.group(2)
-    if re.match(r'(https?:|#|mailto:|tel:|data:|/|\.\./)', url) or re.match(r'[\w-]+\.html', url): return m.group(0)
+    if re.match(r'(https?:|#|mailto:|tel:|data:|/|\.\./|\./)', url) or re.match(r'[\w-]+\.html', url): return m.group(0)
     return f'{attr}="../{url}"'
 
 def switch(page, to_en):
-    if to_en: return f'<a class="lang-switch" href="en/{page}" hreflang="en" lang="en" aria-label="English">EN</a>'
-    return f'<a class="lang-switch" href="../{page}" hreflang="ar" lang="ar" aria-label="العربية">ع</a>'
+    slug = '' if page == 'index.html' else page  # the home page's address is the folder itself
+    if to_en: return f'<a class="lang-switch" href="en/{slug}" hreflang="en" lang="en" aria-label="English">EN</a>'
+    return f'<a class="lang-switch" href="../{slug}" hreflang="ar" lang="ar" aria-label="العربية">ع</a>'
 
 def head_extras(page, prefix):
     slug = '' if page == 'index.html' else page
@@ -194,6 +231,7 @@ for page in PAGES:
     en = en.replace('content="ar_AR"', 'content="en_US"')
     slug = '' if page == 'index.html' else page
     en = en.replace(f'<meta property="og:url" content="{SITE}/{slug}">', f'<meta property="og:url" content="{SITE}/en/{slug}">')
+    en = en.replace(f'<link rel="canonical" href="{SITE}/{slug}">', f'<link rel="canonical" href="{SITE}/en/{slug}">')
     if is404:
         # pages link into /en/, assets stay at the root
         en = re.sub(r'href="/((?:[\w-]+\.html)?)"', lambda m: 'href="/en/' + m.group(1) + '"', en)

@@ -899,7 +899,7 @@
                       },
                       {
                         "key": "x",
-                        "label": "An empty box — the website keeps showing \"coming soon\" for it"
+                        "label": "An empty box — that detail or icon doesn't appear on the website"
                       }
                     ]
                   }
@@ -935,7 +935,7 @@
                   }
                 }
               ],
-              "note": "To hide any detail or link: empty its box and save. The website goes back to showing \"coming soon\" in its place."
+              "note": "To hide any detail or link: empty its box and save. It disappears from the website."
             }
           ]
         },

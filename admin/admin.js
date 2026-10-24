@@ -584,7 +584,7 @@ async function viewContact(view) {
     body.replaceChildren(...FIELDS.map(([title, fields]) => h('div', { class: 'card grid' }, h('h2', { class: 'section-title', style: 'margin:0' }, title),
       h('div', { class: 'grid two' }, fields.map(([k, label, type, ph, hint]) => h('label', { class: 'field' }, h('span', null, label),
         h('input', { type, value: s[k] || '', placeholder: ph, dir: 'ltr', oninput: (e) => { s[k] = e.target.value; refreshBar(); } }),
-        h('span', { class: 'hint' }, hint || 'اتركه فارغًا ليبقى «يُضاف لاحقًا» على الموقع.')))))));
+        h('span', { class: 'hint' }, hint || 'اتركه فارغًا ليختفي من الموقع (لا يظهر رابط أو أيقونة فارغة).')))))));
     refreshBar();
   }
   view.replaceChildren(

@@ -22,17 +22,34 @@
     btn.setAttribute('aria-controls', nav.id);
     btn.innerHTML = '<span></span><span></span>';
     top.append(btn);
+    // everything outside the top bar (on the home page the bar sits inside the hero, so walk up to <body>)
+    const outside = () => {
+      const out = [];
+      for (let el = top; el.parentElement && el !== document.body; el = el.parentElement) {
+        for (const sib of el.parentElement.children) if (sib !== el && sib.tagName !== 'SCRIPT') out.push(sib);
+      }
+      return out;
+    };
     const set = (open) => {
       top.classList.toggle('menu-open', open);
       document.documentElement.classList.toggle('menu-lock', open);
       btn.setAttribute('aria-expanded', String(open));
       btn.setAttribute('aria-label', open ? T('إغلاق القائمة', 'Close menu') : T('القائمة', 'Menu'));
+      // the page behind the open menu can't be reached by Tab, a screen reader or a click
+      outside().forEach((el) => { el.inert = open; });
     };
     set(false);
     btn.addEventListener('click', () => set(!top.classList.contains('menu-open')));
     top.addEventListener('click', (ev) => { if (ev.target.closest('.nav a, .top-actions a')) set(false); });
     document.addEventListener('keydown', (ev) => {
-      if (ev.key === 'Escape' && top.classList.contains('menu-open')) { set(false); btn.focus(); }
+      if (!top.classList.contains('menu-open')) return;
+      if (ev.key === 'Escape') { set(false); btn.focus(); return; }
+      if (ev.key !== 'Tab') return;
+      // Tab cycles inside the open menu
+      const items = [...top.querySelectorAll('a[href], button')].filter((el) => el.offsetParent !== null);
+      const first = items[0], last = items[items.length - 1];
+      if (ev.shiftKey && document.activeElement === first) { ev.preventDefault(); last.focus(); }
+      else if (!ev.shiftKey && document.activeElement === last) { ev.preventDefault(); first.focus(); }
     });
     matchMedia('(min-width: 761px)').addEventListener('change', (ev) => { if (ev.matches) set(false); });
   });
@@ -40,8 +57,6 @@
   document.addEventListener('loaderdone', () => ScrollTrigger.refresh());
   // switching language keeps the same project / picked services
   if (location.search) document.querySelectorAll('.lang-switch').forEach((l) => { l.search = location.search; });
-  // placeholder links (socials etc.) stay put until the real addresses arrive
-  document.addEventListener('click', (ev) => { if (ev.target.closest('a[href="#"]')) ev.preventDefault(); });
   document.querySelectorAll('.site-footer .year').forEach((el) => { el.textContent = new Date().getFullYear(); });
 })();
 
@@ -608,10 +623,12 @@ function initContact() {
     try { sessionStorage.setItem(KEY, JSON.stringify([...picked].filter((id) => id !== 'other'))); } catch (e) { /* just not remembered */ }
   };
 
+  // Arabic-Indic (٠–٩) and Persian (۰–۹) digits are ordinary on Arabic keyboards: read them as 0–9
+  const latinDigits = (v) => v.replace(/[٠-٩۰-۹]/g, (d) => String(d.charCodeAt(0) & 0xf));
   const fields = {
     name: { el: form.querySelector('#f-name'), err: form.querySelector('#e-name'), check: (v) => (v.trim().length < 2 ? T('اكتب اسمك من فضلك.', 'Please enter your name.') : '') },
     email: { el: form.querySelector('#f-email'), err: form.querySelector('#e-email'), check: (v) => (!v.trim() ? T('نحتاج بريدك لنعود إليك.', 'We need your email to get back to you.') : !/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(v.trim()) ? T('يبدو أن البريد غير مكتمل.', 'That email looks incomplete.') : '') },
-    phone: { el: form.querySelector('#f-phone'), err: form.querySelector('#e-phone'), check: (v) => (v.trim() && !/^\+?[\d\s()-]{7,20}$/.test(v.trim()) ? T('اكتب الرقم بالأرقام فقط، مع رمز الدولة إن أمكن.', 'Digits only, with the country code if you can.') : '') },
+    phone: { el: form.querySelector('#f-phone'), err: form.querySelector('#e-phone'), check: (v) => (v.trim() && !/^\+?[\d\s()-]{7,20}$/.test(latinDigits(v.trim())) ? T('اكتب الرقم بالأرقام فقط، مع رمز الدولة إن أمكن.', 'Digits only, with the country code if you can.') : '') },
     message: { el: form.querySelector('#f-message'), err: form.querySelector('#e-message'), check: (v) => (v.trim().length < 10 ? T('أخبرنا بجملة أو جملتين عن مشروعك.', 'Tell us a sentence or two about your project.') : '') },
   };
   const servicesErr = form.querySelector('#e-services');
@@ -705,7 +722,7 @@ function initContact() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           name: fields.name.el.value, company: form.querySelector('#f-company').value, email: fields.email.el.value,
-          phone: fields.phone.el.value, message: fields.message.el.value, services: [...picked],
+          phone: latinDigits(fields.phone.el.value), message: fields.message.el.value, services: [...picked],
           website: form.querySelector('[name="website"]').value, lang: EN ? 'en' : 'ar',
         }),
       });
@@ -734,9 +751,6 @@ function initContact() {
     hint.hidden = !picked.size;
     fields.name.el.focus();
   });
-
-  // placeholder links (WhatsApp / socials) do nothing until the real ones arrive
-  document.querySelectorAll('.contact-card a[href="#"]').forEach((a) => a.addEventListener('click', (ev) => ev.preventDefault()));
 
   if (!REDUCED) {
     gsap.from('.contact-form > .form-row, .contact-form > .field, .contact-form > .form-foot', { y: 30, autoAlpha: 0, duration: 0.7, stagger: 0.07, ease: 'power3.out', delay: 0.15 });

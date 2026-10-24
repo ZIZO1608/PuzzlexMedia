@@ -3,4 +3,5 @@ Allow: /
 Disallow: /api/
 Disallow: /admin/
 
+# A plain-text summary of the company for AI assistants: https://www.puzzlexmedia.com/llms.txt
 Sitemap: https://www.puzzlexmedia.com/sitemap.xml

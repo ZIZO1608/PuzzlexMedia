@@ -11,8 +11,8 @@
   const reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   const pieces = [...el.querySelectorAll('.loader-piece')];
   const num = el.querySelector('.loader-num');
-  const MIN_MS = reduced ? 300 : 1700; // long enough to see the puzzle come together
-  const MAX_MS = 8000;                 // never hold the page hostage to a slow resource
+  const MIN_MS = reduced ? 0 : 600;  // a glimpse of the puzzle, not a wait: the page is what people came for
+  const MAX_MS = 4000;               // never hold the page hostage to a slow resource
   const t0 = performance.now();
 
   // real progress: fonts, every image on the page, then the window's load event
@@ -35,7 +35,7 @@
     const real = elapsed > MAX_MS ? 1 : done / total;
     const pace = Math.min(1, elapsed / MIN_MS);
     const target = Math.min(real, pace);
-    shown += (target - shown) * 0.12;
+    shown += (target - shown) * 0.2;
     if (target === 1 && 1 - shown < 0.004) shown = 1;
     num.textContent = Math.round(shown * 100);
     // the eight outer pieces land in turn; the key waits for 100%
@@ -48,7 +48,7 @@
 
   function finish() {
     el.classList.add('is-complete');           // the key piece drops in
-    const hold = reduced ? 0 : 650;
+    const hold = reduced ? 0 : 200;
     setTimeout(() => {
       el.classList.add('is-leaving');          // pieces fly apart, the backdrop fades
       root.classList.remove('is-loading');

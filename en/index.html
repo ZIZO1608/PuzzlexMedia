@@ -3,8 +3,8 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>PuzzleX Media — Your ready-made creative department</title>
-  <meta name="description" content="We are the missing piece in your puzzle: design, content, marketing and LinkedIn services — your ready-made creative department in the Gulf.">
+  <title>PuzzleX Media — Marketing & Creative Agency in the Gulf and Syria</title>
+  <meta name="description" content="PuzzleX Media, your ready-made creative department: visual identity, social media and ad design, video, marketing copy and LinkedIn services in the Gulf and Syria.">
   <script>
     // apply the saved theme before first paint (no flash)
     try { if (localStorage.getItem('puzzlex-theme') === 'light') document.documentElement.dataset.theme = 'light'; } catch (e) {}
@@ -15,13 +15,14 @@
   <link rel="apple-touch-icon" href="../assets/apple-touch-icon.png">
   <link rel="alternate" hreflang="ar" href="https://www.puzzlexmedia.com/">
   <link rel="alternate" hreflang="en" href="https://www.puzzlexmedia.com/en/">
+  <link rel="canonical" href="https://www.puzzlexmedia.com/en/">
   <meta name="theme-color" content="#0a0a0b">
   <!-- share preview (WhatsApp, LinkedIn, X…): crawlers need absolute URLs, so these point at the live domain -->
   <meta property="og:type" content="website">
   <meta property="og:site_name" content="PuzzleX Media">
   <meta property="og:locale" content="en_US">
-  <meta property="og:title" content="PuzzleX Media — Your ready-made creative department">
-  <meta property="og:description" content="We are the missing piece in your puzzle: design, content, marketing and LinkedIn services — your ready-made creative department in the Gulf.">
+  <meta property="og:title" content="PuzzleX Media — Marketing & Creative Agency in the Gulf and Syria">
+  <meta property="og:description" content="PuzzleX Media, your ready-made creative department: visual identity, social media and ad design, video, marketing copy and LinkedIn services in the Gulf and Syria.">
   <meta property="og:url" content="https://www.puzzlexmedia.com/en/">
   <meta property="og:image" content="https://www.puzzlexmedia.com/assets/og.png">
   <meta property="og:image:width" content="1200">
@@ -31,7 +32,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Alexandria:wght@300;400;600;800;900&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="../styles.css?v=59">
+  <link rel="stylesheet" href="../styles.css?v=61">
 </head>
 <body>
   <div class="loader" role="status" aria-live="polite" aria-label="Loading">
@@ -45,14 +46,14 @@
       <p class="loader-count"><span class="loader-num">0</span>%</p>
     </div>
   </div>
-  <script src="../loader.js?v=54"></script>
+  <script src="../loader.js?v=55"></script>
 
 
   <section class="hero" aria-label="Home hero">
     <div class="stage">
 
       <header class="topbar">
-        <a class="brand" href="index.html" aria-label="PuzzleX Media — Home">
+        <a class="brand" href="./" aria-label="PuzzleX Media — Home">
           <img src="../assets/icon.svg" alt="" width="34" height="34">
           <span class="brand-name">PUZZLEX<span>MEDIA</span></span>
         </a>
@@ -62,7 +63,7 @@
           <a href="work.html">Work</a>
         </nav>
         <div class="top-actions">
-          <a class="lang-switch" href="../index.html" hreflang="ar" lang="ar" aria-label="العربية">ع</a>
+          <a class="lang-switch" href="../" hreflang="ar" lang="ar" aria-label="العربية">ع</a>
           <button class="sound theme-toggle" type="button" aria-pressed="false" aria-label="Light mode">
             <svg class="sun" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="4.2"/><path d="M12 2.5v2.2M12 19.3v2.2M2.5 12h2.2M19.3 12h2.2M5.3 5.3l1.6 1.6M17.1 17.1l1.6 1.6M5.3 18.7l1.6-1.6M17.1 6.9l1.6-1.6"/></svg>
             <svg class="moon" viewBox="0 0 24 24" aria-hidden="true"><path d="M20 14.5A8 8 0 0 1 9.5 4a8 8 0 1 0 10.5 10.5z"/></svg>
@@ -73,7 +74,12 @@
 
       <div class="intro">
         <p class="kicker">PUZZLEX MEDIA</p>
-        <h2 class="intro-title">Every puzzle<br>is missing a piece</h2>
+        <p class="intro-title">Every puzzle<br>is missing a piece</p>
+        <p class="intro-lead">A marketing and creative agency in the Gulf and Syria: visual identity, social media, video, copywriting and LinkedIn services.</p>
+        <div class="intro-actions">
+          <a class="btn btn-primary" href="contact.html">Start your project</a>
+          <a class="btn btn-ghost" href="services.html">Explore our services</a>
+        </div>
         <p class="intro-hint">Scroll to complete the picture</p>
         <span class="mouse" aria-hidden="true"><span></span></span>
       </div>
@@ -84,6 +90,8 @@
         <div class="pieces" aria-hidden="true"></div>
         <div class="sheen" aria-hidden="true"><span></span></div>
         <h1 class="sr-only">We are the missing piece in your puzzle — PuzzleX marketing and media production</h1>
+        <p class="sr-only">Your ready-made creative department.</p>
+        <p class="sr-only">A strategic partner who understands the Gulf market and turns your goals into creative work that keeps up with your ambitions.</p>
         <div class="cta">
           <a class="btn btn-primary" href="contact.html">Start your project</a>
           <a class="btn btn-ghost" href="work.html">See our work <span aria-hidden="true">▶</span></a>
@@ -172,6 +180,7 @@
         <a class="btn btn-primary" href="contact.html">Start your project</a>
       </div>
       <p class="sr-only">This section shows the logos of 48 partners.</p>
+      <ul class="sr-only" data-partner-names></ul>
     </div>
   </section>
 
@@ -179,7 +188,7 @@
     <div class="footer-edge" aria-hidden="true"></div>
     <div class="footer-grid">
       <div class="footer-brand">
-        <a class="brand" href="index.html" aria-label="PuzzleX Media — Home">
+        <a class="brand" href="./" aria-label="PuzzleX Media — Home">
           <img src="../assets/icon.svg" alt="" width="34" height="34">
           <span class="brand-name">PUZZLEX<span>MEDIA</span></span>
         </a>
@@ -187,11 +196,12 @@
       </div>
       <nav class="footer-col" aria-label="Site links">
         <h3>Site</h3>
-        <a href="index.html">Home</a>
+        <a href="./">Home</a>
         <a href="about.html">About</a>
         <a href="services.html">Services</a>
         <a href="work.html">Work</a>
         <a href="contact.html">Contact us</a>
+        <a href="privacy.html">Privacy policy</a>
       </nav>
       <div class="footer-col">
         <h3>Contact</h3>
@@ -199,7 +209,7 @@
         <span class="placeholder" data-contact="email">Email — coming soon</span>
         <a href="https://www.puzzlexmedia.com" data-contact="website" dir="ltr">www.puzzlexmedia.com</a>
       </div>
-      <div class="footer-col">
+      <div class="footer-col" data-follow>
         <h3>Follow us</h3>
         <div class="socials">
           <a href="#" data-social="linkedin" aria-label="LinkedIn (link coming soon)">in</a>
@@ -212,15 +222,23 @@
     <div class="footer-bottom">
       <span>© <span class="year">2026</span> PuzzleX Media</span>
       <span>Every piece has its place.</span>
+      <a class="powered-by" href="https://trinode.ahmad-zaven.io" target="_blank" rel="noopener" dir="ltr">
+        <span>Powered by</span>
+        <svg class="trinode" viewBox="0 0 182 54" role="img" aria-label="Trinode">
+          <text x="17" y="22" textLength="123">TRINODE</text>
+          <path class="trinode-line" d="M11.5 29H170.5M145 29L158.8 15.2M145 29L158.8 42.8"/>
+          <g class="trinode-nodes"><circle cx="8.5" cy="29" r="3"/><circle cx="161" cy="12.8" r="3"/><circle cx="173.5" cy="29" r="3"/><circle cx="161" cy="45.2" r="3"/></g>
+        </svg>
+      </a>
     </div>
   </footer>
 
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js"></script>
-  <script src="../main.js?v=57"></script>
+  <script src="../assets/vendor/gsap.min.js?v=3125"></script>
+  <script src="../assets/vendor/ScrollTrigger.min.js?v=3125"></script>
+  <script src="../main.js?v=59"></script>
   <script src="../sections.js?v=56"></script>
   <script src="../cursor.js?v=54"></script>
   <script src="../theme.js?v=54"></script>
-  <script src="../pages.js?v=57"></script>
+  <script src="../pages.js?v=58"></script>
 </body>
 </html>

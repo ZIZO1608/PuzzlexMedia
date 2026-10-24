@@ -3,8 +3,8 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>من نحن — PuzzleX Media</title>
-  <meta name="description" content="PuzzleX قسمك الإبداعي الجاهز: شريك استراتيجي يفهم السوق الخليجي ويحوّل أهدافك إلى حلول إبداعية.">
+  <title>من نحن: قسمك الإبداعي الجاهز في الخليج — PuzzleX Media</title>
+  <meta name="description" content="PuzzleX Media قسمك الإبداعي الجاهز: شريك استراتيجي يفهم السوق الخليجي، يختصر عليك التوظيف والتدريب، ويحوّل أهدافك إلى حلول إبداعية متّسقة.">
   <script>
     // apply the saved theme before first paint (no flash)
     try { if (localStorage.getItem('puzzlex-theme') === 'light') document.documentElement.dataset.theme = 'light'; } catch (e) {}
@@ -15,13 +15,14 @@
   <link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
   <link rel="alternate" hreflang="ar" href="https://www.puzzlexmedia.com/about.html">
   <link rel="alternate" hreflang="en" href="https://www.puzzlexmedia.com/en/about.html">
+  <link rel="canonical" href="https://www.puzzlexmedia.com/about.html">
   <meta name="theme-color" content="#0a0a0b">
   <!-- share preview (WhatsApp, LinkedIn, X…): crawlers need absolute URLs, so these point at the live domain -->
   <meta property="og:type" content="website">
   <meta property="og:site_name" content="PuzzleX Media">
   <meta property="og:locale" content="ar_AR">
-  <meta property="og:title" content="من نحن — PuzzleX Media">
-  <meta property="og:description" content="PuzzleX قسمك الإبداعي الجاهز: شريك استراتيجي يفهم السوق الخليجي ويحوّل أهدافك إلى حلول إبداعية.">
+  <meta property="og:title" content="من نحن: قسمك الإبداعي الجاهز في الخليج — PuzzleX Media">
+  <meta property="og:description" content="PuzzleX Media قسمك الإبداعي الجاهز: شريك استراتيجي يفهم السوق الخليجي، يختصر عليك التوظيف والتدريب، ويحوّل أهدافك إلى حلول إبداعية متّسقة.">
   <meta property="og:url" content="https://www.puzzlexmedia.com/about.html">
   <meta property="og:image" content="https://www.puzzlexmedia.com/assets/og.png">
   <meta property="og:image:width" content="1200">
@@ -31,7 +32,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Alexandria:wght@300;400;600;800;900&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css?v=59">
+  <link rel="stylesheet" href="styles.css?v=61">
 </head>
 <body class="page">
   <div class="loader" role="status" aria-live="polite" aria-label="جارٍ التحميل">
@@ -45,11 +46,11 @@
       <p class="loader-count"><span class="loader-num">0</span>%</p>
     </div>
   </div>
-  <script src="loader.js?v=54"></script>
+  <script src="loader.js?v=55"></script>
 
 
   <header class="topbar topbar--page">
-    <a class="brand" href="index.html" aria-label="PuzzleX Media — الرئيسية">
+    <a class="brand" href="./" aria-label="PuzzleX Media — الرئيسية">
       <img src="assets/icon.svg" alt="" width="34" height="34">
       <span class="brand-name">PUZZLEX<span>MEDIA</span></span>
     </a>
@@ -147,7 +148,7 @@
     <div class="footer-edge" aria-hidden="true"></div>
     <div class="footer-grid">
       <div class="footer-brand">
-        <a class="brand" href="index.html" aria-label="PuzzleX Media — الرئيسية">
+        <a class="brand" href="./" aria-label="PuzzleX Media — الرئيسية">
           <img src="assets/icon.svg" alt="" width="34" height="34">
           <span class="brand-name">PUZZLEX<span>MEDIA</span></span>
         </a>
@@ -155,11 +156,12 @@
       </div>
       <nav class="footer-col" aria-label="روابط الموقع">
         <h3>الموقع</h3>
-        <a href="index.html">الرئيسية</a>
+        <a href="./">الرئيسية</a>
         <a href="about.html">من نحن</a>
         <a href="services.html">خدماتنا</a>
         <a href="work.html">أعمالنا</a>
         <a href="contact.html">تواصل معنا</a>
+        <a href="privacy.html">سياسة الخصوصية</a>
       </nav>
       <div class="footer-col">
         <h3>تواصل</h3>
@@ -167,7 +169,7 @@
         <span class="placeholder" data-contact="email">البريد الإلكتروني — يُضاف لاحقًا</span>
         <a href="https://www.puzzlexmedia.com" data-contact="website" dir="ltr">www.puzzlexmedia.com</a>
       </div>
-      <div class="footer-col">
+      <div class="footer-col" data-follow>
         <h3>تابعنا</h3>
         <div class="socials">
           <a href="#" data-social="linkedin" aria-label="LinkedIn (الرابط يُضاف لاحقًا)">in</a>
@@ -180,15 +182,23 @@
     <div class="footer-bottom">
       <span>© <span class="year">2026</span> PuzzleX Media</span>
       <span>كل قطعة لها مكان.</span>
+      <a class="powered-by" href="https://trinode.ahmad-zaven.io" target="_blank" rel="noopener" dir="ltr">
+        <span>Powered by</span>
+        <svg class="trinode" viewBox="0 0 182 54" role="img" aria-label="Trinode">
+          <text x="17" y="22" textLength="123">TRINODE</text>
+          <path class="trinode-line" d="M11.5 29H170.5M145 29L158.8 15.2M145 29L158.8 42.8"/>
+          <g class="trinode-nodes"><circle cx="8.5" cy="29" r="3"/><circle cx="161" cy="12.8" r="3"/><circle cx="173.5" cy="29" r="3"/><circle cx="161" cy="45.2" r="3"/></g>
+        </svg>
+      </a>
     </div>
   </footer>
 
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/ScrollTrigger.min.js"></script>
-  <script src="main.js?v=57"></script>
+  <script src="assets/vendor/gsap.min.js?v=3125"></script>
+  <script src="assets/vendor/ScrollTrigger.min.js?v=3125"></script>
+  <script src="main.js?v=59"></script>
   <script src="sections.js?v=56"></script>
   <script src="cursor.js?v=54"></script>
   <script src="theme.js?v=54"></script>
-  <script src="pages.js?v=57"></script>
+  <script src="pages.js?v=58"></script>
 </body>
 </html>

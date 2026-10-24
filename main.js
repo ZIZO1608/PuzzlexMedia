@@ -540,13 +540,19 @@ function buildTimeline(pieces, key, hole, { vw, vh, W, H, pw, ph, mobile }) {
   const R = rng(42);
   const halfW = vw / 2, halfH = vh / 2;
 
-  // S0: dumped around the empty board
+  // S0: dumped around the empty board, clear of the intro's words and buttons (relative to the stage's centre)
+  const ir = $('.intro').getBoundingClientRect(), sr = stage.getBoundingClientRect();
+  const gap = pw * 0.3;
+  const clear = {
+    l: ir.left - (sr.left + halfW) - gap, r: ir.right - (sr.left + halfW) + gap,
+    t: ir.top - (sr.top + halfH) - gap, b: ir.bottom - (sr.top + halfH) + gap,
+  };
   for (const p of pieces) {
     let x, y, tries = 0;
     do {
       x = (R() * 2 - 1) * halfW * 0.9;
       y = (R() * 2 - 1) * halfH * 0.78;
-    } while (Math.abs(x) < W * (mobile ? 0.36 : 0.26) && Math.abs(y) < H * (mobile ? 0.2 : 0.24) && ++tries < 60);
+    } while (x > clear.l && x < clear.r && y > clear.t && y < clear.b && ++tries < 60);
     const rot = (R() * 2 - 1) * 55;
     p.s0 = { x: x - p.hx, y: y - p.hy, rotation: rot, scale: (mobile ? 0.5 : 0.42) + R() * 0.16 };
     p.ax = x; // absolute start position, relative to the screen centre

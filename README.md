@@ -3,7 +3,7 @@
 Bilingual website (Arabic RTL at `/`, English LTR at `/en/`) for PuzzleX Media —
 "نحن القطعة الناقصة في أحجيتك", *we are the missing piece in your puzzle*.
 
-Plain HTML, CSS and JavaScript (GSAP from cdnjs), served by a small Node server that also
+Plain HTML, CSS and JavaScript (GSAP 3.12.5, kept in `assets/vendor/`), served by a small Node server that also
 handles the contact form. Ships as one Docker image.
 
 ## Deploy on a VPS (Docker)
@@ -56,7 +56,7 @@ At `/admin/` the team edits the site without touching code:
   descriptions and the texts drawn by the animations). Shared texts, such as the menu links, change everywhere at once.
 - **Projects**: add, edit, delete and reorder projects; upload the cover and gallery images.
 - **Partner logos**: the logos in the partners puzzle. The puzzle resizes itself (5×5 for up to 24, 7×7 for up to 48, 9×9 for up to 80).
-- **Contact & links**: phone, WhatsApp, email, website and social links (empty = "coming soon" stays on the site).
+- **Contact & links**: phone, WhatsApp, email, website and social links (empty = left off the site: no "coming soon", no dead icon).
 - **Messages**: the contact-form inbox, with read / unread and delete.
 
 Edits are saved in `/data` (the Docker volume) and show on the site immediately: `texts.json`, `projects.json`,
@@ -108,11 +108,33 @@ Needs only Node and Chrome. `--preview` writes a PNG per page plus `overview.png
 
 ## What the server does
 
-- Serves the pages with clean URLs (`/about`, `/en/services`), Brotli/gzip compression and long caching
-  for versioned assets (`?v=NN`)
+- Serves the pages with Brotli/gzip compression and long caching for versioned assets (`?v=NN`)
+- One address per page (each page also carries `<link rel="canonical">`): `puzzlexmedia.com` → `www.puzzlexmedia.com`
+  (the host in `SITE_URL`), `/index.html` → `/`, `/about` → `/about.html`, all 301
+- Security headers on every response; `Strict-Transport-Security` (this host only, no preload) on HTTPS requests —
+  behind a proxy that needs `TRUST_PROXY=1` so the server can see `X-Forwarded-Proto: https`
+- `Content-Security-Policy-Report-Only`: inline scripts are allowed by hash, worked out per page. Violations are
+  logged as `[csp] …` lines. When the logs stay clean on every page, set `CSP_ENFORCE=1` to enforce it
 - 404 page in the right language; server files (`server.js`, `package.json`, …) are never served
-- Fills in the share preview (title, description) for each project: `project.html?id=…`
-- `POST /api/contact`, `GET /healthz`, `robots.txt`, `sitemap.xml`
+- Fills in the share preview (title, description, canonical, and the cover as share image once uploaded) for each project: `project.html?id=…`
+- `POST /api/contact`, `POST /api/csp-report`, `GET /healthz`, `robots.txt`, `sitemap.xml`, `llms.txt`
+- Partner names as a screen-reader list under the logo puzzle
+
+## Search engines and AI assistants (lib/seo.js)
+
+Most crawlers, and nearly all AI crawlers, don't run JavaScript, so the server puts what matters into the HTML:
+
+- The work page's project cards and each project page's title, client, summary, sector, services, year and uploaded
+  images (the scripts then redraw them as before)
+- schema.org data on every page: Organization (contact details and social links from the admin panel, when filled in),
+  WebSite, the page itself with breadcrumbs, the service catalogue on the services page (read from the page, so
+  admin edits are included), the project list on the work page and a CreativeWork per project
+- `hreflang` ar / en / x-default (Arabic), `og:locale:alternate`, `max-image-preview:large`; `project.html` without a
+  known `?id` is `noindex`
+- `/llms.txt`: the company, services, projects and contact details as plain text for AI assistants, built from the
+  live content (so it updates with the admin panel)
+
+Titles and descriptions are ordinary texts: edit them in the admin panel (Texts → «عناوين الصفحات ووصف المشاركة»).
 
 ## Run locally
 
@@ -133,8 +155,9 @@ sections.js           home: values, partners puzzle, 3D piece pop-up
 pages.js              inner pages, contact form, 404
 projects.js           project data (Arabic + English); also read by the server
 loader.js, cursor.js, theme.js
-assets/               icon, fonts, partner logos (WebP), share image
-server.js             the web server (lib/: content, admin API, sign-in, storage)
+privacy.html          privacy policy (linked from the form and every footer)
+assets/               icon, fonts, partner logos (WebP), share image, vendor/ (GSAP)
+server.js             the web server (lib/: content, SEO, admin API, sign-in, storage)
 admin/                the admin panel (/admin)
 tools/admin-user.js   add / reset / remove admin users
 Dockerfile, docker-compose.yml, .env.example
@@ -148,6 +171,9 @@ Change the Arabic page, add the new strings' English to the `EN` table in
 can't translate. Text inside the scripts uses `T('عربي', 'English')`.
 After editing CSS or JS, bump the `?v=NN` number in the pages so browsers fetch the new file.
 
-## Still placeholder
+## Still to fill in (admin panel)
 
-Phone, email, WhatsApp and social links, and the project images (generated placeholders).
+- Phone, email, WhatsApp and social links (until then they are simply not shown)
+- Project covers and galleries (until then each project shows a generated image marked "placeholder")
+- Partner names (read out to screen-reader users instead of the logos)
+- The privacy policy's retention period is general ("as long as needed, then deleted"): set a concrete one if you have it
