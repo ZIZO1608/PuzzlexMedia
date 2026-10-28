@@ -263,16 +263,19 @@ function initVision() {
   });
 }
 
-/* ---------- Services · the three big pieces in the opening (each links to its section) ---------- */
+/* ---------- Services · the big pieces in the opening, one per group (each links to its section) ---------- */
 function initServiceHero() {
   const wrap = document.querySelector('.svc-hero-pieces');
   if (!wrap) return;
   const U = 100, TAB = 90, PAD = Math.ceil(TAB * TAB_DEPTH + 4);
-  const vE = [1, -1]; // edge between columns 0|1 and 1|2
+  const pieces = [...wrap.querySelectorAll('.svc-hero-piece')];
+  const last = pieces.length - 1;
+  const vE = pieces.slice(1).map((_, c) => (c % 2 ? -1 : 1)); // edge between columns c|c+1, tabs alternating
   wrap.style.setProperty('--pad', (PAD / U).toFixed(3));
-  [...wrap.querySelectorAll('.svc-hero-piece')].forEach((a, i) => {
-    const c = EN ? i : 2 - i; // follow the reading order
-    const e = { t: 0, b: 0, l: c === 0 ? 0 : -vE[c - 1], r: c === 2 ? 0 : vE[c] };
+  wrap.style.setProperty('--n', pieces.length);
+  pieces.forEach((a, i) => {
+    const c = EN ? i : last - i; // follow the reading order
+    const e = { t: 0, b: 0, l: c === 0 ? 0 : -vE[c - 1], r: c === last ? 0 : vE[c] };
     a.style.setProperty('--c', c);
     a.insertAdjacentHTML('afterbegin',
       `<svg class="svc-hero-shape" viewBox="${-PAD} ${-PAD} ${U + 2 * PAD} ${U + 2 * PAD}" aria-hidden="true"><path d="${jigsawD(e, U, TAB)}"/></svg>`);
@@ -606,6 +609,7 @@ const SERVICE_GROUPS = [
   { title: T('الإبداعية', 'Creative'), items: [['identity', T('الهوية البصرية', 'Visual identity')], ['social-design', T('السوشال ميديا والإعلانات', 'Social media & ad design')], ['print', T('المطبوعات والإعلانات الطرقية', 'Print & outdoor ads')], ['profiles', T('البروفايلات والعروض', 'Company profiles & decks')], ['ad-edit', T('المونتاج الإعلاني', 'Ad video editing')], ['intro-videos', T('الفيديوهات التعريفية', 'Brand & intro videos')], ['event-videos', T('فيديوهات المناسبات والفعاليات', 'Event videos')]] },
   { title: T('التسويقية', 'Marketing'), items: [['copywriting', T('كتابة المحتوى التسويقي', 'Marketing copywriting')], ['content-plan', T('خطة المحتوى الشهرية', 'Monthly content plan')], ['community', T('إدارة التفاعل', 'Community management')], ['kpi', T('تحليل الأداء', 'Performance analysis')]] },
   { title: T('لينكدإن', 'LinkedIn'), items: [['li-profile', T('تحسين الحساب', 'Profile optimization')], ['li-content', T('محتوى أسبوعي متخصص', 'Weekly expert content')], ['li-jobs', T('التقديم لفرص العمل', 'Job application support')], ['li-coaching', T('جلسات تدريب شخصية', '1:1 coaching sessions')], ['li-audit', T('تدقيق حساب الشركة', 'Company page audit')], ['li-plan', T('خطة محتوى مؤسسي', 'Corporate content plan')], ['li-talent', T('استقطاب الكفاءات', 'Talent acquisition')], ['li-ads', T('حملات ممولة', 'Paid campaigns')]] },
+  { title: T('البرمجية', 'Programming'), items: [['dev-crm', T('أنظمة CRM', 'CRM systems')], ['dev-erp', T('أنظمة ERP', 'ERP systems')], ['dev-pos', T('أنظمة نقاط البيع', 'POS systems')], ['dev-custom', T('أنظمة ولوحات تحكم مخصصة', 'Custom systems & dashboards')], ['dev-landing', T('صفحات الهبوط', 'Landing pages')], ['dev-website', T('المواقع الإلكترونية', 'Websites')], ['dev-store', T('المتاجر الإلكترونية', 'Online stores')], ['dev-app', T('تطبيقات الجوال', 'Mobile apps')]] },
   { title: T('أخرى', 'Other'), items: [['other', T('لست متأكدًا بعد — ساعدوني', 'Not sure yet — help me')]] },
 ];
 

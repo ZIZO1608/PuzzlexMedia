@@ -627,10 +627,10 @@ html.has-cursor, html.has-cursor * { cursor: none !important; }
 /* =========================================================
    Services page
    ========================================================= */
-/* three big pieces in the opening */
+/* the big pieces in the opening, one per group (--n is set by pages.js) */
 .svc-hero-pieces {
-  --s: min(12.5vw, 190px);
-  position: relative; justify-self: center; width: calc(var(--s) * 3); height: var(--s);
+  --s: calc(min(37.5vw, 570px) / var(--n, 3));
+  position: relative; justify-self: center; width: calc(var(--s) * var(--n, 3)); height: var(--s);
   perspective: 1200px;
 }
 .svc-hero-piece {
@@ -754,7 +754,7 @@ button.my-puzzle-send { border: 0; cursor: pointer; font-family: var(--ar); } /*
   .svc-cols { grid-template-columns: 1fr; }
 }
 @media (max-width: 760px) {
-  .svc-hero-pieces { --s: 27vw; margin-top: 30px; }
+  .svc-hero-pieces { --s: calc(81vw / var(--n, 3)); margin-top: 30px; }
   .my-puzzle { bottom: 14px; gap: 10px; padding-inline-start: 12px; max-width: calc(100vw - 24px); }
   .my-puzzle-text { display: none; }
 }
