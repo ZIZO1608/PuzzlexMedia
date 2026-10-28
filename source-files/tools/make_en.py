@@ -5,7 +5,7 @@ import re, sys, os
 
 ROOT = sys.argv[1]
 SITE = 'https://www.puzzlexmedia.com'
-PAGES = ['index.html', 'about.html', 'services.html', 'work.html', 'project.html', 'contact.html', 'privacy.html', '404.html']
+PAGES = ['index.html', 'about.html', 'services.html', 'work.html', 'feedback.html', 'project.html', 'contact.html', 'privacy.html', '404.html']
 AR = re.compile('[؀-ۿ]')
 
 EN = {
@@ -38,6 +38,16 @@ EN = {
 'لأننا ندرك أن أدق التفاصيل تصنع الفارق بين العمل الجيد والعمل الاستثنائي.': 'Because the smallest details are what separate good work from exceptional work.',
 'شركاء النجاح': 'Partners in success',
 'ماذا يقول عملاؤنا': 'What our clients say', 'أكمل رسالتك': 'Finish your message',
+'كل آراء العملاء': 'All client feedback',
+# feedback page (and its link in every menu)
+'آراء العملاء': 'Feedback', 'آراء العملاء: تجارب حقيقية مع PuzzleX Media': 'Client feedback: real experiences with PuzzleX Media',
+'ماذا يقول عملاء PuzzleX Media عن العمل معنا: آراء وتقييمات حقيقية من منظمات وشركات وعلامات تجارية في الخليج وسوريا.': 'What PuzzleX Media clients say about working with us: real reviews and ratings from organizations, companies and brands in the Gulf and Syria.',
+'قطعٌ من الثقة،': 'Pieces of trust,', 'بكلماتهم.': 'in their words.',
+'ما قاله شركاؤنا عن العمل معنا: عن الفكرة، والتنفيذ، والنتيجة التي وصلوا إليها.': 'What our partners said about working with us: the idea, the execution, and the results they reached.',
+'تصفية الآراء': 'Filter reviews', '5 نجوم': '5 stars', '4 نجوم': '4 stars', 'مع صور': 'With photos',
+'لم ننشر آراء العملاء هنا بعد — وقد يكون رأيك أول قطعة في هذه الصفحة.': 'No client reviews are published here yet — yours could be the first piece on this page.',
+'رأيك هو القطعة التالية.': 'Your review is the next piece.',
+'ابدأ مشروعك معنا، ونترك لك هذه المساحة لتكتب عن التجربة.': 'Start your project with us, and this space is yours to write about the experience.',
 'بكلماتهم… عن القطع التي أكملناها معًا.': 'In their own words… about the pieces we completed together.',
 'منظمات دولية وشركات ناشئة وعلامات راسخة… كلٌّ منها قطعة أكملنا معها أحجيتها.': 'International organizations, start-ups and established brands… each one a puzzle we helped complete.',
 'القطعة التالية': 'The next piece', 'مكانك أنت.': 'is your spot.',

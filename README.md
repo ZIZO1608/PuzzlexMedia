@@ -56,9 +56,17 @@ At `/admin/` the team edits the site without touching code:
   descriptions and the texts drawn by the animations). Shared texts, such as the menu links, change everywhere at once.
 - **Projects**: add, edit, delete and reorder projects; upload the cover and gallery images.
 - **Partner logos**: the logos in the partners puzzle. The puzzle resizes itself (5×5 for up to 24, 7×7 for up to 48, 9×9 for up to 80).
-- **Client feedback**: testimonials (name, role / company, quote in Arabic and English, optional photo or partner logo,
-  optional 1–5 stars), shown in order in the "What our clients say" section on the home page. Hide one to take it off the
-  site without deleting it; with none shown, the section is left out.
+- **Client feedback**: the feedback page (`/feedback.html`, «آراء العملاء» in the menu). Each review has a name, role /
+  company, the quote in Arabic and English, an optional photo or partner logo, 1–5 stars, a date and up to 6 attached
+  images (chat screenshots, the finished work) that open in a full-screen viewer. The page opens with the average rating
+  and the count per star, and filters by 5 stars / 4 stars / with photos. Reviews marked «في الصفحة الرئيسية» (the first 6)
+  also show in "What our clients say" on the home page. Hide one to take it off the site without deleting it; with none
+  shown, the home section and the menu links are left out and the page says there are no reviews yet.
+  **Excel**: «استيراد من Excel» takes an .xlsx or .csv (Excel, Google Sheets), one row per review; download the template
+  from the same window (its second sheet explains every column). Pick the images in the same window and write each file's
+  name in the photo / images columns. Every row is checked before anything is added (errors, warnings, duplicates of
+  reviews already there), and nothing is saved until «حفظ التغييرات». «تصدير إلى Excel» downloads the current reviews in
+  the same format, so they can be edited in bulk and imported back with «استبدال كل الآراء الحالية». Up to 500 reviews.
 - **Contact & links**: phone, WhatsApp, email, website and social links (empty = left off the site: no "coming soon", no dead icon).
 - **Messages**: the contact-form inbox, with read / unread and delete.
 

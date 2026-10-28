@@ -11,6 +11,7 @@
     ['.board.playable .piece', T('اسحب', 'Drag')],
     ['.partners-board.done .pp', T('افتح', 'Open')],
     ['.work-card', T('افتح', 'Open')],
+    ['.tm-shot', T('كبّر', 'View')],
     ['.pp-pop', T('رجوع', 'Back')],
   ];
 

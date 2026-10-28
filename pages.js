@@ -1,4 +1,4 @@
-/* PuzzleX — inner pages (about / services / work / contact) and the chrome shared by every page.
+/* PuzzleX — inner pages (about / services / work / feedback / contact) and the chrome shared by every page.
    Uses gsap + ScrollTrigger, helpers from main.js (piecePath, TAB_DEPTH, REDUCED, playClick, $)
    and from sections.js (loadPopMark / popMark). Every block checks its own markup first, so this file
    can be loaded on any page. */
@@ -890,6 +890,174 @@ function initLost() {
   piece.addEventListener('keydown', (ev) => { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); toggle(); } });
 }
 
+/* ---------- Feedback · the score counts up, long quotes fold, the cards drop into the wall like pieces, filters ---------- */
+function initFeedback() {
+  const score = document.querySelector('.fb-score');
+  if (score && !REDUCED) {
+    const num = score.querySelector('[data-count-to]');
+    const to = parseFloat(num.dataset.countTo);
+    const decimals = num.dataset.countTo.includes('.') ? 1 : 0;
+    const counter = { v: 0 };
+    num.textContent = (0).toFixed(decimals);
+    const tl = gsap.timeline({ paused: true })
+      .from(score, { y: 34, autoAlpha: 0, duration: 0.7, ease: 'power3.out' })
+      .to(counter, { v: to, duration: 1.5, ease: 'power2.out', onUpdate: () => { num.textContent = counter.v.toFixed(decimals); } }, '<0.2');
+    const fill = score.querySelector('.fb-stars-fill');
+    if (fill) tl.fromTo(fill, { clipPath: 'inset(0 100% 0 0)' }, { clipPath: 'inset(0 0% 0 0)', duration: 1.5, ease: 'power2.out' }, '<');
+    const bars = score.querySelectorAll('.fb-bar b');
+    if (bars.length) tl.from(bars, { scaleX: 0, duration: 0.9, stagger: 0.08, ease: 'power3.out' }, '<0.2');
+    // after the loading screen, when there is one
+    if (document.documentElement.classList.contains('is-loading')) document.addEventListener('loaderdone', () => tl.play(), { once: true });
+    else tl.play();
+  }
+
+  // long quotes fold after nine lines, with "read more" (here and in the home page's section)
+  const readMore = T('اقرأ المزيد', 'Read more'), readLess = T('عرض أقل', 'Show less');
+  document.querySelectorAll('.fb-wall .tm-card, .tm-list .tm-card').forEach((card) => {
+    const quote = card.querySelector('.tm-quote');
+    quote.classList.add('is-clamped');
+    if (quote.scrollHeight - quote.clientHeight < 4) { quote.classList.remove('is-clamped'); return; }
+    const more = document.createElement('button');
+    more.type = 'button';
+    more.className = 'tm-more';
+    more.textContent = readMore;
+    more.setAttribute('aria-expanded', 'false');
+    more.addEventListener('click', () => {
+      const open = !quote.classList.toggle('is-clamped');
+      more.textContent = open ? readLess : readMore;
+      more.setAttribute('aria-expanded', String(open));
+      ScrollTrigger.refresh();
+    });
+    quote.after(more);
+  });
+
+  const wall = document.querySelector('.fb-wall');
+  if (!wall) return;
+  const cards = [...wall.querySelectorAll('.tm-card')];
+
+  // a card falls in tilted, straightens, and its edge flashes as it clicks into place
+  const revealed = new WeakSet();
+  const drop = (batch) => {
+    batch.forEach((c) => revealed.add(c));
+    gsap.fromTo(batch, { y: 70, rotation: () => gsap.utils.random(-7, 7), scale: 0.94, autoAlpha: 0 }, {
+      y: 0, rotation: 0, scale: 1, autoAlpha: 1, duration: 0.85, ease: 'back.out(1.5)', overwrite: true,
+      stagger: { each: 0.07, onComplete() { const c = this.targets()[0]; c.classList.remove('snap'); void c.offsetWidth; c.classList.add('snap'); } },
+    });
+  };
+  cards.forEach((c) => c.addEventListener('animationend', () => c.classList.remove('snap')));
+  if (!REDUCED) {
+    gsap.set(cards, { autoAlpha: 0 });
+    ScrollTrigger.batch(cards, { start: 'top 94%', onEnter: (batch) => drop(batch.filter((c) => !revealed.has(c))) });
+  }
+
+  const chips = [...document.querySelectorAll('.fb-filters .chip')];
+  const matches = (card, filter) => filter === 'all' || (filter === 'media' ? card.hasAttribute('data-media') : card.dataset.rating === filter);
+  const apply = (filter) => {
+    chips.forEach((c) => c.setAttribute('aria-pressed', String(c.dataset.filter === filter)));
+    const swap = () => {
+      cards.forEach((c) => c.classList.toggle('is-hidden', !matches(c, filter)));
+      ScrollTrigger.refresh();
+    };
+    if (REDUCED) { swap(); return; }
+    gsap.to(wall, {
+      autoAlpha: 0, y: 12, duration: 0.2, ease: 'power1.in', overwrite: true,
+      onComplete: () => {
+        swap();
+        gsap.set(wall, { autoAlpha: 1, y: 0 });
+        // the first screenful drops in again; the rest are simply there
+        const shown = cards.filter((c) => matches(c, filter));
+        gsap.set(shown.slice(9), { autoAlpha: 1, y: 0, rotation: 0, scale: 1 });
+        shown.slice(9).forEach((c) => revealed.add(c));
+        drop(shown.slice(0, 9));
+      },
+    });
+  };
+  chips.forEach((chip) => chip.addEventListener('click', () => apply(chip.dataset.filter)));
+}
+
+/* ---------- Feedback · the images clients shared, full screen (home page and feedback page) ---------- */
+function initFeedbackViewer() {
+  if (!document.querySelector('.tm-shot')) return;
+  let box = null, img, count, caption, prev, next, shots = [], at = 0, opener = null;
+  const root = document.documentElement;
+
+  const build = () => {
+    box = document.createElement('dialog');
+    box.className = 'fb-lightbox';
+    box.setAttribute('aria-label', T('عارض الصور', 'Image viewer'));
+    box.setAttribute('data-lenis-prevent', '');
+    box.innerHTML = `
+      <div class="fb-lb-top"><span class="fb-lb-count"></span><button class="fb-lb-btn fb-lb-close" type="button">✕</button></div>
+      <div class="fb-lb-stage">
+        <button class="fb-lb-btn fb-lb-nav fb-lb-prev" type="button">${EN ? '←' : '→'}</button>
+        <img alt="">
+        <button class="fb-lb-btn fb-lb-nav fb-lb-next" type="button">${EN ? '→' : '←'}</button>
+      </div>
+      <p class="fb-lb-caption"></p>`;
+    img = box.querySelector('img');
+    count = box.querySelector('.fb-lb-count');
+    caption = box.querySelector('.fb-lb-caption');
+    prev = box.querySelector('.fb-lb-prev');
+    next = box.querySelector('.fb-lb-next');
+    box.querySelector('.fb-lb-close').setAttribute('aria-label', T('إغلاق', 'Close'));
+    prev.setAttribute('aria-label', T('الصورة السابقة', 'Previous image'));
+    next.setAttribute('aria-label', T('الصورة التالية', 'Next image'));
+    box.querySelector('.fb-lb-close').addEventListener('click', () => box.close());
+    prev.addEventListener('click', () => show(at - 1, -1));
+    next.addEventListener('click', () => show(at + 1, 1));
+    // a click on the dark area around the image closes it
+    box.addEventListener('click', (ev) => { if (ev.target === box || ev.target.classList.contains('fb-lb-stage')) box.close(); });
+    box.addEventListener('keydown', (ev) => {
+      if (ev.key !== 'ArrowLeft' && ev.key !== 'ArrowRight') return;
+      const forward = (ev.key === 'ArrowRight') === EN; // right is "next" in English, "previous" in Arabic
+      show(at + (forward ? 1 : -1), forward ? 1 : -1);
+    });
+    // swipe: towards the reading direction's start is "next"
+    let x0 = null;
+    box.addEventListener('pointerdown', (ev) => { x0 = ev.clientX; });
+    box.addEventListener('pointerup', (ev) => {
+      if (x0 === null) return;
+      const dx = ev.clientX - x0;
+      x0 = null;
+      if (Math.abs(dx) < 50 || shots.length < 2) return;
+      const forward = EN ? dx < 0 : dx > 0;
+      show(at + (forward ? 1 : -1), forward ? 1 : -1);
+    });
+    box.addEventListener('close', () => {
+      root.classList.remove('view-lock');
+      if (opener) opener.focus();
+    });
+    document.body.append(box);
+  };
+
+  function show(i, dir = 0) {
+    at = (i + shots.length) % shots.length;
+    const shot = shots[at];
+    img.src = shot.href;
+    img.alt = shot.querySelector('img').alt;
+    count.textContent = shots.length > 1 ? `${at + 1} / ${shots.length}` : '';
+    prev.hidden = next.hidden = shots.length < 2;
+    if (!REDUCED) gsap.fromTo(img, { autoAlpha: 0, x: dir * (EN ? 40 : -40), scale: dir ? 1 : 0.94 }, { autoAlpha: 1, x: 0, scale: 1, duration: 0.45, ease: 'power3.out', overwrite: true });
+  }
+
+  document.addEventListener('click', (ev) => {
+    const shot = ev.target.closest('.tm-shot');
+    if (!shot || ev.ctrlKey || ev.metaKey || ev.shiftKey || ev.button !== 0) return; // new tab still works
+    ev.preventDefault();
+    if (!box) build();
+    const card = shot.closest('.tm-card');
+    shots = [...card.querySelectorAll('.tm-shot')];
+    opener = shot;
+    const name = card.querySelector('figcaption b'), role = card.querySelector('figcaption small');
+    caption.replaceChildren();
+    if (name) caption.append(Object.assign(document.createElement('b'), { textContent: name.textContent }));
+    if (role) caption.append(` · ${role.textContent}`);
+    root.classList.add('view-lock');
+    box.showModal();
+    show(shots.indexOf(shot));
+  });
+}
+
 /* ---------- boot ---------- */
 (async function initPages() {
   await document.fonts.ready;
@@ -902,6 +1070,8 @@ function initLost() {
   initServiceReveal();
   initWork();
   initProject();
+  initFeedback();
+  initFeedbackViewer();
   initContact();
   initLost();
   ScrollTrigger.refresh();

@@ -15,10 +15,10 @@ if (lenis) {
   gsap.ticker.add((time) => lenis.raf(time * 1000)); // one clock for Lenis and every scrubbed timeline
   gsap.ticker.lagSmoothing(0);
 
-  // the loading screen and the open phone menu lock the page; Lenis has to stop with them
+  // the loading screen, the open phone menu and the image viewer lock the page; Lenis has to stop with them
   const root = document.documentElement;
   const syncLock = () => {
-    if (root.classList.contains('is-loading') || root.classList.contains('menu-lock')) lenis.stop();
+    if (['is-loading', 'menu-lock', 'view-lock'].some((c) => root.classList.contains(c))) lenis.stop();
     else lenis.start();
   };
   syncLock();

@@ -133,7 +133,8 @@ async function pageEntry(file) {
 
 // sitemap.xml: the pages plus every project in the admin panel, each in both languages
 let sitemap = null; // { version, entry }
-const sitePaths = () => ['', 'about.html', 'services.html', 'work.html', 'contact.html', 'privacy.html',
+const hasFeedback = () => store.read('testimonials.json', []).some((t) => t.visible !== false); // else the page is an empty shell
+const sitePaths = () => ['', 'about.html', 'services.html', 'work.html', ...(hasFeedback() ? ['feedback.html'] : []), 'contact.html', 'privacy.html',
   ...store.read('projects.json', { projects: [] }).projects.map((p) => `project.html?id=${encodeURIComponent(p.id)}`)];
 // every indexable address, both languages (the sitemap's <loc>s; also what IndexNow submits)
 const siteUrls = () => sitePaths().flatMap((p) => [`${SITE_URL}/${p}`, `${SITE_URL}/en/${p}`]);
@@ -167,6 +168,7 @@ async function llmsEntry() {
       settings: store.read('settings.json', {}),
       projects: store.read('projects.json', { sectors: {}, projects: [] }),
       services: { ar: content.seo.servicesFrom(ar.body.toString('utf8')), en: content.seo.servicesFrom(en.body.toString('utf8')) },
+      hasFeedback: hasFeedback(),
     });
     llms = { key, entry: makeEntry(Buffer.from(txt), '.txt') };
   }

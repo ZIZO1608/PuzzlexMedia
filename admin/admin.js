@@ -204,7 +204,7 @@ async function viewHome(view) {
       short('النصوص', 'العناوين والفقرات والأزرار في كل الصفحات', '#/texts'),
       short('المشاريع', 'أضف مشروعًا، ارفع صوره، رتّب الأعمال', '#/projects'),
       short('شعارات الشركاء', 'الشعارات في أحجية «شركاء النجاح»', '#/partners'),
-      short('آراء العملاء', 'ما يقوله عملاؤكم، في الصفحة الرئيسية', '#/testimonials'),
+      short('آراء العملاء', 'الآراء والنجوم والصور، واستيراد من Excel', '#/testimonials'),
       short('التواصل والروابط', 'الهاتف، واتساب، البريد، حسابات التواصل', '#/contact')),
     recent.length ? h('h2', { class: 'section-title' }, 'آخر الرسائل') : null,
     recent.length ? h('div', { class: 'msgs' }, recent.map((m) => h('a', { class: `msg card${m.read ? '' : ' unread'}`, href: '#/messages', style: 'display:grid;gap:4px' },
@@ -556,11 +556,18 @@ async function viewPartners(view) {
 }
 
 /* =========================================================
-   Client feedback (testimonials)
+   Client feedback (testimonials): the feedback page, and the ones marked for it on the home page
    ========================================================= */
+const HOME_FEEDBACK = 6; // lib/content.js shows this many on the home page
+const blankFeedback = () => ({
+  id: '', name: { ar: '', en: '' }, role: { ar: '', en: '' }, quote: { ar: '', en: '' },
+  photo: '', images: [], rating: 5, date: '', visible: true, featured: true,
+});
+const withDefaults = (t) => ({ ...blankFeedback(), ...t }); // entries saved before images / date / featured existed
+
 async function viewTestimonials(view) {
   const [r, parts] = await Promise.all([api('GET', '/testimonials'), api('GET', '/partners')]);
-  let saved = r.data, rev = r.rev, list = clone(r.data);
+  let saved = r.data.map(withDefaults), rev = r.rev, list = clone(saved);
   setPending({
     label: 'آراء العملاء',
     // compared by id, so adding one at the top counts as one change, not a shift of all the others
@@ -572,11 +579,17 @@ async function viewTestimonials(view) {
       return Math.max(1, changed + removed); // 1 when only the order changed
     },
     discard: () => { list = clone(saved); draw(); },
-    save: async () => { const s = await api('PUT', '/testimonials', { rev, data: list }); saved = s.data; rev = s.rev; list = clone(saved); draw(); },
+    save: async () => { const s = await api('PUT', '/testimonials', { rev, data: list }); saved = s.data.map(withDefaults); rev = s.rev; list = clone(saved); draw(); },
   });
   const box = h('div', { class: 'tm-admin' });
   const info = h('p', { class: 'hint' });
   const lang2 = (lang) => (lang === 'ar' ? 'بالعربية' : 'English');
+  let cards = []; // [element, entry], for the search box
+  const search = h('input', { type: 'search', class: 'tm-search', placeholder: 'ابحث باسم العميل أو نص الرأي…', oninput: () => applySearch() });
+  const applySearch = () => {
+    const q = search.value.trim().toLowerCase();
+    cards.forEach(([el, t]) => { el.hidden = Boolean(q) && ![t.name.ar, t.name.en, t.role.ar, t.role.en, t.quote.ar, t.quote.en].join(' ').toLowerCase().includes(q); });
+  };
 
   function card(t, i) {
     const face = h('div', { class: 'tm-face-box' });
@@ -601,19 +614,36 @@ async function viewTestimonials(view) {
     ].filter(Boolean));
     photoActs();
 
+    // images attached to the review (a chat screenshot, the finished work…): up to 6, in order
+    const images = h('div', { class: 'images' });
+    const drawImages = () => images.replaceChildren(
+      ...t.images.map((src, k) => h('div', { class: 'img-tile' }, h('img', { src: asset(src), alt: `صورة مرفقة ${k + 1}` }), h('div', { class: 'acts' },
+        h('button', { type: 'button', class: 'btn btn-icon btn-small', title: 'تقديم', 'aria-label': 'تقديم', disabled: k === 0, onclick: () => { [t.images[k - 1], t.images[k]] = [t.images[k], t.images[k - 1]]; drawImages(); refreshBar(); } }, '→'),
+        h('button', { type: 'button', class: 'btn btn-icon btn-small btn-danger', title: 'حذف', 'aria-label': 'حذف', onclick: () => { t.images.splice(k, 1); drawImages(); refreshBar(); } }, '✕'),
+        h('button', { type: 'button', class: 'btn btn-icon btn-small', title: 'تأخير', 'aria-label': 'تأخير', disabled: k === t.images.length - 1, onclick: () => { [t.images[k + 1], t.images[k]] = [t.images[k], t.images[k + 1]]; drawImages(); refreshBar(); } }, '←')))),
+      t.images.length < 6 ? dropZone('أضف صورًا', true, async (files) => {
+        const room = files.slice(0, 6 - t.images.length);
+        if (room.length < files.length) toast('الحد الأقصى 6 صور لكل رأي — أُضيفت أول الصور فقط', 'err');
+        for (const [k, f] of room.entries()) {
+          try { toast(`جارٍ رفع الصورة ${k + 1} من ${room.length}…`); t.images.push(await upload(f, 1800)); drawImages(); refreshBar(); } catch (err) { toast(err.message, 'err'); }
+        }
+      }) : null);
+    drawImages();
+
     const pairField = (label, key, multiline, required) => h('div', { class: 'pair' }, ['ar', 'en'].map((lang) => h('label', { class: 'field' },
       h('span', null, `${label} — ${lang2(lang)}`, required && lang === 'ar' ? h('b', null, ' *') : null),
       h(multiline ? 'textarea' : 'input', {
         value: t[key][lang], dir: lang === 'ar' ? 'rtl' : 'ltr', lang, rows: multiline ? 4 : null,
         oninput: (e) => { t[key][lang] = e.target.value; if (key === 'name' && !t.photo) drawFace(); refreshBar(); },
       }))));
+    const toggle = (key, label) => h('label', { class: 'tm-switch' },
+      h('input', { type: 'checkbox', checked: t[key], onchange: (e) => { t[key] = e.target.checked; el.classList.toggle('off', !t.visible); drawInfo(); refreshBar(); } }), label);
 
     const el = h('div', { class: `card tm-item${t.visible ? '' : ' off'}` },
       h('div', { class: 'tm-item-head' },
         h('span', { class: 'tag' }, `#${i + 1}`),
-        h('label', { class: 'tm-switch' },
-          h('input', { type: 'checkbox', checked: t.visible, onchange: (e) => { t.visible = e.target.checked; el.classList.toggle('off', !t.visible); refreshBar(); } }),
-          'ظاهر على الموقع'),
+        toggle('visible', 'ظاهر على الموقع'),
+        toggle('featured', 'في الصفحة الرئيسية'),
         h('span', { class: 'spacer' }),
         h('button', { type: 'button', class: 'btn btn-icon btn-small', title: 'تقديم', 'aria-label': 'تقديم', disabled: i === 0, onclick: () => { [list[i - 1], list[i]] = [list[i], list[i - 1]]; draw(); } }, '↑'),
         h('button', { type: 'button', class: 'btn btn-icon btn-small', title: 'تأخير', 'aria-label': 'تأخير', disabled: i === list.length - 1, onclick: () => { [list[i + 1], list[i]] = [list[i], list[i + 1]]; draw(); } }, '↓'),
@@ -626,35 +656,337 @@ async function viewTestimonials(view) {
       pairField('اسم العميل', 'name', false, true),
       pairField('المنصب والشركة (اختياري)', 'role'),
       pairField('نص الرأي', 'quote', true, true),
-      h('label', { class: 'field', style: 'max-width:260px' }, h('span', null, 'التقييم'),
-        h('select', { onchange: (e) => { t.rating = Number(e.target.value); refreshBar(); } },
-          [5, 4, 3, 2, 1, 0].map((n) => h('option', { value: n, selected: t.rating === n }, n ? `${'★'.repeat(n)}  (${n} من 5)` : 'بدون نجوم')))));
+      h('div', { class: 'grid two' },
+        h('label', { class: 'field' }, h('span', null, 'التقييم'),
+          h('select', { onchange: (e) => { t.rating = Number(e.target.value); refreshBar(); } },
+            [5, 4, 3, 2, 1, 0].map((n) => h('option', { value: n, selected: t.rating === n }, n ? `${'★'.repeat(n)}  (${n} من 5)` : 'بدون نجوم')))),
+        h('label', { class: 'field' }, h('span', null, 'التاريخ (اختياري)'),
+          h('input', { value: t.date, dir: 'ltr', placeholder: '2026-05-14 أو 2026-05', inputmode: 'numeric', oninput: (e) => { t.date = e.target.value.trim(); refreshBar(); } }))),
+      h('div', { class: 'field' }, h('span', null, 'صور مرفقة (اختياري)'),
+        h('span', { class: 'hint' }, 'لقطة من محادثة العميل، صورة من العمل المسلَّم… حتى 6 صور. تظهر مصغّرة تحت الرأي، وتُفتح بحجم كامل عند الضغط عليها.'), images));
     return el;
   }
 
-  function draw() {
-    const shown = list.filter((t) => t.visible).length;
+  function drawInfo() {
+    const shown = list.filter((t) => t.visible), home = shown.filter((t) => t.featured).length;
     info.textContent = list.length
-      ? `${list.length} ${noun(list.length, ['رأي', 'رأيان', 'آراء', 'رأيًا'])} · ${shown} ظاهر على الموقع. الاسم والنص مطلوبان بلغة واحدة على الأقل؛ إن تركت الإنجليزية فارغة تعرض الصفحة الإنجليزية النص العربي (والعكس).`
+      ? `${list.length} ${noun(list.length, ['رأي', 'رأيان', 'آراء', 'رأيًا'])} · ${shown.length} ظاهر على الموقع · ${home} في الصفحة الرئيسية${home > HOME_FEEDBACK ? ` (يظهر أول ${HOME_FEEDBACK} منها فقط)` : ''}. الاسم والنص مطلوبان بلغة واحدة على الأقل؛ إن تركت الإنجليزية فارغة تعرض الصفحة الإنجليزية النص العربي (والعكس).`
       : '';
-    box.replaceChildren(...(list.length ? list.map(card) : [h('p', { class: 'empty' }, 'لا آراء بعد. أضف أول رأي — يظهر قسم «ماذا يقول عملاؤنا» في الصفحة الرئيسية تلقائيًا عندما يكون هناك رأي ظاهر واحد على الأقل.')]));
+  }
+  function draw() {
+    cards = list.map((t, i) => [card(t, i), t]);
+    box.replaceChildren(...(list.length ? cards.map(([el]) => el) : [h('p', { class: 'empty' }, 'لا آراء بعد. أضف أول رأي، أو استوردها كلها مرة واحدة من ملف Excel — تظهر صفحة «آراء العملاء» وقسمها في الصفحة الرئيسية تلقائيًا عندما يكون هناك رأي ظاهر واحد على الأقل.')]));
+    drawInfo();
+    applySearch();
     refreshBar();
   }
   const add = () => {
-    list.unshift({ id: '', name: { ar: '', en: '' }, role: { ar: '', en: '' }, quote: { ar: '', en: '' }, photo: '', rating: 5, visible: true });
+    list.unshift(blankFeedback());
+    search.value = '';
     draw();
     box.querySelector('input:not([type])')?.focus();
+  };
+  const importNow = () => importFeedback({
+    existing: list, partners: parts.data,
+    onDone: (items, mode) => {
+      if (mode === 'replace') list.splice(0, list.length, ...items);
+      else if (mode === 'top') list.unshift(...items);
+      else list.push(...items);
+      search.value = '';
+      draw();
+      toast(`${items.length === 1 ? 'أُضيف رأي واحد' : items.length === 2 ? 'أُضيف رأيان' : `أُضيف ${items.length} ${noun(items.length, ['', '', 'آراء', 'رأيًا'])}`} — راجعها ثم اضغط «حفظ التغييرات»`);
+    },
+  });
+  const exportNow = () => {
+    if (!list.length) { toast('لا آراء لتصديرها بعد', 'err'); return; }
+    XLSX.download(feedbackWorkbook(list), `puzzlex-feedback-${new Date().toISOString().slice(0, 10)}.xlsx`);
   };
   view.replaceChildren(
     h('div', { class: 'page-head' }, h('div', null,
       h('p', { class: 'kicker' }, 'CLIENT FEEDBACK'),
       h('h1', null, 'آراء العملاء'),
-      h('p', null, 'ما يقوله عملاؤكم عنكم، بالعربية والإنجليزية. تظهر بهذا الترتيب في قسم «ماذا يقول عملاؤنا» في الصفحة الرئيسية، بعد أحجية الشركاء. أخفِ الرأي بدل حذفه إن أردت إرجاعه لاحقًا.')),
+      h('p', null, `ما يقوله عملاؤكم عنكم، بالعربية والإنجليزية، مع النجوم والصور. تظهر كلها بهذا الترتيب في صفحة «آراء العملاء»، والمعلَّمة «في الصفحة الرئيسية» (أول ${HOME_FEEDBACK}) في قسم «ماذا يقول عملاؤنا». أخفِ الرأي بدل حذفه إن أردت إرجاعه لاحقًا.`)),
       h('div', { class: 'row' },
-        h('a', { class: 'btn btn-ghost', href: '/#testimonials-title', target: '_blank', rel: 'noopener' }, 'افتح الصفحة الرئيسية ↗'),
+        h('a', { class: 'btn btn-ghost', href: '/feedback.html', target: '_blank', rel: 'noopener' }, 'افتح صفحة الآراء ↗'),
         h('button', { type: 'button', class: 'btn btn-primary', onclick: add }, '+ رأي جديد'))),
+    h('div', { class: 'tm-tools' },
+      h('button', { type: 'button', class: 'btn', onclick: importNow }, 'استيراد من Excel'),
+      h('button', { type: 'button', class: 'btn btn-ghost', onclick: exportNow }, 'تصدير إلى Excel'),
+      h('span', { class: 'spacer' }), search),
     info, h('div', { style: 'height:12px' }), box);
   draw();
+}
+
+/* ---------- client feedback ⇄ Excel: the columns, the template, reading a filled-in sheet ---------- */
+// key: where the value goes; head: the template's header; alias: other headers that mean the same column
+const FEEDBACK_COLUMNS = [
+  { key: 'name.ar', head: 'اسم العميل (عربي)', alias: ['name_ar', 'الاسم', 'اسم العميل', 'العميل', 'name'], width: 24,
+    help: 'اسم العميل كما يظهر على الموقع. مطلوب بالعربية أو بالإنجليزية.', example: 'م. خالد العتيبي' },
+  { key: 'name.en', head: 'Client name (English)', alias: ['name_en', 'name english', 'english name', 'الاسم بالانجليزية', 'client name'], width: 24,
+    help: 'الاسم للصفحة الإنجليزية (اختياري — إن تُرك فارغًا يظهر الاسم العربي).', example: 'Eng. Khalid Al-Otaibi' },
+  { key: 'role.ar', head: 'المنصب والشركة (عربي)', alias: ['role_ar', 'المنصب', 'الشركة', 'المنصب والشركة', 'role'], width: 26,
+    help: 'المنصب والشركة (اختياري).', example: 'مدير التسويق — شركة الأفق' },
+  { key: 'role.en', head: 'Role & company (English)', alias: ['role_en', 'role english', 'company', 'title'], width: 26,
+    help: 'المنصب والشركة بالإنجليزية (اختياري).', example: 'Marketing Manager — Al Ofuq Co.' },
+  { key: 'quote.ar', head: 'نص الرأي (عربي)', alias: ['quote_ar', 'الرأي', 'نص الرأي', 'النص', 'التعليق', 'quote', 'review', 'feedback', 'comment'], width: 60,
+    help: 'نص الرأي، حتى 1200 حرف. مطلوب بالعربية أو بالإنجليزية. لسطر جديد داخل الخلية: Alt+Enter.', example: 'فريق محترف فهم فكرتنا من أول اجتماع، وسلّم الهوية قبل الموعد.' },
+  { key: 'quote.en', head: 'Review (English)', alias: ['quote_en', 'review_en', 'review english', 'english review'], width: 60,
+    help: 'نص الرأي بالإنجليزية (اختياري).', example: 'A professional team that got our idea from the first meeting and delivered early.' },
+  { key: 'rating', head: 'التقييم (0–5)', alias: ['rating', 'stars', 'التقييم', 'النجوم', 'نجوم', 'عدد النجوم'], width: 13,
+    help: 'عدد النجوم من 1 إلى 5. اكتب 0 أو اتركه فارغًا لرأي بدون نجوم.', example: '5' },
+  { key: 'date', head: 'التاريخ', alias: ['date', 'تاريخ', 'تاريخ الرأي'], width: 14,
+    help: 'تاريخ الرأي (اختياري): 2026-05-14 أو 2026-05 أو 2026، أو تاريخ Excel عادي.', example: '2026-05-14' },
+  { key: 'photo', head: 'صورة العميل (اسم الملف)', alias: ['photo', 'logo', 'image', 'الصورة', 'الشعار', 'صورة العميل', 'صورة'], width: 22,
+    help: 'اسم ملف صورة العميل أو شعار شركته — اختر الصور نفسها في نافذة الاستيراد. أو اسم شريك من «شعارات الشركاء» (مثل p07 أو اسمه).', example: 'khalid.jpg' },
+  { key: 'images', head: 'صور مرفقة (أسماء الملفات)', alias: ['images', 'attachments', 'gallery', 'الصور', 'صور مرفقة', 'المرفقات', 'صور'], width: 30,
+    help: 'صور مع الرأي (لقطة محادثة، صورة من العمل…): أسماء الملفات مفصولة بفاصلة، حتى 6.', example: 'chat-1.png, chat-2.png' },
+  { key: 'featured', head: 'في الصفحة الرئيسية؟', alias: ['featured', 'home', 'الرئيسية', 'في الرئيسية'], width: 16,
+    help: `نعم = يظهر أيضًا في قسم «ماذا يقول عملاؤنا» في الصفحة الرئيسية (أول ${HOME_FEEDBACK}). فارغ = لا.`, example: 'لا' },
+  { key: 'visible', head: 'ظاهر على الموقع؟', alias: ['visible', 'show', 'ظاهر', 'اظهار', 'منشور'], width: 15,
+    help: 'لا = يُحفظ مخفيًا ولا يظهر على الموقع. فارغ = ظاهر.', example: 'نعم' },
+];
+const YES_NO = ['نعم', 'لا'];
+const colOf = (key) => FEEDBACK_COLUMNS.findIndex((c) => c.key === key);
+const sheetLists = () => ({ [colOf('rating')]: ['5', '4', '3', '2', '1', '0'], [colOf('featured')]: YES_NO, [colOf('visible')]: YES_NO });
+
+// list → workbook (export); with no list, the empty template plus a sheet explaining each column
+function feedbackWorkbook(list) {
+  const value = (t, key) => {
+    const [k, lang] = key.split('.');
+    if (lang) return t[k][lang];
+    if (k === 'images') return t.images.join(', ');
+    if (k === 'featured' || k === 'visible') return t[k] ? 'نعم' : 'لا';
+    if (k === 'rating') return t.rating || '';
+    return t[k];
+  };
+  const widths = FEEDBACK_COLUMNS.map((c) => c.width);
+  const head = FEEDBACK_COLUMNS.map((c) => c.head);
+  if (list) return XLSX.write([{ name: 'آراء العملاء', rtl: true, widths, lists: sheetLists(), rows: [head, ...list.map((t) => FEEDBACK_COLUMNS.map((c) => value(t, c.key)))] }]);
+  return XLSX.write([
+    { name: 'آراء العملاء', rtl: true, widths, lists: sheetLists(), rows: [head] },
+    { name: 'شرح الأعمدة', rtl: true, widths: [28, 80, 50], rows: [['العمود', 'ماذا تكتب فيه', 'مثال'], ...FEEDBACK_COLUMNS.map((c) => [c.head, c.help, c.example])] },
+  ]);
+}
+
+const latinDigits = (s) => String(s).replace(/[٠-٩۰-۹]/g, (d) => String(d.charCodeAt(0) & 0xf));
+const plain = (s) => latinDigits(s).toLowerCase().replace(/[ً-ْـ]/g, '').replace(/[أإآ]/g, 'ا').replace(/[^\p{L}\p{N}]+/gu, ' ').trim();
+const yesNo = (v, empty) => {
+  const s = latinDigits(v).trim().toLowerCase();
+  if (!s) return empty;
+  if (/^(نعم|اي|ايوه|أيوه|yes|y|true|1|x|✓|✔)$/.test(s)) return true;
+  if (/^(لا|no|n|false|0)$/.test(s)) return false;
+  return null;
+};
+const parseRating = (v) => {
+  const s = latinDigits(v).trim();
+  if (!s) return 0;
+  const stars = (s.match(/[★⭐]/gu) || []).length;
+  const n = stars || Math.round(Number(s.replace(',', '.')));
+  return Number.isInteger(n) && n >= 0 && n <= 5 ? n : null;
+};
+const ymd = (y, m, d) => {
+  const yy = Number(y), mm = Number(m), dd = Number(d || 1);
+  if (yy < 1900 || yy > 2099 || mm < 1 || mm > 12 || dd < 1 || dd > 31) return null;
+  return [y, String(mm).padStart(2, '0'), d ? String(dd).padStart(2, '0') : null].filter(Boolean).join('-');
+};
+// '' when empty, null when it can't be understood
+function parseDate(v) {
+  const s = latinDigits(v).trim();
+  if (!s) return '';
+  let m;
+  if (/^\d+(\.\d+)?$/.test(s)) {
+    const n = Number(s);
+    if (Number.isInteger(n) && n >= 1900 && n <= 2099) return s; // just a year
+    if (n > 20000 && n < 80000) return new Date(Math.round((n - 25569) * 864e5)).toISOString().slice(0, 10); // Excel's day number
+    return null;
+  }
+  if ((m = s.match(/^(\d{4})[-/.](\d{1,2})(?:[-/.](\d{1,2}))?(?:[T\s].*)?$/))) return ymd(m[1], m[2], m[3]);
+  if ((m = s.match(/^(\d{1,2})[-/.](\d{1,2})[-/.](\d{4})$/))) return ymd(m[3], m[2], m[1]); // day/month/year, as written in the region
+  if ((m = s.match(/^(\d{1,2})[-/.](\d{4})$/))) return ymd(m[2], m[1]);
+  return null;
+}
+const UPLOADED = /^\/uploads\/[a-f0-9]{24}\.(webp|png|jpg)$/;
+const PARTNER_LOGO = /^assets\/partners\/p\d{2}\.webp$/;
+// a cell naming an image: something already on the site, a partner's logo, or one of the files picked for the import
+function imageRef(raw, files, partners) {
+  const s = raw.trim();
+  if (!s) return null;
+  if (UPLOADED.test(s) || PARTNER_LOGO.test(s)) return { src: s };
+  const name = s.split(/[\\/]/).pop().toLowerCase();
+  const file = files.get(name) || files.get(name.replace(/\.[a-z0-9]+$/, ''));
+  if (file) return { file };
+  const id = s.match(/^p(\d{1,2})$/i);
+  const partner = partners.find((p) => (id && p.id === `p${id[1].padStart(2, '0')}`) || (p.name && plain(p.name) === plain(s)));
+  return partner ? { src: partner.src } : { missing: s };
+}
+const dupKey = (t) => plain(`${t.name.ar} ${t.name.en} ${(t.quote.ar || t.quote.en).slice(0, 80)}`);
+
+function readFeedbackSheet(rows, files, partners, existing) {
+  const start = rows.findIndex((r) => r.some((c) => String(c).trim()));
+  if (start < 0) throw new Error('الملف فارغ.');
+  const cols = {}, unknown = [];
+  rows[start].forEach((cell, i) => {
+    const n = plain(cell);
+    if (!n) return;
+    const col = FEEDBACK_COLUMNS.find((c) => plain(c.head) === n || c.alias.some((a) => plain(a) === n));
+    if (col && !(col.key in cols)) cols[col.key] = i; else unknown.push(String(cell).trim());
+  });
+  if (!('name.ar' in cols || 'name.en' in cols) || !('quote.ar' in cols || 'quote.en' in cols)) {
+    throw new Error('لم أجد عمودَي «اسم العميل» و«نص الرأي» في أول صف من الملف. حمّل القالب واستخدم عناوين أعمدته.');
+  }
+  const seen = new Set(existing.map(dupKey));
+  const out = [];
+  for (let i = start + 1; i < rows.length; i++) {
+    const row = rows[i] || [];
+    const get = (key) => (key in cols ? String(row[cols[key]] ?? '').replace(/\r\n?/g, '\n').trim() : '');
+    if (FEEDBACK_COLUMNS.every((c) => !get(c.key))) continue; // an empty line
+    const errors = [], warnings = [];
+    const t = blankFeedback();
+    for (const k of ['name', 'role', 'quote']) for (const lang of ['ar', 'en']) t[k][lang] = get(`${k}.${lang}`);
+    if (!t.name.ar && !t.name.en) errors.push('بدون اسم عميل');
+    if (!t.quote.ar && !t.quote.en) errors.push('بدون نص رأي');
+    if ([t.name.ar, t.name.en, t.role.ar, t.role.en].some((s) => s.length > 200)) errors.push('الاسم أو المنصب أطول من 200 حرف');
+    if ([t.quote.ar, t.quote.en].some((s) => s.length > 1200)) errors.push('نص الرأي أطول من 1200 حرف');
+    const rating = parseRating(get('rating'));
+    if (rating === null) errors.push(`التقييم «${get('rating')}» غير مفهوم — رقم من 0 إلى 5`); else t.rating = rating;
+    const date = parseDate(get('date'));
+    if (date === null) warnings.push(`التاريخ «${get('date')}» غير مفهوم — سيُترك فارغًا`); else t.date = date;
+    // a long import shouldn't fill the home page: only the rows marked "نعم" go there
+    for (const [key, empty, label] of [['featured', false, 'في الصفحة الرئيسية'], ['visible', true, 'ظاهر']]) {
+      const yes = yesNo(get(key), empty);
+      if (yes === null) warnings.push(`«${label}»: اكتب نعم أو لا (اعتُبر ${empty ? 'نعم' : 'لا'})`);
+      t[key] = yes ?? empty;
+    }
+    const photo = imageRef(get('photo'), files, partners);
+    if (photo && photo.missing) warnings.push(`صورة العميل «${photo.missing}» غير مختارة — سيُستورد بدونها`);
+    let images = get('images').split(/[,،;\n|]+/).map((s) => imageRef(s, files, partners)).filter(Boolean);
+    images.filter((x) => x.missing).forEach((x) => warnings.push(`الصورة «${x.missing}» غير مختارة`));
+    images = images.filter((x) => !x.missing);
+    if (images.length > 6) { warnings.push('أكثر من 6 صور — أُخذت أول 6'); images = images.slice(0, 6); }
+    const key = dupKey(t);
+    const dup = !errors.length && seen.has(key);
+    seen.add(key);
+    out.push({ line: i + 1, t, photo: photo && !photo.missing ? photo : null, images, errors, warnings, dup });
+  }
+  return { rows: out, unknown };
+}
+
+// the import window: template → file → images (optional) → check → add to the list (saved with "حفظ")
+function importFeedback({ existing, partners, onDone }) {
+  let sheet = null, result = null, mode = 'append';
+  const files = new Map(); // lower-case file name (with and without extension) → File
+  const picked = () => new Set(files.values()).size;
+
+  const fileInfo = h('span', { class: 'hint' }, '.xlsx أو .csv');
+  const imgInfo = h('span', { class: 'hint' }, 'اختياري');
+  const preview = h('div', { class: 'import-preview' });
+  const go = h('button', { type: 'button', class: 'btn btn-primary', disabled: true, onclick: () => run() }, 'استيراد');
+  const progress = h('span', { class: 'hint', 'aria-live': 'polite' });
+
+  const loadSheet = async (file) => {
+    try {
+      sheet = await XLSX.read(file);
+      fileInfo.textContent = `✓ ${file.name}`;
+    } catch (err) { sheet = null; fileInfo.textContent = ''; toast(err.message, 'err'); }
+    check();
+  };
+  const sheetDrop = h('button', { type: 'button', class: 'drop' }, h('b', null, '+'), 'اختر ملف Excel', h('span', { class: 'small' }, 'أو اسحبه هنا'));
+  sheetDrop.addEventListener('click', () => {
+    const input = h('input', { type: 'file', accept: '.xlsx,.csv,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,text/csv' });
+    input.addEventListener('change', () => input.files[0] && loadSheet(input.files[0]));
+    input.click();
+  });
+  sheetDrop.addEventListener('dragover', (e) => { e.preventDefault(); sheetDrop.classList.add('over'); });
+  sheetDrop.addEventListener('dragleave', () => sheetDrop.classList.remove('over'));
+  sheetDrop.addEventListener('drop', (e) => { e.preventDefault(); sheetDrop.classList.remove('over'); if (e.dataTransfer.files[0]) loadSheet(e.dataTransfer.files[0]); });
+  const imageDrop = dropZone('اختر الصور', true, (list) => {
+    for (const f of list) { const n = f.name.toLowerCase(); files.set(n, f); files.set(n.replace(/\.[a-z0-9]+$/, ''), f); }
+    imgInfo.textContent = `✓ ${picked()} ${noun(picked(), ['صورة', 'صورتان', 'صور', 'صورة'])}`;
+    check();
+  });
+
+  function check() {
+    go.disabled = true;
+    if (!sheet) { preview.replaceChildren(); return; }
+    try {
+      result = readFeedbackSheet(sheet, files, partners, mode === 'replace' ? [] : existing);
+    } catch (err) {
+      preview.replaceChildren(h('p', { class: 'import-error' }, err.message));
+      return;
+    }
+    const ok = result.rows.filter((r) => !r.errors.length && !r.dup);
+    const warned = ok.filter((r) => r.warnings.length).length;
+    const bad = result.rows.filter((r) => r.errors.length).length, dups = result.rows.filter((r) => r.dup).length;
+    const total = (mode === 'replace' ? 0 : existing.length) + ok.length;
+    const tooMany = total > 500;
+    const status = (r) => (r.errors.length ? h('span', { class: 'st-err' }, `✕ ${r.errors.join(' · ')}`)
+      : r.dup ? h('span', { class: 'st-dup' }, '↺ موجود من قبل — سيُتخطّى')
+        : r.warnings.length ? h('span', { class: 'st-warn' }, `! ${r.warnings.join(' · ')}`) : h('span', { class: 'st-ok' }, '✓ جاهز'));
+    const shown = result.rows.slice(0, 300);
+    preview.replaceChildren(...[
+      h('div', { class: 'import-summary' },
+        h('span', { class: 'tag lime' }, `✓ ${ok.length} جاهز للاستيراد`),
+        warned ? h('span', { class: 'tag' }, `! ${warned} مع تنبيه`) : null,
+        bad ? h('span', { class: 'tag err' }, `✕ ${bad} فيه خطأ — لن يُستورد`) : null,
+        dups ? h('span', { class: 'tag' }, `↺ ${dups} مكرر`) : null),
+      result.unknown.length ? h('p', { class: 'hint' }, `أعمدة لم أتعرّف عليها وتجاهلتها: ${result.unknown.join('، ')}`) : null,
+      tooMany ? h('p', { class: 'import-error' }, `المجموع سيصبح ${total} رأيًا — الحد الأقصى 500. احذف بعض الصفوف أو اختر «استبدال كل الآراء الحالية».`) : null,
+      result.rows.length ? h('div', { class: 'import-table-wrap' }, h('table', { class: 'import-table' },
+        h('thead', null, h('tr', null, ['الصف', 'العميل', 'التقييم', 'الصور', 'الحالة'].map((x) => h('th', null, x)))),
+        h('tbody', null, shown.map((r) => h('tr', { class: r.errors.length ? 'err' : r.dup ? 'dup' : null },
+          h('td', { class: 'ltr' }, r.line),
+          h('td', null, h('b', null, r.t.name.ar || r.t.name.en || '—'), h('div', { class: 'muted small' }, (r.t.quote.ar || r.t.quote.en).slice(0, 90))),
+          h('td', { class: 'ltr' }, r.t.rating ? '★'.repeat(r.t.rating) : '—'),
+          h('td', null, (r.photo ? 1 : 0) + r.images.length || '—'),
+          h('td', null, status(r))))))) : h('p', { class: 'empty' }, 'لا صفوف في الملف تحت العناوين.'),
+      result.rows.length > shown.length ? h('p', { class: 'hint' }, `يعرض أول ${shown.length} صفًا من ${result.rows.length}.`) : null,
+    ].filter(Boolean));
+    go.textContent = `استيراد ${ok.length === 1 ? 'رأي واحد' : ok.length === 2 ? 'رأيين' : `${ok.length} ${noun(ok.length, ['', '', 'آراء', 'رأيًا'])}`}`;
+    go.disabled = !ok.length || tooMany;
+  }
+
+  async function run() {
+    const ok = result.rows.filter((r) => !r.errors.length && !r.dup);
+    if (mode === 'replace' && existing.length && !confirm(`ستحلّ آراء الملف (${ok.length}) محلّ كل الآراء الحالية (${existing.length}). يمكنك التراجع قبل الحفظ. متابعة؟`)) return;
+    await busy(go, async () => {
+      // each picked image is uploaded once, even when several rows use it; attachments big enough for the viewer
+      const attached = new Set(ok.flatMap((r) => r.images).filter((x) => x.file).map((x) => x.file));
+      const needed = [...new Set(ok.flatMap((r) => [r.photo, ...r.images]).filter((x) => x && x.file).map((x) => x.file))];
+      const uploaded = new Map();
+      let failed = 0;
+      for (const [k, f] of needed.entries()) {
+        progress.textContent = `رفع الصور: ${k + 1} من ${needed.length}…`;
+        try { uploaded.set(f, await upload(f, attached.has(f) ? 1800 : 400)); } catch (err) { failed++; toast(err.message, 'err'); }
+      }
+      const src = (ref) => (ref ? ref.src || uploaded.get(ref.file) || '' : '');
+      const items = ok.map((r) => ({ ...r.t, photo: src(r.photo), images: r.images.map(src).filter(Boolean) }));
+      progress.textContent = '';
+      dlg.close();
+      onDone(items, mode);
+      if (failed) toast(`تعذّر رفع ${failed} ${noun(failed, ['صورة', 'صورتين', 'صور', 'صورة'])} — أُضيفت الآراء بدونها`, 'err');
+    });
+  }
+
+  const modeChoice = (value, label) => h('label', { class: 'tm-switch' },
+    h('input', { type: 'radio', name: 'import-mode', value, checked: value === mode, onchange: () => { mode = value; check(); } }), label);
+  const step = (n, title, text, ...body) => h('div', { class: 'import-step' },
+    h('div', { class: 'row' }, h('b', { class: 'n' }, n), h('strong', null, title)), h('p', { class: 'hint' }, text), ...body);
+  const dlg = h('dialog', { class: 'import-dlg' },
+    h('h2', null, 'استيراد آراء العملاء من Excel'),
+    h('div', { class: 'import-steps' },
+      step(1, 'القالب', 'صف لكل رأي، والورقة الثانية تشرح كل عمود. أو صدّر الآراء الحالية، عدّلها، ثم استوردها.',
+        h('button', { type: 'button', class: 'btn btn-small', onclick: () => XLSX.download(feedbackWorkbook(), 'puzzlex-feedback-template.xlsx') }, 'تحميل القالب (.xlsx)')),
+      step(2, 'ملف الآراء', 'الملف بعد ملئه، من Excel أو Google Sheets.', sheetDrop, fileInfo),
+      step(3, 'الصور', 'صور العملاء والصور المرفقة. اكتب اسم كل ملف (مثل khalid.jpg) في عمود الصورة.', imageDrop, imgInfo)),
+    preview,
+    h('div', { class: 'import-modes' },
+      h('strong', null, 'أين تُضاف؟'),
+      modeChoice('append', 'بعد الآراء الحالية'), modeChoice('top', 'قبل الآراء الحالية'), modeChoice('replace', 'استبدال كل الآراء الحالية')),
+    h('div', { class: 'row' }, go, h('button', { type: 'button', class: 'btn btn-ghost', onclick: () => dlg.close() }, 'إلغاء'), progress,
+      h('span', { class: 'spacer' }), h('span', { class: 'hint' }, 'لا يُحفظ شيء قبل «حفظ التغييرات».')));
+  dlg.addEventListener('close', () => dlg.remove());
+  document.body.append(dlg);
+  dlg.showModal();
 }
 
 /* =========================================================
