@@ -30,6 +30,21 @@ body {
 }
 a { color: inherit; text-decoration: none; }
 
+/* smooth scrolling (scroll.js / Lenis) */
+html.lenis, html.lenis body { height: auto; }
+.lenis:not(.lenis-autoToggle).lenis-stopped { overflow: clip; }
+.lenis [data-lenis-prevent] { overscroll-behavior: contain; }
+.lenis.lenis-smooth iframe { pointer-events: none; }
+
+/* reading progress: a lime line along the top edge, filling in the reading direction */
+.scroll-progress {
+  position: fixed; inset: 0 0 auto 0; z-index: 80; height: 3px;
+  background: var(--lime); box-shadow: 0 0 12px rgba(215, 255, 0, .55);
+  transform: scaleX(0); transform-origin: 100% 50%; pointer-events: none;
+}
+[dir="ltr"] .scroll-progress { transform-origin: 0 50%; }
+:root[data-theme="light"] .scroll-progress { background: var(--accent-text); box-shadow: none; }
+
 /* branded scrollbar + text selection; the thumb uses --accent-text so it stays visible in the light theme */
 ::-webkit-scrollbar { width: 12px; height: 12px; }
 ::-webkit-scrollbar-track { background: var(--ink); }
@@ -47,7 +62,7 @@ a { color: inherit; text-decoration: none; }
 }
 
 /* ---------- Scroll scene ---------- */
-.hero { position: relative; height: 480vh; }
+.hero { position: relative; height: 320vh; }
 .stage {
   position: sticky; top: 0;
   height: 100vh; height: 100svh;
@@ -1105,7 +1120,7 @@ html .loader.is-leaving { display: grid; position: fixed; inset: 0; z-index: 900
   .topbar { padding-top: 14px; }
   .cta { flex-direction: row; gap: 8px; }
   .cta .btn { font-size: 13px; }
-  .hero { height: 380vh; } /* a shorter story on phones: the finished picture and its buttons come sooner */
+  .hero { height: 260vh; } /* a shorter story on phones: the finished picture and its buttons come sooner */
   .intro-title { margin-bottom: 12px; }
   .intro-actions .btn { font-size: 14px; padding-inline: 18px; }
 }

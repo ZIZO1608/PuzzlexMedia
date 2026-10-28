@@ -55,7 +55,7 @@ function initValues() {
 
   goTo = (i) => {
     const st = tl.scrollTrigger;
-    window.scrollTo({ top: st.start + (st.end - st.start) * ((i + 0.5) / 4), behavior: 'smooth' });
+    scrollToY(st.start + (st.end - st.start) * ((i + 0.5) / 4));
   };
 }
 

@@ -685,7 +685,7 @@ function initContact() {
     new IntersectionObserver(([e]) => { footInView = e.isIntersecting; syncTray(true); }).observe(form.querySelector('.form-foot'));
     panel.querySelector('.my-puzzle-send').addEventListener('click', () => {
       const msg = fields.message.el;
-      msg.scrollIntoView({ behavior: REDUCED ? 'auto' : 'smooth', block: 'center' });
+      scrollToEl(msg, 'center');
       msg.focus({ preventScroll: true });
     });
     panel.querySelector('.my-puzzle-clear').addEventListener('click', () => {
@@ -721,7 +721,7 @@ function initContact() {
     body.forEach((el) => { el.hidden = true; });
     done.hidden = false;
     playClick();
-    form.scrollIntoView({ behavior: REDUCED ? 'auto' : 'smooth', block: 'start' });
+    scrollToEl(form);
     if (REDUCED) return;
     gsap.fromTo(form, { minHeight: h }, { minHeight: 0, duration: 0.6, ease: 'power2.inOut', clearProps: 'minHeight' });
     gsap.from(done.querySelector('.done-piece'), { y: -160, rotation: -200, scale: 0.4, duration: 0.9, ease: 'bounce.out' });
@@ -771,7 +771,7 @@ function initContact() {
     if (!checkServices() && !firstBad) firstBad = groupsEl.querySelector('.piece-opt');
     if (firstBad) {
       firstBad.focus({ preventScroll: true });
-      firstBad.scrollIntoView({ behavior: REDUCED ? 'auto' : 'smooth', block: 'center' });
+      scrollToEl(firstBad, 'center');
       if (!REDUCED) gsap.fromTo(form.querySelector('.send-ways'), { x: 0 }, { x: 8, duration: 0.07, repeat: 5, yoyo: true, ease: 'sine.inOut', clearProps: 'x' });
       return;
     }

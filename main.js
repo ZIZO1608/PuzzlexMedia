@@ -636,7 +636,7 @@ function buildTimeline(pieces, key, hole, { vw, vh, W, H, pw, ph, mobile }) {
       trigger: '.hero',
       start: 'top top',
       end: 'bottom bottom',
-      scrub: 1.1,
+      scrub: 0.7,
     },
   });
 
@@ -714,7 +714,7 @@ function buildTimeline(pieces, key, hole, { vw, vh, W, H, pw, ph, mobile }) {
   tl.fromTo('.seamless', { '--wipe': '-35%' }, { '--wipe': '165%', duration: 0.9, ease: 'none' }, done);
   tl.to(boardEl, { '--glow': 0.35, duration: 0.6 }, done + 0.3);
   tl.fromTo(ctaEl, { autoAlpha: 0, y: 18 }, { autoAlpha: 1, y: 0, duration: 0.4, ease: 'power2.out' }, done + 0.25);
-  tl.to({}, { duration: 1.2 }, done + 0.6);
+  tl.to({}, { duration: 0.5 }, done + 0.6); // a short hold so the finished picture and its buttons settle before the next section
 }
 
 // per rendered frame of the hero timeline: the snap sound and the pieces' idle bobbing
