@@ -1,8 +1,8 @@
 /* PuzzleX Media — web server.
    Serves the site (Arabic at /, English at /en/), clean URLs, the 404 pages, per-project share previews,
    and the contact form: every message is appended to DATA_DIR/messages.jsonl and, when SMTP is set,
-   emailed to CONTACT_TO, and the sender gets a branded "we'll contact you within 48 hours" reply
-   (lib/autoreply.js). No framework; the only dependency is nodemailer.
+   emailed to CONTACT_TO, and the sender gets a branded "we'll contact you within 48 hours" reply;
+   unopened requests remind the team after 24 hours (lib/mail.js). No framework; the only dependency is nodemailer.
 
    Settings come from the environment (see .env.example). Locally: `node server.js [port]`. */
 'use strict';
@@ -18,7 +18,8 @@ const { createAuth } = require('./lib/auth');
 const { createContent, projectsScript, PAGES } = require('./lib/content');
 const { createAdmin } = require('./lib/admin');
 const { createIndexNow } = require('./lib/indexnow');
-const { autoReply } = require('./lib/autoreply');
+const { createMail } = require('./lib/mail');
+const { serviceNames } = require('./lib/services');
 
 const ROOT = __dirname;
 const PORT = Number(process.argv[2] || process.env.PORT || 8080);
@@ -252,18 +253,7 @@ function projectPage(html, id, en) {
 }
 
 /* ---------- contact form ---------- */
-const SERVICES = {
-  identity: 'الهوية البصرية', 'social-design': 'السوشال ميديا والإعلانات', print: 'المطبوعات والإعلانات الطرقية',
-  profiles: 'البروفايلات والعروض', 'ad-edit': 'المونتاج الإعلاني', 'intro-videos': 'الفيديوهات التعريفية',
-  'event-videos': 'فيديوهات المناسبات والفعاليات', 'ai-ads': 'الإعلانات بالذكاء الاصطناعي', copywriting: 'كتابة المحتوى التسويقي', 'content-plan': 'خطة المحتوى الشهرية',
-  community: 'إدارة التفاعل', kpi: 'تحليل الأداء', 'li-profile': 'لينكدإن · تحسين الحساب', 'li-content': 'لينكدإن · محتوى أسبوعي',
-  'li-jobs': 'لينكدإن · التقديم لفرص العمل', 'li-coaching': 'لينكدإن · جلسات تدريب', 'li-audit': 'لينكدإن · تدقيق حساب الشركة',
-  'li-plan': 'لينكدإن · خطة محتوى مؤسسي', 'li-talent': 'لينكدإن · استقطاب الكفاءات', 'li-ads': 'لينكدإن · حملات ممولة',
-  'dev-crm': 'برمجة · نظام CRM', 'dev-erp': 'برمجة · نظام ERP', 'dev-pos': 'برمجة · نظام نقاط البيع (POS)',
-  'dev-custom': 'برمجة · نظام أو لوحة تحكم مخصصة', 'dev-automation': 'برمجة · أتمتة بالذكاء الاصطناعي (n8n)', 'dev-landing': 'برمجة · صفحة هبوط', 'dev-website': 'برمجة · موقع إلكتروني',
-  'dev-store': 'برمجة · تجارة إلكترونية (متجر)', 'dev-app': 'برمجة · تطبيق جوال',
-  other: 'غير متأكد — يحتاج استشارة',
-};
+const SERVICES = serviceNames('ar'); // id → the Arabic name the admin panel shows (lib/services.js)
 const LIMITS = { name: 120, company: 160, email: 200, phone: 40, message: 5000 };
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 const PHONE_RE = /^\+?[\d\s()-]{7,20}$/;
@@ -297,47 +287,9 @@ setInterval(() => {
   for (const [ip, list] of hits) if (list.every((t) => now - t >= RATE.windowMs)) hits.delete(ip);
 }, RATE.windowMs).unref();
 
-let mailer = null;
-if (process.env.SMTP_HOST && process.env.CONTACT_TO) {
-  const nodemailer = require('nodemailer');
-  mailer = nodemailer.createTransport({
-    host: process.env.SMTP_HOST,
-    port: Number(process.env.SMTP_PORT || 587),
-    secure: process.env.SMTP_SECURE === '1',
-    auth: process.env.SMTP_USER ? { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS } : undefined,
-  });
-}
-
-async function emailMessage(m) {
-  const lines = [
-    `الاسم: ${m.name}`, m.company ? `الشركة: ${m.company}` : null, `البريد: ${m.email}`, m.phone ? `الهاتف: ${m.phone}` : null,
-    `اللغة: ${m.lang === 'en' ? 'English' : 'العربية'}`,
-    `أُرسلت عبر: ${m.channel === 'whatsapp' ? 'واتساب (فُتحت له محادثة مع رقمنا — تحقّق من واتساب)' : 'البريد الإلكتروني'}`, '', 'القطع المطلوبة:', ...m.services.map((s) => `• ${SERVICES[s]}`),
-    '', 'الرسالة:', m.message, '', `— ${m.date} · ${m.id}`,
-  ].filter((l) => l !== null);
-  await mailer.sendMail({
-    from: process.env.SMTP_FROM || process.env.SMTP_USER,
-    to: process.env.CONTACT_TO,
-    replyTo: `"${m.name.replace(/"/g, '')}" <${m.email}>`,
-    subject: `رسالة جديدة من الموقع${m.channel === 'whatsapp' ? ' (واتساب)' : ''} — ${m.name}${m.company ? ` (${m.company})` : ''}`,
-    text: lines.join('\n'),
-  });
-}
-
-// the sender's confirmation; replies to it reach the team. Off with AUTOREPLY=0
-const AUTOREPLY = process.env.AUTOREPLY !== '0';
-async function emailAutoReply(m) {
-  const settings = store.read('settings.json', {});
-  const { subject, html, text } = autoReply(m, { settings, siteUrl: SITE_URL });
-  const from = process.env.SMTP_FROM || process.env.SMTP_USER;
-  await mailer.sendMail({
-    from: from.includes('<') ? from : `"PuzzleX Media" <${from}>`,
-    to: m.email,
-    replyTo: settings.email || process.env.CONTACT_TO,
-    subject, html, text,
-    headers: { 'Auto-Submitted': 'auto-replied' }, // RFC 3834: other auto-responders don't answer it
-  });
-}
+// the team's alert, the sender's confirmation and the 24-hour reminders (lib/mail.js); off without SMTP
+const mail = createMail({ store, siteUrl: SITE_URL });
+mail.startReminders();
 
 function clientIp(req) {
   if (TRUST_PROXY) {
@@ -382,13 +334,7 @@ async function handleContact(req, res) {
     console.error('[contact] could not save message', err);
     return json(res, 500, { ok: false, error: 'save' });
   }
-  let emailed = false, confirmed = false;
-  if (mailer) {
-    await Promise.all([
-      emailMessage(m).then(() => { emailed = true; }, (err) => console.error('[contact] saved, but email failed:', err.message)),
-      AUTOREPLY && emailAutoReply(m).then(() => { confirmed = true; }, (err) => console.error('[contact] auto-reply failed:', err.message)),
-    ]);
-  }
+  const { emailed, confirmed } = await mail.notify(m);
   console.log(`[contact] ${m.id} from ${m.email} via ${m.channel}${emailed ? ' (emailed)' : ''}${confirmed ? ' (auto-reply sent)' : ''}`);
   json(res, 200, { ok: true, confirmed });
 }
@@ -443,7 +389,7 @@ async function readBody(req, limit) {
   return Buffer.concat(chunks);
 }
 
-const admin = createAdmin({ store, auth, content, clientIp, json, readBody, serviceLabels: SERVICES });
+const admin = createAdmin({ store, auth, content, clientIp, json, readBody, serviceLabels: SERVICES, mail });
 
 const server = http.createServer(async (req, res) => {
   try {
@@ -504,7 +450,7 @@ const server = http.createServer(async (req, res) => {
 
 if (!store.read('users.json', []).length) console.warn('[admin] no admin users yet — add one with: node tools/admin-user.js add <username> <display name>');
 server.listen(PORT, HOST, () => {
-  console.log(`PuzzleX Media on http://${HOST}:${PORT} · messages → ${DATA_DIR} · email ${mailer ? `→ ${process.env.CONTACT_TO}` : 'off (no SMTP set)'}`);
+  console.log(`PuzzleX Media on http://${HOST}:${PORT} · messages → ${DATA_DIR} · email ${mail.enabled ? `→ ${mail.to}` : 'off (no SMTP set)'}`);
 });
 const stop = () => server.close(() => process.exit(0));
 process.on('SIGTERM', stop);

@@ -697,8 +697,30 @@ async function viewContact(view) {
       h('h1', null, 'التواصل والروابط'),
       h('p', null, 'أرقام التواصل والبريد وحسابات التواصل الاجتماعي. تظهر في تذييل كل صفحة وفي صفحة «تواصل معنا».')),
       h('a', { class: 'btn btn-ghost', href: '/contact', target: '_blank', rel: 'noopener' }, 'افتح صفحة التواصل ↗')),
-    body);
+    body, mailCard());
   draw();
+}
+
+// the contact form's automatic emails: what's on, and a button that sends every one of them to the team as a test
+function mailCard() {
+  const card = h('div', { class: 'card grid', style: 'margin-top:16px' }, h('h2', { class: 'section-title', style: 'margin:0' }, 'الرسائل التلقائية بالبريد'), h('p', { class: 'muted' }, 'جارٍ التحميل…'));
+  api('GET', '/mail').then((m) => {
+    const line = (on, text) => h('li', null, on ? '✅ ' : '⚪ ', text);
+    const btn = h('button', { type: 'button', class: 'btn btn-primary', disabled: !m.enabled }, 'أرسل لي رسائل تجريبية');
+    btn.onclick = async () => {
+      try { const r = await busy(btn, () => api('POST', '/mail/test', {})); toast(`أُرسلت 4 رسائل تجريبية إلى ${r.to} — تفقّد البريد (والرسائل غير المرغوب فيها)`); } catch (err) { toast(err.message, 'err'); }
+    };
+    card.replaceChildren(card.firstChild,
+      m.enabled
+        ? h('ul', { style: 'margin:0;padding-inline-start:0;list-style:none;display:grid;gap:8px' },
+          line(true, h('span', null, 'إشعار بكل طلب جديد يصل إلى ', h('b', { class: 'ltr' }, m.to))),
+          line(m.autoreply, m.autoreply ? 'ردّ تلقائي للعميل: «سيتواصل معك فريقنا خلال 48 ساعة» بلغة الصفحة' : 'الردّ التلقائي للعميل متوقف (AUTOREPLY=0)'),
+          line(m.reminderHours > 0, m.reminderHours > 0 ? `تذكير للفريق إن بقي طلب دون فتح ${m.reminderHours} ساعة (ما عدا يوم الجمعة)` : 'التذكير متوقف (REMINDER_HOURS=0)'))
+        : h('p', null, '⚠️ البريد غير مفعّل: الطلبات تُحفظ هنا فقط. أضف إعدادات SMTP و CONTACT_TO في Hostinger ثم أعد النشر.'),
+      h('div', { class: 'row' }, btn,
+        h('span', { class: 'hint' }, 'تصلك 4 رسائل: ردّ العميل بالعربية والإنجليزية، وإشعار الفريق، ورسالة التذكير — لترى ما يصل للعملاء تمامًا.')));
+  }).catch((err) => card.replaceChildren(card.firstChild, h('p', { class: 'muted' }, `تعذّر تحميل حالة البريد: ${err.message}`)));
+  return card;
 }
 
 /* =========================================================
