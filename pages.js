@@ -379,6 +379,16 @@ function initServicePicker() {
     }
     picked.push(id);
     render();
+    // the piece pops up out of the board and drops back in, now lime
+    if (!REDUCED) {
+      gsap.fromTo(btn.parentElement, { y: 0, rotation: 0, scale: 1 }, {
+        keyframes: [
+          { y: -18, rotation: gsap.utils.random(-4, 4), scale: 1.04, duration: 0.16, ease: 'power2.out' },
+          { y: 0, rotation: 0, scale: 1, duration: 0.55, ease: 'back.out(2.6)' },
+        ],
+        overwrite: true, clearProps: 'transform',
+      });
+    }
     tray.setOpen(true, true);
     tray.land(btn.querySelector('.svc-add'), picked.length); // from the card's +
   }));
@@ -430,14 +440,96 @@ function initSegmented() {
   });
 }
 
-/* ---------- service cards slide in as they come into view ---------- */
+/* ---------- Services · the two lists of a group as one jigsaw board ----------
+   Every card is drawn as a piece: a tab (1) or blank (-1) wherever it meets a neighbour, across the two columns and
+   down each one, flat with rounded corners on the board's outside. Cards in the same row get the same height so the
+   pieces really fit. On phones the columns stack, and each list is its own one-column board. */
+const BOARD_TAB = 96; // the tab is drawn for a piece this size: about 26px deep, 38px across at its widest
+
+function boardPieceD(w, h, e, s = BOARD_TAB, r = 18) {
+  let d = '';
+  const n = (v) => +v.toFixed(1);
+  const pt = (x, y) => `${n(x)} ${n(y)}`;
+  // a side from a to b; the tab sits in its middle whatever its length, bulging along the outward normal
+  const side = (ax, ay, bx, by, nx, ny, sign) => {
+    if (sign) {
+      const len = Math.hypot(bx - ax, by - ay), ux = (bx - ax) / len, uy = (by - ay) / len;
+      const at = (t, k) => pt(ax + ux * (len / 2 + (t - 0.5) * s) + nx * k * sign * s, ay + uy * (len / 2 + (t - 0.5) * s) + ny * k * sign * s);
+      d += `L${at(0.38, 0)}`;
+      for (const c of TAB) d += `C${at(c[0], c[1])} ${at(c[2], c[3])} ${at(c[4], c[5])}`;
+    }
+    d += `L${pt(bx, by)}`;
+  };
+  const arc = (x, y, rad) => { if (rad) d += `A${rad} ${rad} 0 0 1 ${pt(x, y)}`; };
+  // only a corner between two outside (flat) sides is rounded
+  const tl = !e.t && !e.l ? r : 0, tr = !e.t && !e.r ? r : 0, br = !e.b && !e.r ? r : 0, bl = !e.b && !e.l ? r : 0;
+  d += `M${pt(tl, 0)}`;
+  side(tl, 0, w - tr, 0, 0, -1, e.t); arc(w, tr, tr);
+  side(w, tr, w, h - br, 1, 0, e.r); arc(w - br, h, br);
+  side(w - br, h, bl, h, 0, 1, e.b); arc(0, h - bl, bl);
+  side(0, h - bl, 0, tl, -1, 0, e.l); arc(tl, 0, tl);
+  return `${d}Z`;
+}
+
+function initServiceBoard() {
+  const pad = Math.ceil(BOARD_TAB * TAB_DEPTH) + 4; // room around a card for its tabs and stroke
+  document.querySelectorAll('.svc-cols').forEach((cols) => {
+    const lists = [...cols.querySelectorAll('.svc-list')];
+    const columns = lists.map((ul) => [...ul.querySelectorAll('.svc')]);
+    const titles = [...cols.querySelectorAll('.svc-col-title')];
+    const cards = columns.flat();
+    if (!cards.length) return;
+    cols.classList.add('svc-board');
+    cards.forEach((btn) => btn.insertAdjacentHTML('afterbegin', '<svg class="svc-shape" aria-hidden="true"><path/></svg>'));
+
+    const draw = (btn, e) => {
+      const w = btn.offsetWidth, h = btn.offsetHeight;
+      const svg = btn.firstChild;
+      svg.setAttribute('viewBox', `${-pad} ${-pad} ${w + 2 * pad} ${h + 2 * pad}`);
+      Object.assign(svg.style, { left: `${-pad}px`, top: `${-pad}px`, width: `${w + 2 * pad}px`, height: `${h + 2 * pad}px` });
+      svg.firstChild.setAttribute('d', boardPieceD(w, h, e));
+    };
+    const layout = () => {
+      if (!cards[0].offsetWidth) return; // a hidden tab (LinkedIn for companies): drawn when it shows
+      [...cards, ...titles].forEach((el) => { el.style.minHeight = ''; });
+      const sideBySide = lists.length === 2 && Math.abs(lists[0].getBoundingClientRect().top - lists[1].getBoundingClientRect().top) < 30;
+      if (sideBySide) {
+        if (titles.length === 2) { const th = Math.max(...titles.map((t) => t.offsetHeight)); titles.forEach((t) => { t.style.minHeight = `${th}px`; }); }
+        for (let r = 0; r < Math.max(...columns.map((c) => c.length)); r++) {
+          const row = columns.map((c) => c[r]).filter(Boolean);
+          const rh = Math.max(...row.map((b) => b.offsetHeight));
+          row.forEach((b) => { b.style.minHeight = `${rh}px`; });
+        }
+      }
+      // neighbours take turns: one gets the tab, the other the matching blank
+      const turn = (odd) => (odd ? 1 : -1);
+      columns.forEach((col, c) => col.forEach((btn, r) => {
+        const e = { t: 0, r: 0, b: 0, l: 0 };
+        if (r > 0) e.t = -turn((r - 1 + c) % 2);
+        if (r < col.length - 1) e.b = turn((r + c) % 2);
+        const other = sideBySide && columns[1 - c][r];
+        if (other) {
+          const s = turn(r % 2); // the left-hand piece's tab: out (1) or in (-1)
+          if (btn.getBoundingClientRect().left < other.getBoundingClientRect().left) e.r = s; else e.l = -s;
+        }
+        draw(btn, e);
+      }));
+    };
+    let frame = 0;
+    new ResizeObserver(() => { if (!frame) frame = requestAnimationFrame(() => { frame = 0; layout(); }); }).observe(cols);
+  });
+}
+
+/* ---------- Services · the pieces fall into the board as it comes into view ---------- */
 function initServiceReveal() {
-  const cards = document.querySelectorAll('.svc-group:not(#linkedin) .svc, #li-people .svc');
-  if (!cards.length || REDUCED) return;
-  gsap.set(cards, { y: 26, autoAlpha: 0 });
-  ScrollTrigger.batch(cards, {
+  const pieces = [...document.querySelectorAll('.svc-group:not(#linkedin) .svc-list li, #li-people .svc-list li')];
+  if (!pieces.length || REDUCED) return;
+  gsap.set(pieces, { autoAlpha: 0 });
+  ScrollTrigger.batch(pieces, {
     start: 'top 92%',
-    onEnter: (batch) => gsap.to(batch, { y: 0, autoAlpha: 1, duration: 0.6, stagger: 0.07, ease: 'power3.out', overwrite: true }),
+    onEnter: (batch) => gsap.fromTo(batch,
+      { y: 60, x: () => gsap.utils.random(-30, 30), rotation: () => gsap.utils.random(-9, 9), autoAlpha: 0 },
+      { y: 0, x: 0, rotation: 0, autoAlpha: 1, duration: 0.8, stagger: 0.08, ease: 'back.out(1.4)', overwrite: true, clearProps: 'transform' }),
   });
 }
 
@@ -1067,6 +1159,7 @@ function initFeedbackViewer() {
   initServiceHero();
   initServicePicker();
   initSegmented();
+  initServiceBoard();
   initServiceReveal();
   initWork();
   initProject();
