@@ -144,7 +144,7 @@ async function refreshMe() {
 }
 
 /* ---------- routing ---------- */
-const VIEWS = { home: viewHome, texts: viewTexts, projects: viewProjects, partners: viewPartners, contact: viewContact, messages: viewMessages, account: viewAccount };
+const VIEWS = { home: viewHome, texts: viewTexts, projects: viewProjects, partners: viewPartners, testimonials: viewTestimonials, contact: viewContact, messages: viewMessages, account: viewAccount };
 let shownHash = null;
 function route() {
   const [name, ...rest] = location.hash.replace(/^#\/?/, '').split('/');
@@ -192,17 +192,19 @@ async function viewHome(view) {
     h('div', { class: 'page-head' }, h('div', null,
       h('p', { class: 'kicker' }, 'PUZZLEX ADMIN'),
       h('h1', null, `${hour < 12 ? 'صباح الخير' : 'مساء الخير'}، ${me.name}`),
-      h('p', null, 'من هنا تعدّل كل ما يظهر على الموقع: النصوص بالعربية والإنجليزية، المشاريع وصورها، شعارات الشركاء، ومعلومات التواصل. كل تغيير تحفظه يظهر على الموقع فورًا.'))),
+      h('p', null, 'من هنا تعدّل كل ما يظهر على الموقع: النصوص بالعربية والإنجليزية، المشاريع وصورها، شعارات الشركاء، آراء العملاء، ومعلومات التواصل. كل تغيير تحفظه يظهر على الموقع فورًا.'))),
     h('div', { class: 'stats' },
       stat(stats.unread, noun(stats.unread, ['رسالة جديدة', 'رسالتان جديدتان', 'رسائل جديدة', 'رسالة جديدة']), '#/messages', stats.unread > 0),
       stat(stats.projects, noun(stats.projects, ['مشروع', 'مشروعان', 'مشاريع', 'مشروعًا']), '#/projects'),
       stat(stats.partners, noun(stats.partners, ['شعار شريك', 'شعارا شريكين', 'شعارات شركاء', 'شعار شريك']), '#/partners'),
+      stat(stats.testimonials, noun(stats.testimonials, ['رأي عميل', 'رأيا عميلين', 'آراء عملاء', 'رأي عميل']), '#/testimonials'),
       stat(stats.editedTexts, noun(stats.editedTexts, ['نص معدّل', 'نصان معدّلان', 'نصوص معدّلة', 'نصًا معدّلًا']), '#/texts')),
     h('h2', { class: 'section-title' }, 'ماذا تريد أن تعدّل؟'),
     h('div', { class: 'stats' },
       short('النصوص', 'العناوين والفقرات والأزرار في كل الصفحات', '#/texts'),
       short('المشاريع', 'أضف مشروعًا، ارفع صوره، رتّب الأعمال', '#/projects'),
       short('شعارات الشركاء', 'الشعارات في أحجية «شركاء النجاح»', '#/partners'),
+      short('آراء العملاء', 'ما يقوله عملاؤكم، في الصفحة الرئيسية', '#/testimonials'),
       short('التواصل والروابط', 'الهاتف، واتساب، البريد، حسابات التواصل', '#/contact')),
     recent.length ? h('h2', { class: 'section-title' }, 'آخر الرسائل') : null,
     recent.length ? h('div', { class: 'msgs' }, recent.map((m) => h('a', { class: `msg card${m.read ? '' : ' unread'}`, href: '#/messages', style: 'display:grid;gap:4px' },
@@ -550,6 +552,108 @@ async function viewPartners(view) {
       h('p', null, 'الشعارات التي تتجمّع في أحجية «شركاء النجاح» في الصفحة الرئيسية. الأفضل شعار بخلفية شفافة (PNG أو WebP)؛ يظهر على قطعة بيضاء.')),
       h('a', { class: 'btn btn-ghost', href: '/#partners', target: '_blank', rel: 'noopener' }, 'افتح الصفحة الرئيسية ↗')),
     info, h('div', { style: 'height:12px' }), grid);
+  draw();
+}
+
+/* =========================================================
+   Client feedback (testimonials)
+   ========================================================= */
+async function viewTestimonials(view) {
+  const [r, parts] = await Promise.all([api('GET', '/testimonials'), api('GET', '/partners')]);
+  let saved = r.data, rev = r.rev, list = clone(r.data);
+  setPending({
+    label: 'آراء العملاء',
+    // compared by id, so adding one at the top counts as one change, not a shift of all the others
+    count: () => {
+      if (same(list, saved)) return 0;
+      const before = new Map(saved.map((t) => [t.id, t]));
+      const changed = list.filter((t) => !same(t, before.get(t.id))).length;
+      const removed = saved.filter((s) => !list.some((t) => t.id === s.id)).length;
+      return Math.max(1, changed + removed); // 1 when only the order changed
+    },
+    discard: () => { list = clone(saved); draw(); },
+    save: async () => { const s = await api('PUT', '/testimonials', { rev, data: list }); saved = s.data; rev = s.rev; list = clone(saved); draw(); },
+  });
+  const box = h('div', { class: 'tm-admin' });
+  const info = h('p', { class: 'hint' });
+  const lang2 = (lang) => (lang === 'ar' ? 'بالعربية' : 'English');
+
+  function card(t, i) {
+    const face = h('div', { class: 'tm-face-box' });
+    const drawFace = () => face.replaceChildren(t.photo
+      ? h('img', { src: asset(t.photo), alt: '', class: /^assets\/partners\//.test(t.photo) ? 'logo' : null })
+      : h('span', null, [...(t.name.ar || t.name.en || '؟')][0]));
+    drawFace();
+    const setPhoto = (src) => { t.photo = src; drawFace(); photoActs(); refreshBar(); };
+    const pickPartner = () => {
+      const dlg = h('dialog', null, h('h2', null, 'اختر شعار الشركة من شعارات الشركاء'),
+        h('div', { class: 'pick-grid' }, parts.data.map((pt) => h('button', { type: 'button', title: pt.name || '', onclick: () => { setPhoto(pt.src); dlg.close(); } }, h('img', { src: asset(pt.src), alt: pt.name || '', loading: 'lazy' })))),
+        h('button', { type: 'button', class: 'btn', onclick: () => dlg.close() }, 'إغلاق'));
+      dlg.addEventListener('close', () => dlg.remove());
+      document.body.append(dlg);
+      dlg.showModal();
+    };
+    const acts = h('div', { class: 'row' });
+    const photoActs = () => acts.replaceChildren(...[
+      h('button', { type: 'button', class: 'btn btn-small', onclick: () => pickFiles(false, async ([f]) => { try { toast('جارٍ رفع الصورة…'); setPhoto(await upload(f, 400)); } catch (err) { toast(err.message, 'err'); } }) }, 'رفع صورة'),
+      h('button', { type: 'button', class: 'btn btn-small btn-ghost', onclick: pickPartner }, 'من شعارات الشركاء'),
+      t.photo ? h('button', { type: 'button', class: 'btn btn-small btn-danger', onclick: () => setPhoto('') }, 'إزالة الصورة') : null,
+    ].filter(Boolean));
+    photoActs();
+
+    const pairField = (label, key, multiline, required) => h('div', { class: 'pair' }, ['ar', 'en'].map((lang) => h('label', { class: 'field' },
+      h('span', null, `${label} — ${lang2(lang)}`, required && lang === 'ar' ? h('b', null, ' *') : null),
+      h(multiline ? 'textarea' : 'input', {
+        value: t[key][lang], dir: lang === 'ar' ? 'rtl' : 'ltr', lang, rows: multiline ? 4 : null,
+        oninput: (e) => { t[key][lang] = e.target.value; if (key === 'name' && !t.photo) drawFace(); refreshBar(); },
+      }))));
+
+    const el = h('div', { class: `card tm-item${t.visible ? '' : ' off'}` },
+      h('div', { class: 'tm-item-head' },
+        h('span', { class: 'tag' }, `#${i + 1}`),
+        h('label', { class: 'tm-switch' },
+          h('input', { type: 'checkbox', checked: t.visible, onchange: (e) => { t.visible = e.target.checked; el.classList.toggle('off', !t.visible); refreshBar(); } }),
+          'ظاهر على الموقع'),
+        h('span', { class: 'spacer' }),
+        h('button', { type: 'button', class: 'btn btn-icon btn-small', title: 'تقديم', 'aria-label': 'تقديم', disabled: i === 0, onclick: () => { [list[i - 1], list[i]] = [list[i], list[i - 1]]; draw(); } }, '↑'),
+        h('button', { type: 'button', class: 'btn btn-icon btn-small', title: 'تأخير', 'aria-label': 'تأخير', disabled: i === list.length - 1, onclick: () => { [list[i + 1], list[i]] = [list[i], list[i + 1]]; draw(); } }, '↓'),
+        h('button', {
+          type: 'button', class: 'btn btn-small btn-danger',
+          onclick: () => { if (confirm(`حذف رأي «${t.name.ar || t.name.en || 'بدون اسم'}»؟ يمكنك التراجع قبل الحفظ.`)) { list.splice(i, 1); draw(); } },
+        }, 'حذف')),
+      h('div', { class: 'tm-person' }, face, h('div', { class: 'grid', style: 'gap:8px' },
+        h('span', { class: 'hint' }, 'صورة العميل أو شعار شركته (اختياري). بدونها يظهر أول حرف من الاسم.'), acts)),
+      pairField('اسم العميل', 'name', false, true),
+      pairField('المنصب والشركة (اختياري)', 'role'),
+      pairField('نص الرأي', 'quote', true, true),
+      h('label', { class: 'field', style: 'max-width:260px' }, h('span', null, 'التقييم'),
+        h('select', { onchange: (e) => { t.rating = Number(e.target.value); refreshBar(); } },
+          [5, 4, 3, 2, 1, 0].map((n) => h('option', { value: n, selected: t.rating === n }, n ? `${'★'.repeat(n)}  (${n} من 5)` : 'بدون نجوم')))));
+    return el;
+  }
+
+  function draw() {
+    const shown = list.filter((t) => t.visible).length;
+    info.textContent = list.length
+      ? `${list.length} ${noun(list.length, ['رأي', 'رأيان', 'آراء', 'رأيًا'])} · ${shown} ظاهر على الموقع. الاسم والنص مطلوبان بلغة واحدة على الأقل؛ إن تركت الإنجليزية فارغة تعرض الصفحة الإنجليزية النص العربي (والعكس).`
+      : '';
+    box.replaceChildren(...(list.length ? list.map(card) : [h('p', { class: 'empty' }, 'لا آراء بعد. أضف أول رأي — يظهر قسم «ماذا يقول عملاؤنا» في الصفحة الرئيسية تلقائيًا عندما يكون هناك رأي ظاهر واحد على الأقل.')]));
+    refreshBar();
+  }
+  const add = () => {
+    list.unshift({ id: '', name: { ar: '', en: '' }, role: { ar: '', en: '' }, quote: { ar: '', en: '' }, photo: '', rating: 5, visible: true });
+    draw();
+    box.querySelector('input:not([type])')?.focus();
+  };
+  view.replaceChildren(
+    h('div', { class: 'page-head' }, h('div', null,
+      h('p', { class: 'kicker' }, 'CLIENT FEEDBACK'),
+      h('h1', null, 'آراء العملاء'),
+      h('p', null, 'ما يقوله عملاؤكم عنكم، بالعربية والإنجليزية. تظهر بهذا الترتيب في قسم «ماذا يقول عملاؤنا» في الصفحة الرئيسية، بعد أحجية الشركاء. أخفِ الرأي بدل حذفه إن أردت إرجاعه لاحقًا.')),
+      h('div', { class: 'row' },
+        h('a', { class: 'btn btn-ghost', href: '/#testimonials-title', target: '_blank', rel: 'noopener' }, 'افتح الصفحة الرئيسية ↗'),
+        h('button', { type: 'button', class: 'btn btn-primary', onclick: add }, '+ رأي جديد'))),
+    info, h('div', { style: 'height:12px' }), box);
   draw();
 }
 

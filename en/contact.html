@@ -32,7 +32,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Alexandria:wght@300;400;600;800;900&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="../styles.css?v=61">
+  <link rel="stylesheet" href="../styles.css?v=63">
 </head>
 <body class="page">
   <div class="loader" role="status" aria-live="polite" aria-label="Loading">
@@ -156,6 +156,14 @@
         </div>
       </aside>
     </section>
+
+    <!-- ===== Your puzzle: the pieces picked in the form, same tray as the services page ===== -->
+    <aside class="my-puzzle" aria-live="polite" aria-label="Your puzzle" hidden>
+      <span class="my-puzzle-pieces" aria-hidden="true"></span>
+      <span class="my-puzzle-text">Your puzzle: <b class="my-puzzle-count">0</b> <span class="my-puzzle-unit">pieces</span></span>
+      <button class="btn btn-primary my-puzzle-send" type="button">Finish your message</button>
+      <button class="my-puzzle-clear" type="button" aria-label="Clear the puzzle">×</button>
+    </aside>
   </main>
   <footer class="site-footer">
     <div class="footer-edge" aria-hidden="true"></div>
@@ -195,14 +203,6 @@
     <div class="footer-bottom">
       <span>© <span class="year">2026</span> PuzzleX Media</span>
       <span>Every piece has its place.</span>
-      <a class="powered-by" href="https://trinode.ahmad-zaven.io" target="_blank" rel="noopener" dir="ltr">
-        <span>Powered by</span>
-        <svg class="trinode" viewBox="0 0 182 54" role="img" aria-label="Trinode">
-          <text x="17" y="22" textLength="123">TRINODE</text>
-          <path class="trinode-line" d="M11.5 29H170.5M145 29L158.8 15.2M145 29L158.8 42.8"/>
-          <g class="trinode-nodes"><circle cx="8.5" cy="29" r="3"/><circle cx="161" cy="12.8" r="3"/><circle cx="173.5" cy="29" r="3"/><circle cx="161" cy="45.2" r="3"/></g>
-        </svg>
-      </a>
     </div>
   </footer>
 
@@ -212,6 +212,6 @@
   <script src="../sections.js?v=56"></script>
   <script src="../cursor.js?v=54"></script>
   <script src="../theme.js?v=54"></script>
-  <script src="../pages.js?v=58"></script>
+  <script src="../pages.js?v=59"></script>
 </body>
 </html>

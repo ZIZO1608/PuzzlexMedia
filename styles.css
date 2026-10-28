@@ -47,7 +47,7 @@ a { color: inherit; text-decoration: none; }
 }
 
 /* ---------- Scroll scene ---------- */
-.hero { position: relative; height: 860vh; }
+.hero { position: relative; height: 480vh; }
 .stage {
   position: sticky; top: 0;
   height: 100vh; height: 100svh;
@@ -55,12 +55,6 @@ a { color: inherit; text-decoration: none; }
   background:
     radial-gradient(60% 50% at 50% 55%, rgba(215, 255, 0, .06), transparent 70%),
     var(--ink);
-}
-.stage::before { /* faint dot grid */
-  content: ""; position: absolute; inset: 0; pointer-events: none;
-  background-image: radial-gradient(rgba(var(--fg-rgb), .07) 1px, transparent 1.5px);
-  background-size: 28px 28px;
-  mask-image: radial-gradient(ellipse at center, #000 30%, transparent 80%);
 }
 
 /* ---------- Top bar ---------- */
@@ -229,14 +223,6 @@ a { color: inherit; text-decoration: none; }
     radial-gradient(45% 55% at 28% 55%, rgba(215, 255, 0, .10), transparent 70%),
     var(--ink);
 }
-.values-stage::before {
-  content: ""; position: absolute; inset: 0; pointer-events: none;
-  background-image:
-    linear-gradient(rgba(var(--fg-rgb), .035) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(var(--fg-rgb), .035) 1px, transparent 1px);
-  background-size: 64px 64px;
-  mask-image: radial-gradient(ellipse at center, #000 20%, transparent 75%);
-}
 .values-copy { position: relative; z-index: 1; }
 .value-list { position: relative; margin-top: clamp(24px, 4vh, 48px); min-height: clamp(190px, 30vh, 260px); }
 .value {
@@ -348,6 +334,37 @@ a { color: inherit; text-decoration: none; }
 /* hits land only on the (outline-clipped) canvas, not on the square wrappers around it */
 .partners-board .pp, .partners-board .pp .inner { pointer-events: none; }
 .partners-board .pp canvas { pointer-events: auto; }
+
+/* ---------- Client feedback (cards drawn by the server from the admin panel) ---------- */
+.testimonials { position: relative; border-top: 1px solid var(--line); padding: clamp(84px, 13vh, 150px) clamp(16px, 4vw, 48px); }
+.tm-stage { max-width: 1280px; margin-inline: auto; }
+.tm-head .kicker { text-align: right; }
+[dir="ltr"] .tm-head .kicker { text-align: left; }
+.tm-sub { margin-top: 18px; max-width: 42ch; color: var(--muted); font-size: clamp(16px, 1.35vw, 20px); line-height: 1.9; }
+.tm-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(100%, 320px), 1fr)); gap: clamp(14px, 1.6vw, 22px); margin-top: clamp(36px, 6vh, 64px); }
+.tm-card {
+  position: relative; display: flex; flex-direction: column; gap: 18px; margin: 0;
+  padding: clamp(22px, 2.2vw, 32px); border: 1px solid var(--line); border-radius: 24px; background: var(--ink-2);
+  transition: border-color .25s, transform .25s cubic-bezier(.2, .7, .2, 1);
+}
+.tm-card:hover { border-color: rgba(215, 255, 0, .45); transform: translateY(-4px); }
+.tm-card::before { /* a big quote mark in the corner, like a puzzle tab */
+  content: "”"; position: absolute; inset-inline-end: 22px; top: 6px; font: 900 84px/1 var(--lat);
+  color: var(--accent-text); opacity: .22; pointer-events: none;
+}
+.tm-stars { color: var(--accent-text); font-size: 17px; letter-spacing: .12em; direction: ltr; text-align: right; }
+[dir="ltr"] .tm-stars { text-align: left; }
+.tm-stars span { color: rgba(var(--fg-rgb), .18); }
+.tm-quote { font-size: clamp(16px, 1.2vw, 18px); line-height: 1.95; white-space: pre-line; }
+.tm-card figcaption { margin-top: auto; display: flex; align-items: center; gap: 14px; padding-top: 18px; border-top: 1px solid var(--line); }
+.tm-face {
+  flex: none; width: 52px; height: 52px; border-radius: 50%; object-fit: cover; background: #fff;
+  display: grid; place-items: center;
+}
+img.tm-face.logo { object-fit: contain; padding: 7px; }
+span.tm-face { background: var(--lime); color: #0a0a0b; font-weight: 900; font-size: 20px; }
+.tm-card figcaption b { display: block; font-weight: 800; }
+.tm-card figcaption small { display: block; color: var(--muted); font-size: 14px; margin-top: 2px; }
 
 /* things you drag, spin or click shouldn't highlight like text */
 .pp-pop, .pp-pop *, .board, .board *, .partners-board, .partners-board *, .orbit, .orbit *, .cursor, .cursor * {
@@ -584,13 +601,6 @@ html.has-cursor, html.has-cursor * { cursor: none !important; }
   display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; color: var(--muted); font-size: 13px;
 }
 .footer-bottom > span:first-child { font-family: var(--lat); direction: ltr; }
-.powered-by { display: inline-flex; align-items: center; gap: 10px; color: var(--muted); font-family: var(--lat); font-size: 12px; letter-spacing: .04em; transition: color .25s; }
-.powered-by:hover, .powered-by:focus-visible { color: var(--text); }
-.trinode { height: 38px; width: auto; overflow: visible; }
-.trinode text { fill: currentColor; font: 500 23px ui-monospace, "SF Mono", Menlo, Consolas, monospace; }
-.trinode-line, .trinode-nodes { fill: none; stroke: currentColor; stroke-width: 2; transition: stroke .25s; }
-.powered-by:hover .trinode-line, .powered-by:hover .trinode-nodes,
-.powered-by:focus-visible .trinode-line, .powered-by:focus-visible .trinode-nodes { stroke: #c47f3e; }
 
 /* ---------- placeholder pages (until each page is built) ---------- */
 .soon { min-height: 70vh; display: grid; place-content: center; text-align: center; gap: 14px; padding: 140px 16px 80px; }
@@ -732,6 +742,7 @@ html.has-cursor, html.has-cursor * { cursor: none !important; }
 .my-puzzle-text b { color: var(--text); font-family: var(--lat); }
 .my-puzzle-text b:empty { display: none; }
 .my-puzzle-send { font-size: 14px; padding: .7em 1.4em; }
+button.my-puzzle-send { border: 0; cursor: pointer; font-family: var(--ar); } /* the contact form's tray: a button, not a link */
 .my-puzzle-clear { width: 34px; height: 34px; border-radius: 50%; border: 1px solid var(--line); background: none; color: var(--muted); font-size: 18px; line-height: 1; cursor: pointer; }
 .my-puzzle-clear:hover { color: var(--text); border-color: var(--text); }
 .fly-piece { position: fixed; z-index: 70; width: 34px; height: 34px; pointer-events: none; }
@@ -1085,7 +1096,7 @@ html .loader.is-leaving { display: grid; position: fixed; inset: 0; z-index: 900
   .topbar { padding-top: 14px; }
   .cta { flex-direction: row; gap: 8px; }
   .cta .btn { font-size: 13px; }
-  .hero { height: 620vh; } /* a shorter story on phones: the finished picture and its buttons come sooner */
+  .hero { height: 380vh; } /* a shorter story on phones: the finished picture and its buttons come sooner */
   .intro-title { margin-bottom: 12px; }
   .intro-actions .btn { font-size: 14px; padding-inline: 18px; }
 }

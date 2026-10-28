@@ -39,7 +39,7 @@ const indexNow = createIndexNow({
   signature: () => {
     const h = crypto.createHash('sha1');
     for (const page of PAGES) for (const f of [page, path.join('en', page)]) { try { h.update(fs.readFileSync(path.join(ROOT, f))); } catch { /* no such page */ } }
-    for (const name of ['texts.json', 'projects.json', 'partners.json', 'settings.json']) h.update(JSON.stringify(store.read(name, null)));
+    for (const name of ['texts.json', 'projects.json', 'partners.json', 'settings.json', 'testimonials.json']) h.update(JSON.stringify(store.read(name, null)));
     return h.digest('hex');
   },
 });

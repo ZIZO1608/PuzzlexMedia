@@ -37,6 +37,8 @@ EN = {
 'التميّز': 'Excellence',
 'لأننا ندرك أن أدق التفاصيل تصنع الفارق بين العمل الجيد والعمل الاستثنائي.': 'Because the smallest details are what separate good work from exceptional work.',
 'شركاء النجاح': 'Partners in success',
+'ماذا يقول عملاؤنا': 'What our clients say', 'أكمل رسالتك': 'Finish your message',
+'بكلماتهم… عن القطع التي أكملناها معًا.': 'In their own words… about the pieces we completed together.',
 'منظمات دولية وشركات ناشئة وعلامات راسخة… كلٌّ منها قطعة أكملنا معها أحجيتها.': 'International organizations, start-ups and established brands… each one a puzzle we helped complete.',
 'القطعة التالية': 'The next piece', 'مكانك أنت.': 'is your spot.',
 'يعرض هذا القسم شعارات 48 من شركاء النجاح.': 'This section shows the logos of 48 partners.',

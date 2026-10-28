@@ -279,40 +279,52 @@ function initServiceHero() {
   });
 }
 
-/* ---------- Services · build your puzzle: picked services fly into a tray, then go to the contact page ---------- */
-function initServicePicker() {
-  const panel = document.querySelector('.my-puzzle');
-  if (!panel) return;
-  const KEY = 'puzzlex-services';
-  const buttons = [...document.querySelectorAll('.svc')];
-  const known = new Set(buttons.map((b) => b.dataset.id));
+/* ---------- the bottom tray (services page and contact form): picked pieces fly into it ---------- */
+const MINI_PAD = Math.ceil(100 * TAB_DEPTH + 4);
+const miniPiece = () => `<svg class="mini-piece" viewBox="${-MINI_PAD} ${-MINI_PAD} ${100 + 2 * MINI_PAD} ${100 + 2 * MINI_PAD}"><path d="${jigsawD({ t: 0, b: 0, l: -1, r: 1 }, 100, 100)}"/></svg>`;
+
+// Arabic counting: قطعة واحدة · قطعتان (the dual needs no numeral) · 3–10 قطع · 11+ قطعة
+const pieceUnit = (n) => (EN ? (n === 1 ? 'piece' : 'pieces') : n === 1 ? 'قطعة واحدة' : n === 2 ? 'قطعتان' : n <= 10 ? 'قطع' : 'قطعة');
+
+// a small lime piece flies from `from` (an element) into `slot` in the tray `panel`
+function flyPiece(from, slot, panel) {
+  if (REDUCED) return Promise.resolve();
+  const a = from.getBoundingClientRect();
+  const r = slot.getBoundingClientRect();
+  // the tray may still be sliding up from below: aim for where it will rest, not where it is now
+  const rising = ((gsap.getProperty(panel, 'yPercent') || 0) * panel.offsetHeight) / 100;
+  const to = { left: r.left, top: r.top - rising, width: r.width, height: r.height };
+  const el = document.createElement('div');
+  el.className = 'fly-piece';
+  el.innerHTML = miniPiece();
+  document.body.appendChild(el);
+  const sx = a.left + a.width / 2, sy = a.top + a.height / 2;
+  gsap.set(el, { left: sx, top: sy, xPercent: -50, yPercent: -50, scale: 1.5, rotation: -40 });
+  return new Promise((resolve) => {
+    const tl = gsap.timeline({ onComplete: () => { el.remove(); resolve(); } });
+    tl.to(el, { x: to.left + to.width / 2 - sx, duration: 0.75, ease: 'power1.inOut' }, 0);
+    tl.to(el, { y: to.top + to.height / 2 - sy, duration: 0.75, ease: 'back.in(1.2)' }, 0);
+    tl.to(el, { rotation: 320, scale: 0.7, duration: 0.75, ease: 'power2.inOut' }, 0);
+  });
+}
+
+// shows / hides the tray (it springs up from below) and lands a new piece in it
+function createTray(panel) {
   const piecesEl = panel.querySelector('.my-puzzle-pieces');
   const countEl = panel.querySelector('.my-puzzle-count');
   const unitEl = panel.querySelector('.my-puzzle-unit');
-  const send = panel.querySelector('.my-puzzle-send');
-  const MINI_PAD = Math.ceil(100 * TAB_DEPTH + 4);
-  const mini = `<svg class="mini-piece" viewBox="${-MINI_PAD} ${-MINI_PAD} ${100 + 2 * MINI_PAD} ${100 + 2 * MINI_PAD}"><path d="${jigsawD({ t: 0, b: 0, l: -1, r: 1 }, 100, 100)}"/></svg>`;
-
-  let picked = [];
-  try { picked = JSON.parse(sessionStorage.getItem(KEY) || '[]').filter((id) => known.has(id)); } catch (e) { picked = []; }
   let open = false;
 
-  // Arabic counting: قطعة واحدة · قطعتان (the dual needs no numeral) · 3–10 قطع · 11+ قطعة
-  const unit = (n) => (EN ? (n === 1 ? 'piece' : 'pieces') : n === 1 ? 'قطعة واحدة' : n === 2 ? 'قطعتان' : n <= 10 ? 'قطع' : 'قطعة');
-
-  const render = () => {
-    buttons.forEach((b) => b.setAttribute('aria-pressed', String(picked.includes(b.dataset.id))));
-    const n = picked.length;
+  const render = (n) => {
     countEl.textContent = EN || n > 2 ? n : '';
-    unitEl.textContent = unit(n);
-    piecesEl.innerHTML = picked.slice(0, 6).map(() => mini).join('') + (n > 6 ? `<span class="more">+${n - 6}</span>` : '');
-    send.href = 'contact.html' + (n ? `?services=${encodeURIComponent(picked.join(','))}` : '');
-    try { sessionStorage.setItem(KEY, JSON.stringify(picked)); } catch (e) { /* the pick just won't survive a reload */ }
+    unitEl.textContent = pieceUnit(n);
+    piecesEl.innerHTML = Array.from({ length: Math.min(n, 6) }, miniPiece).join('') + (n > 6 ? `<span class="more">+${n - 6}</span>` : '');
   };
 
   const setOpen = (on, animate) => {
     if (on === open) return;
     open = on;
+    gsap.killTweensOf(panel);
     if (on) panel.hidden = false;
     if (!animate || REDUCED) { panel.hidden = !on; gsap.set(panel, { yPercent: 0, autoAlpha: on ? 1 : 0 }); return; }
     gsap.fromTo(panel, on ? { yPercent: 160, autoAlpha: 0 } : { yPercent: 0, autoAlpha: 1 }, {
@@ -321,57 +333,61 @@ function initServicePicker() {
     });
   };
 
-  // a small lime piece flies from the card's + into the tray
-  const fly = (btn, slot) => {
-    if (REDUCED) return Promise.resolve();
-    const from = btn.querySelector('.svc-add').getBoundingClientRect();
-    const r = (slot || piecesEl).getBoundingClientRect();
-    // the tray may still be sliding up from below: aim for where it will rest, not where it is now
-    const rising = ((gsap.getProperty(panel, 'yPercent') || 0) * panel.offsetHeight) / 100;
-    const to = { left: r.left, top: r.top - rising, width: r.width, height: r.height };
-    const el = document.createElement('div');
-    el.className = 'fly-piece';
-    el.innerHTML = mini;
-    document.body.appendChild(el);
-    const sx = from.left + from.width / 2, sy = from.top + from.height / 2;
-    gsap.set(el, { left: sx, top: sy, xPercent: -50, yPercent: -50, scale: 1.5, rotation: -40 });
-    return new Promise((resolve) => {
-      const tl = gsap.timeline({ onComplete: () => { el.remove(); resolve(); } });
-      tl.to(el, { x: to.left + to.width / 2 - sx, duration: 0.75, ease: 'power1.inOut' }, 0);
-      tl.to(el, { y: to.top + to.height / 2 - sy, duration: 0.75, ease: 'back.in(1.2)' }, 0);
-      tl.to(el, { rotation: 320, scale: 0.7, duration: 0.75, ease: 'power2.inOut' }, 0);
-    });
+  // the n-th piece's slot stays empty until the flying piece lands in it, then the tray gives a little bounce
+  const land = async (from, n) => {
+    const slot = piecesEl.querySelectorAll('.mini-piece')[Math.min(n, 6) - 1];
+    if (slot && !REDUCED) gsap.set(slot, { autoAlpha: 0 });
+    await flyPiece(from, slot || piecesEl, panel);
+    if (slot && slot.isConnected) gsap.fromTo(slot, { autoAlpha: 1, scale: 1.4 }, { scale: 1, duration: 0.35, ease: 'back.out(2.5)' });
+    playClick();
+    if (open && !REDUCED) gsap.fromTo(panel, { scale: 1 }, { scale: 1.04, duration: 0.12, yoyo: true, repeat: 1, ease: 'power1.out' });
   };
 
-  buttons.forEach((btn) => btn.addEventListener('click', async () => {
+  return { render, setOpen, land, get open() { return open; } };
+}
+
+/* ---------- Services · build your puzzle: picked services fly into a tray, then go to the contact page ---------- */
+function initServicePicker() {
+  const panel = document.querySelector('.my-puzzle');
+  if (!panel) return;
+  const KEY = 'puzzlex-services';
+  const buttons = [...document.querySelectorAll('.svc')];
+  const known = new Set(buttons.map((b) => b.dataset.id));
+  const send = panel.querySelector('.my-puzzle-send');
+  const tray = createTray(panel);
+
+  let picked = [];
+  try { picked = JSON.parse(sessionStorage.getItem(KEY) || '[]').filter((id) => known.has(id)); } catch (e) { picked = []; }
+
+  const render = () => {
+    buttons.forEach((b) => b.setAttribute('aria-pressed', String(picked.includes(b.dataset.id))));
+    tray.render(picked.length);
+    send.href = 'contact.html' + (picked.length ? `?services=${encodeURIComponent(picked.join(','))}` : '');
+    try { sessionStorage.setItem(KEY, JSON.stringify(picked)); } catch (e) { /* the pick just won't survive a reload */ }
+  };
+
+  buttons.forEach((btn) => btn.addEventListener('click', () => {
     const id = btn.dataset.id;
     if (picked.includes(id)) {
       picked = picked.filter((x) => x !== id);
       render();
-      if (!picked.length) setOpen(false, true);
+      if (!picked.length) tray.setOpen(false, true);
       return;
     }
     picked.push(id);
-    const opening = !open;
     render();
-    if (opening) setOpen(true, true);
-    // the new piece's slot in the tray stays empty until the flying piece lands in it
-    const slot = piecesEl.querySelectorAll('.mini-piece')[Math.min(picked.length, 6) - 1];
-    if (slot && !REDUCED) gsap.set(slot, { autoAlpha: 0 });
-    await fly(btn, slot);
-    if (slot && slot.isConnected) gsap.fromTo(slot, { autoAlpha: 1, scale: 1.4 }, { scale: 1, duration: 0.35, ease: 'back.out(2.5)' });
-    playClick();
-    if (!REDUCED) gsap.fromTo(panel, { scale: 1 }, { scale: 1.04, duration: 0.12, yoyo: true, repeat: 1, ease: 'power1.out' });
+    tray.setOpen(true, true);
+    tray.land(btn.querySelector('.svc-add'), picked.length); // from the card's +
   }));
 
   panel.querySelector('.my-puzzle-clear').addEventListener('click', () => {
     picked = [];
     render();
-    setOpen(false, true);
+    tray.setOpen(false, true);
   });
 
   render();
-  setOpen(picked.length > 0, false);
+  tray.setOpen(picked.length > 0, false);
 }
 
 /* ---------- segmented control (LinkedIn: people / companies) ---------- */
@@ -651,6 +667,31 @@ function initContact() {
     f.el.addEventListener('input', () => { if (f.touched) show(f, f.check(f.el.value)); });
   });
 
+  // the tray at the bottom collects the picked pieces, like on the services page; it steps aside while the
+  // send button is on screen (it would only cover it) and once the message is sent
+  const panel = document.querySelector('.my-puzzle');
+  const tray = panel && createTray(panel);
+  let footInView = false, sent = false;
+  const syncTray = (animate) => {
+    if (!tray) return;
+    tray.render(picked.size);
+    tray.setOpen(picked.size > 0 && !footInView && !sent, animate);
+  };
+  if (tray) {
+    new IntersectionObserver(([e]) => { footInView = e.isIntersecting; syncTray(true); }).observe(form.querySelector('.form-foot'));
+    panel.querySelector('.my-puzzle-send').addEventListener('click', () => {
+      const msg = fields.message.el;
+      msg.scrollIntoView({ behavior: REDUCED ? 'auto' : 'smooth', block: 'center' });
+      msg.focus({ preventScroll: true });
+    });
+    panel.querySelector('.my-puzzle-clear').addEventListener('click', () => {
+      picked.clear();
+      groupsEl.querySelectorAll('.piece-opt').forEach((b) => b.setAttribute('aria-pressed', 'false'));
+      save();
+      syncTray(true);
+    });
+  }
+
   groupsEl.addEventListener('click', (ev) => {
     const btn = ev.target.closest('.piece-opt');
     if (!btn) return;
@@ -660,10 +701,11 @@ function initContact() {
     btn.setAttribute('aria-pressed', String(on));
     save();
     if (servicesErr.textContent) checkServices();
-    if (on) {
-      playClick();
-      if (!REDUCED) gsap.fromTo(btn.querySelector('.opt-piece'), { rotation: -120, scale: 0.4 }, { rotation: 0, scale: 1, duration: 0.5, ease: 'back.out(2)' });
-    }
+    syncTray(true);
+    if (!on) return;
+    if (!REDUCED) gsap.fromTo(btn.querySelector('.opt-piece'), { rotation: -120, scale: 0.4 }, { rotation: 0, scale: 1, duration: 0.5, ease: 'back.out(2)' });
+    if (tray && tray.open) tray.land(btn.querySelector('.opt-piece'), picked.size); // plays the click when it lands
+    else playClick();
   });
 
   const done = form.querySelector('.form-done');
@@ -730,6 +772,8 @@ function initContact() {
       if (!res.ok || !data.ok) throw new Error(data.error || String(res.status));
       done.querySelector('.done-name').textContent = fields.name.el.value.trim().split(/\s+/)[0];
       try { sessionStorage.removeItem(KEY); } catch (e) { /* nothing to forget */ }
+      sent = true;
+      syncTray(true);
       celebrate();
     } catch (err) {
       formError.textContent = err.message === 'rate'
@@ -749,6 +793,8 @@ function initContact() {
     done.hidden = true;
     body.forEach((el) => { el.hidden = false; });
     hint.hidden = !picked.size;
+    sent = false;
+    syncTray(false);
     fields.name.el.focus();
   });
 

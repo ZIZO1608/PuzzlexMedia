@@ -56,11 +56,14 @@ At `/admin/` the team edits the site without touching code:
   descriptions and the texts drawn by the animations). Shared texts, such as the menu links, change everywhere at once.
 - **Projects**: add, edit, delete and reorder projects; upload the cover and gallery images.
 - **Partner logos**: the logos in the partners puzzle. The puzzle resizes itself (5×5 for up to 24, 7×7 for up to 48, 9×9 for up to 80).
+- **Client feedback**: testimonials (name, role / company, quote in Arabic and English, optional photo or partner logo,
+  optional 1–5 stars), shown in order in the "What our clients say" section on the home page. Hide one to take it off the
+  site without deleting it; with none shown, the section is left out.
 - **Contact & links**: phone, WhatsApp, email, website and social links (empty = left off the site: no "coming soon", no dead icon).
 - **Messages**: the contact-form inbox, with read / unread and delete.
 
 Edits are saved in `/data` (the Docker volume) and show on the site immediately: `texts.json`, `projects.json`,
-`partners.json`, `settings.json`, `uploads/`. On first start these are created from the files in the repo, so a fresh
+`partners.json`, `settings.json`, `testimonials.json`, `uploads/`. On first start these are created from the files in the repo, so a fresh
 install looks exactly like the code. Images are resized and converted to WebP in the browser before they're uploaded.
 
 **Users** are kept in `/data/users.json` with hashed passwords only. Manage them with the included tool:
