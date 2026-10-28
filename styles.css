@@ -1198,6 +1198,12 @@ html .loader.is-leaving { display: grid; position: fixed; inset: 0; z-index: 900
 [lang="en"] .intro-title { font-size: clamp(30px, min(5.4vw, 8vh), 78px); }
 /* English words run longer than the Arabic ones the sizes were set for */
 [lang="en"] .page-title { font-size: clamp(38px, 5vw, 82px); letter-spacing: -.02em; }
+
+/* ---------- Arabic display type ----------
+   Arabic letters climb higher (أ إ آ, hamza, dots) and drop lower (ع ح ي ج) than Latin ones: at the 1.05–1.15 line
+   height the English titles use, two lines of a big Arabic title run into each other. English keeps its tight set. */
+[lang="ar"] .page-title, [lang="ar"] .section-title, [lang="ar"] .intro-title { line-height: 1.32; }
+[lang="ar"] .value h3, [lang="ar"] .cta-band h2 { line-height: 1.38; }
 [lang="en"] .svc-hero-piece .t { font-size: calc(var(--s) * .105); }
 @media (max-width: 640px) { [dir="ltr"] .project-nav-link.next { text-align: left; } }
 
