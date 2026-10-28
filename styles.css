@@ -310,6 +310,18 @@ html.lenis, html.lenis body { height: auto; }
   border: 5px solid; border-color: #8fae00 #ecff7a #ecff7a #8fae00;
 }
 .partners-frame.nudge { animation: frame-swing 1.6s cubic-bezier(.3, .6, .3, 1) 1; }
+/* a light streak sweeps across the finished puzzle once the last piece lands */
+.partners-frame::after {
+  content: ""; position: absolute; inset: 0; z-index: 5; pointer-events: none; border-radius: inherit; opacity: 0;
+  background: linear-gradient(110deg, transparent 38%, rgba(255, 255, 210, .35) 45%, rgba(255, 255, 255, .9) 50%, rgba(255, 255, 210, .35) 55%, transparent 62%) no-repeat;
+  background-size: 250% 100%;
+}
+.partners-frame.shine::after { animation: frame-shine 1.4s cubic-bezier(.45, 0, .25, 1) .15s 1; }
+@keyframes frame-shine {
+  0% { opacity: 1; background-position: 100% 0; }
+  85% { opacity: 1; }
+  100% { opacity: 0; background-position: 0 0; }
+}
 @keyframes frame-swing {
   0% { rotate: 0deg; } 18% { rotate: 1.6deg; } 40% { rotate: -1deg; }
   62% { rotate: .5deg; } 82% { rotate: -.2deg; } 100% { rotate: 0deg; }
@@ -1149,7 +1161,7 @@ html .loader.is-leaving { display: grid; position: fixed; inset: 0; z-index: 900
   .values, .partners { height: auto; }
   .values-stage, .partners-stage { position: relative; height: auto; min-height: 100vh; }
   .value { position: static; opacity: 1; transform: none; filter: none; margin-bottom: 28px; }
-    .star3d, .mini-star, .partners-frame.nudge { animation: none; }
+    .star3d, .mini-star, .partners-frame.nudge, .partners-frame.shine::after { animation: none; }
   .partners-cta { opacity: 1; visibility: visible; }
 }
 

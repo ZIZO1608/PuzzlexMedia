@@ -284,9 +284,9 @@ function buildPartners() {
           const t = tl.time();
           if (partnerLastT < SNAP && t >= SNAP) {
             playClick();
-            frame.classList.remove('nudge');
-            void frame.offsetWidth; // restart the swing
-            frame.classList.add('nudge');
+            frame.classList.remove('nudge', 'shine');
+            void frame.offsetWidth; // restart the swing and the shine
+            frame.classList.add('nudge', 'shine');
           }
           partnerLastT = t;
           board.classList.toggle('done', t >= SNAP);
