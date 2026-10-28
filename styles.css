@@ -659,7 +659,9 @@ html.has-cursor, html.has-cursor * { cursor: none !important; }
   display: grid; grid-template-columns: minmax(240px, .75fr) 1.6fr; gap: 5vw; align-items: start;
   padding: 110px clamp(16px, 6vw, 96px) 90px; border-top: 1px solid var(--line); scroll-margin-top: 40px;
 }
-.svc-head { position: sticky; top: 110px; }
+.svc-head { position: sticky; top: 110px; min-width: 0; }
+/* the head column is narrow, so the shared 96px title spilled over the cards */
+.svc-head .section-title { font-size: clamp(34px, 4.6vw, 80px); overflow-wrap: break-word; }
 .svc-head .kicker { text-align: right; }
 .svc-index {
   display: block; font-family: var(--lat); font-weight: 900; line-height: 1; direction: ltr; text-align: right;
@@ -751,6 +753,7 @@ button.my-puzzle-send { border: 0; cursor: pointer; font-family: var(--ar); } /*
 @media (max-width: 900px) {
   .svc-group { grid-template-columns: 1fr; gap: 34px; padding-top: 90px; }
   .svc-head { position: static; }
+  .svc-head .section-title { font-size: clamp(40px, 9vw, 64px); }
   .svc-cols { grid-template-columns: 1fr; }
 }
 @media (max-width: 760px) {
