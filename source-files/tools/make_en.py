@@ -140,6 +140,10 @@ EN = {
 '— وصلتنا رسالتك، وسنعود إليك قريبًا على بريدك الإلكتروني.': '— we’ve received your message and will get back to you by email soon.', 'تواصل مباشر': 'Direct contact', 'تفضّل بمراسلتنا عبر القناة التي تناسبك.': 'Reach us on whichever channel suits you.',
 'الهاتف': 'Phone', 'يُضاف لاحقًا': 'coming soon', 'نعمل في': 'Where we work', 'الخليج · سوريا': 'Gulf · Syria',
 'رقم واتساب يُضاف لاحقًا': 'WhatsApp number coming soon', 'واتساب': 'WhatsApp',
+'طريقة الإرسال': 'How to send', 'أرسل بالبريد الإلكتروني': 'Send by email', 'أرسل عبر واتساب': 'Send on WhatsApp',
+'— وصلنا طلبك، وسيتواصل معك فريقنا خلال 48 ساعة.': '— we’ve received your request, and our team will contact you within 48 hours.',
+'— فتحنا لك واتساب وفيه تفاصيل طلبك جاهزة؛ اضغط «إرسال» هناك لتصلنا. سيتواصل معك فريقنا خلال 48 ساعة.': '— we’ve opened WhatsApp with your details ready; press “Send” there so they reach us. Our team will contact you within 48 hours.',
+'أرسلنا تأكيدًا إلى بريدك الإلكتروني.': 'We’ve sent a confirmation to your email.',
 # seo titles and descriptions
 'PuzzleX Media — وكالة تسويق وإبداع في الخليج وسوريا': 'PuzzleX Media — Marketing & Creative Agency in the Gulf and Syria',
 'PuzzleX Media قسمك الإبداعي الجاهز: هوية بصرية، تصميم سوشال ميديا وإعلانات، مونتاج وفيديو، محتوى تسويقي، خدمات لينكدإن، وبرمجة الأنظمة والمواقع والتطبيقات في الخليج وسوريا.': 'PuzzleX Media, your ready-made creative department: visual identity, social media and ad design, video, marketing copy, LinkedIn services, and software — systems, websites and apps — in the Gulf and Syria.',

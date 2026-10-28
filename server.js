@@ -1,7 +1,8 @@
 /* PuzzleX Media — web server.
    Serves the site (Arabic at /, English at /en/), clean URLs, the 404 pages, per-project share previews,
    and the contact form: every message is appended to DATA_DIR/messages.jsonl and, when SMTP is set,
-   emailed to CONTACT_TO. No framework; the only dependency is nodemailer.
+   emailed to CONTACT_TO, and the sender gets a branded "we'll contact you within 48 hours" reply
+   (lib/autoreply.js). No framework; the only dependency is nodemailer.
 
    Settings come from the environment (see .env.example). Locally: `node server.js [port]`. */
 'use strict';
@@ -17,6 +18,7 @@ const { createAuth } = require('./lib/auth');
 const { createContent, projectsScript, PAGES } = require('./lib/content');
 const { createAdmin } = require('./lib/admin');
 const { createIndexNow } = require('./lib/indexnow');
+const { autoReply } = require('./lib/autoreply');
 
 const ROOT = __dirname;
 const PORT = Number(process.argv[2] || process.env.PORT || 8080);
@@ -274,6 +276,7 @@ function validate(b) {
   const m = { name: str('name'), company: str('company'), email: str('email'), phone: latinDigits(str('phone')), message: str('message') };
   m.services = Array.isArray(b.services) ? [...new Set(b.services.filter((s) => typeof s === 'string' && SERVICES[s]))] : [];
   m.lang = b.lang === 'en' ? 'en' : 'ar';
+  m.channel = b.channel === 'whatsapp' ? 'whatsapp' : 'email'; // the button they pressed
   const ok = m.name.length >= 2 && EMAIL_RE.test(m.email) && (!m.phone || PHONE_RE.test(m.phone))
     && m.message.length >= 10 && m.services.length > 0;
   return ok ? m : null;
@@ -308,15 +311,31 @@ if (process.env.SMTP_HOST && process.env.CONTACT_TO) {
 async function emailMessage(m) {
   const lines = [
     `الاسم: ${m.name}`, m.company ? `الشركة: ${m.company}` : null, `البريد: ${m.email}`, m.phone ? `الهاتف: ${m.phone}` : null,
-    `اللغة: ${m.lang === 'en' ? 'English' : 'العربية'}`, '', 'القطع المطلوبة:', ...m.services.map((s) => `• ${SERVICES[s]}`),
+    `اللغة: ${m.lang === 'en' ? 'English' : 'العربية'}`,
+    `أُرسلت عبر: ${m.channel === 'whatsapp' ? 'واتساب (فُتحت له محادثة مع رقمنا — تحقّق من واتساب)' : 'البريد الإلكتروني'}`, '', 'القطع المطلوبة:', ...m.services.map((s) => `• ${SERVICES[s]}`),
     '', 'الرسالة:', m.message, '', `— ${m.date} · ${m.id}`,
   ].filter((l) => l !== null);
   await mailer.sendMail({
     from: process.env.SMTP_FROM || process.env.SMTP_USER,
     to: process.env.CONTACT_TO,
     replyTo: `"${m.name.replace(/"/g, '')}" <${m.email}>`,
-    subject: `رسالة جديدة من الموقع — ${m.name}${m.company ? ` (${m.company})` : ''}`,
+    subject: `رسالة جديدة من الموقع${m.channel === 'whatsapp' ? ' (واتساب)' : ''} — ${m.name}${m.company ? ` (${m.company})` : ''}`,
     text: lines.join('\n'),
+  });
+}
+
+// the sender's confirmation; replies to it reach the team. Off with AUTOREPLY=0
+const AUTOREPLY = process.env.AUTOREPLY !== '0';
+async function emailAutoReply(m) {
+  const settings = store.read('settings.json', {});
+  const { subject, html, text } = autoReply(m, { settings, siteUrl: SITE_URL });
+  const from = process.env.SMTP_FROM || process.env.SMTP_USER;
+  await mailer.sendMail({
+    from: from.includes('<') ? from : `"PuzzleX Media" <${from}>`,
+    to: m.email,
+    replyTo: settings.email || process.env.CONTACT_TO,
+    subject, html, text,
+    headers: { 'Auto-Submitted': 'auto-replied' }, // RFC 3834: other auto-responders don't answer it
   });
 }
 
@@ -363,12 +382,15 @@ async function handleContact(req, res) {
     console.error('[contact] could not save message', err);
     return json(res, 500, { ok: false, error: 'save' });
   }
-  let emailed = false;
+  let emailed = false, confirmed = false;
   if (mailer) {
-    try { await emailMessage(m); emailed = true; } catch (err) { console.error('[contact] saved, but email failed:', err.message); }
+    await Promise.all([
+      emailMessage(m).then(() => { emailed = true; }, (err) => console.error('[contact] saved, but email failed:', err.message)),
+      AUTOREPLY && emailAutoReply(m).then(() => { confirmed = true; }, (err) => console.error('[contact] auto-reply failed:', err.message)),
+    ]);
   }
-  console.log(`[contact] ${m.id} from ${m.email}${emailed ? ' (emailed)' : ''}`);
-  json(res, 200, { ok: true });
+  console.log(`[contact] ${m.id} from ${m.email} via ${m.channel}${emailed ? ' (emailed)' : ''}${confirmed ? ' (auto-reply sent)' : ''}`);
+  json(res, 200, { ok: true, confirmed });
 }
 
 /* ---------- CSP reports: what the policy would block, written to the log while it is Report-Only ---------- */

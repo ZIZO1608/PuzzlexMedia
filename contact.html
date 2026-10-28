@@ -32,7 +32,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Alexandria:wght@300;400;600;800;900&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css?v=64">
+  <link rel="stylesheet" href="styles.css?v=65">
 </head>
 <body class="page">
   <div class="loader" role="status" aria-live="polite" aria-label="جارٍ التحميل">
@@ -123,7 +123,11 @@
         <div class="hp" aria-hidden="true"><label>Website <input name="website" type="text" tabindex="-1" autocomplete="off"></label></div>
 
         <div class="form-foot">
-          <button class="btn btn-primary form-submit" type="submit">أرسل القطعة <span aria-hidden="true">←</span></button>
+          <!-- one form, two ways to send it; the WhatsApp button gets our number from the admin panel (lib/content.js) and is left out without one -->
+          <div class="send-ways" role="group" aria-label="طريقة الإرسال">
+            <button class="btn btn-primary form-submit" type="submit" data-via="email">أرسل بالبريد الإلكتروني <span aria-hidden="true">←</span></button>
+            <button class="btn btn-wa form-submit" type="submit" data-via="whatsapp" data-wa=""><svg class="wa-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2zm0 18.2a8.2 8.2 0 0 1-4.2-1.2l-.3-.2-3 .8.8-2.9-.2-.3A8.2 8.2 0 1 1 12 20.2zm4.5-6.1c-.2-.1-1.5-.7-1.7-.8-.2-.1-.4-.1-.6.1l-.8 1c-.1.2-.3.2-.5.1a6.7 6.7 0 0 1-3.3-2.9c-.3-.4.2-.4.7-1.3.1-.2 0-.3 0-.4l-.8-1.8c-.2-.5-.4-.4-.6-.4h-.5c-.2 0-.4.1-.6.3-.2.2-.8.8-.8 2s.8 2.3.9 2.5c.1.2 1.6 2.5 4 3.5 1.5.6 2 .7 2.8.6.5-.1 1.5-.6 1.7-1.2.2-.6.2-1.1.1-1.2l-.4-.2z"/></svg><span>أرسل عبر واتساب</span></button>
+          </div>
           <p class="form-note">نستخدم بياناتك فقط للرد على طلبك. <a href="privacy.html">سياسة الخصوصية</a></p>
           <p class="form-error" role="alert"></p>
         </div>
@@ -133,7 +137,9 @@
           <div class="done-burst" aria-hidden="true"></div>
           <svg class="done-piece" viewBox="-34 -34 168 168" aria-hidden="true"></svg>
           <h2>وصلت قطعتك!</h2>
-          <p>شكرًا <b class="done-name"></b> — وصلتنا رسالتك، وسنعود إليك قريبًا على بريدك الإلكتروني.</p>
+          <p class="done-via-email">شكرًا <b class="done-name"></b> — وصلنا طلبك، وسيتواصل معك فريقنا خلال 48 ساعة.</p>
+          <p class="done-via-whatsapp" hidden>شكرًا <b class="done-name"></b> — فتحنا لك واتساب وفيه تفاصيل طلبك جاهزة؛ اضغط «إرسال» هناك لتصلنا. سيتواصل معك فريقنا خلال 48 ساعة.</p>
+          <p class="done-confirmed" hidden>أرسلنا تأكيدًا إلى بريدك الإلكتروني.</p>
           <button class="btn btn-ghost done-again" type="button">أرسل رسالة أخرى</button>
         </div>
       </form>
@@ -212,6 +218,6 @@
   <script src="sections.js?v=56"></script>
   <script src="cursor.js?v=54"></script>
   <script src="theme.js?v=54"></script>
-  <script src="pages.js?v=61"></script>
+  <script src="pages.js?v=62"></script>
 </body>
 </html>

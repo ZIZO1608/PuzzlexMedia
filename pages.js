@@ -736,13 +736,30 @@ function initContact() {
     });
   };
 
-  const submitBtn = form.querySelector('.form-submit');
+  const sendBtns = [...form.querySelectorAll('.form-submit')];
   const formError = form.querySelector('.form-error');
   let sending = false;
+
+  // everything they filled in, as a WhatsApp message to our number (data-wa, set by the server from the admin panel)
+  const serviceNames = new Map(SERVICE_GROUPS.flatMap((g) => g.items));
+  const whatsappUrl = (number) => {
+    const val = (id) => form.querySelector(id).value.trim();
+    const lines = [
+      T('مرحبًا PuzzleX Media 👋 طلب جديد من الموقع:', 'Hi PuzzleX Media 👋 A new request from the website:'), '',
+      `${T('الاسم', 'Name')}: ${val('#f-name')}`,
+      val('#f-company') ? `${T('الشركة', 'Company')}: ${val('#f-company')}` : null,
+      `${T('البريد', 'Email')}: ${val('#f-email')}`,
+      val('#f-phone') ? `${T('الهاتف', 'Phone')}: ${latinDigits(val('#f-phone'))}` : null, '',
+      `${T('القطع المطلوبة', 'Pieces needed')}:`, ...[...picked].map((id) => `• ${serviceNames.get(id)}`), '',
+      `${T('الرسالة', 'Message')}:`, val('#f-message'),
+    ].filter((l) => l !== null);
+    return `https://wa.me/${number}?text=${encodeURIComponent(lines.join('\n'))}`;
+  };
 
   form.addEventListener('submit', async (ev) => {
     ev.preventDefault();
     if (sending) return;
+    const waBtn = ev.submitter && ev.submitter.dataset.via === 'whatsapp' ? ev.submitter : null;
     formError.textContent = '';
     let firstBad = null;
     Object.values(fields).forEach((f) => {
@@ -755,13 +772,21 @@ function initContact() {
     if (firstBad) {
       firstBad.focus({ preventScroll: true });
       firstBad.scrollIntoView({ behavior: REDUCED ? 'auto' : 'smooth', block: 'center' });
-      if (!REDUCED) gsap.fromTo(form.querySelector('.form-submit'), { x: 0 }, { x: 8, duration: 0.07, repeat: 5, yoyo: true, ease: 'sine.inOut', clearProps: 'x' });
+      if (!REDUCED) gsap.fromTo(form.querySelector('.send-ways'), { x: 0 }, { x: 8, duration: 0.07, repeat: 5, yoyo: true, ease: 'sine.inOut', clearProps: 'x' });
       return;
     }
-    // send it to the site's own server (server.js → POST /api/contact)
+    // WhatsApp: a tab opened after the await below would be blocked as a pop-up, so open it now and
+    // point it at the chat once the message is saved
+    const waUrl = waBtn && whatsappUrl(waBtn.dataset.wa);
+    const waTab = waBtn && window.open('', '_blank');
+    if (waTab) waTab.opener = null;
+    // send it to the site's own server (server.js → POST /api/contact): saved for the admin panel, emailed to
+    // the team, and the sender gets the "within 48 hours" confirmation email
     sending = true;
-    submitBtn.disabled = true;
-    submitBtn.setAttribute('aria-busy', 'true');
+    const busyBtn = waBtn || ev.submitter || sendBtns[0];
+    sendBtns.forEach((b) => { b.disabled = true; });
+    busyBtn.setAttribute('aria-busy', 'true');
+    let data = {};
     try {
       const res = await fetch('/api/contact', {
         method: 'POST',
@@ -769,25 +794,37 @@ function initContact() {
         body: JSON.stringify({
           name: fields.name.el.value, company: form.querySelector('#f-company').value, email: fields.email.el.value,
           phone: latinDigits(fields.phone.el.value), message: fields.message.el.value, services: [...picked],
-          website: form.querySelector('[name="website"]').value, lang: EN ? 'en' : 'ar',
+          website: form.querySelector('[name="website"]').value, lang: EN ? 'en' : 'ar', channel: waBtn ? 'whatsapp' : 'email',
         }),
       });
-      const data = await res.json().catch(() => ({}));
+      data = await res.json().catch(() => ({}));
       if (!res.ok || !data.ok) throw new Error(data.error || String(res.status));
-      done.querySelector('.done-name').textContent = fields.name.el.value.trim().split(/\s+/)[0];
-      try { sessionStorage.removeItem(KEY); } catch (e) { /* nothing to forget */ }
-      sent = true;
-      syncTray(true);
-      celebrate();
     } catch (err) {
-      formError.textContent = err.message === 'rate'
-        ? T('أرسلت عدة رسائل خلال وقت قصير. حاول مرة أخرى بعد بضع دقائق.', 'You’ve sent several messages in a short time. Please try again in a few minutes.')
-        : T('تعذّر إرسال رسالتك الآن. حاول مرة أخرى بعد قليل.', 'We couldn’t send your message just now. Please try again shortly.');
+      // on WhatsApp the message itself goes through the chat, so a failed save doesn't stop it
+      if (!waBtn) {
+        formError.textContent = err.message === 'rate'
+          ? T('أرسلت عدة رسائل خلال وقت قصير. حاول مرة أخرى بعد بضع دقائق.', 'You’ve sent several messages in a short time. Please try again in a few minutes.')
+          : T('تعذّر إرسال رسالتك الآن. حاول مرة أخرى بعد قليل.', 'We couldn’t send your message just now. Please try again shortly.');
+        data = null;
+      }
     } finally {
       sending = false;
-      submitBtn.disabled = false;
-      submitBtn.removeAttribute('aria-busy');
+      sendBtns.forEach((b) => { b.disabled = false; });
+      busyBtn.removeAttribute('aria-busy');
     }
+    if (!data) return;
+    if (waBtn) {
+      if (waTab) waTab.location.href = waUrl;
+      else window.location.href = waUrl; // pop-ups blocked: go to the chat in this tab
+    }
+    done.querySelectorAll('.done-name').forEach((b) => { b.textContent = fields.name.el.value.trim().split(/\s+/)[0]; });
+    done.querySelector('.done-via-email').hidden = !!waBtn;
+    done.querySelector('.done-via-whatsapp').hidden = !waBtn;
+    done.querySelector('.done-confirmed').hidden = !data.confirmed;
+    try { sessionStorage.removeItem(KEY); } catch (e) { /* nothing to forget */ }
+    sent = true;
+    syncTray(true);
+    celebrate();
   });
 
   done.querySelector('.done-again').addEventListener('click', () => {

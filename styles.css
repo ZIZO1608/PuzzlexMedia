@@ -927,6 +927,10 @@ img.cover { object-fit: cover; } /* uploaded project images fill their frame lik
 
 .form-foot { display: flex; align-items: center; flex-wrap: wrap; gap: 14px 22px; }
 .form-submit { border: 0; cursor: pointer; font-family: var(--ar); }
+.send-ways { display: flex; flex-wrap: wrap; gap: 10px; }
+.btn-wa { display: inline-flex; align-items: center; gap: 9px; background: #25D366; color: #0a0a0b; padding: .85em 1.6em; }
+.btn-wa:hover { background: var(--text); color: var(--ink); }
+.wa-icon { width: 1.25em; height: 1.25em; fill: currentColor; flex: none; }
 .form-note { font-size: 13px; color: var(--muted); }
 .form-error { flex-basis: 100%; font-size: 14px; color: #ff8080; }
 .form-error:empty { display: none; }
@@ -941,7 +945,7 @@ img.cover { object-fit: cover; } /* uploaded project images fill their frame lik
   padding: 50px 24px; border: 1px solid var(--line); border-radius: 28px;
   background: radial-gradient(circle at 50% 30%, rgba(215, 255, 0, .1), transparent 60%);
 }
-.form-done[hidden] { display: none; }
+.form-done[hidden], .contact-form > [hidden], .form-done p[hidden] { display: none; }
 .done-burst { position: absolute; left: 50%; top: 110px; width: 0; height: 0; pointer-events: none; }
 .done-burst .opt-piece { position: absolute; left: -11px; top: -11px; width: 22px; height: 22px; }
 .done-burst .opt-piece path { fill: var(--lime); stroke: none; }
@@ -968,8 +972,9 @@ img.cover { object-fit: cover; } /* uploaded project images fill their frame lik
 .btn-whatsapp {
   display: inline-flex; justify-content: center; align-items: center; gap: 10px;
   border: 1px solid var(--line); border-radius: 999px; padding: 13px 20px; font-weight: 700;
-  opacity: .7; cursor: not-allowed;
 }
+.btn-whatsapp[aria-disabled="true"] { opacity: .7; cursor: not-allowed; }
+.btn-whatsapp[href^="https://wa.me/"]:hover { border-color: #25D366; color: #25D366; }
 .placeholder-tag { font-size: 11px; font-weight: 600; color: var(--muted); border: 1px dashed var(--line); border-radius: 999px; padding: 2px 8px; }
 .socials { display: flex; gap: 10px; }
 .socials a {
@@ -985,6 +990,7 @@ img.cover { object-fit: cover; } /* uploaded project images fill their frame lik
   .form-row.two { grid-template-columns: minmax(0, 1fr); }
   .pieces-group { grid-template-columns: minmax(0, 1fr); gap: 8px; }
   .pieces-group-title { padding-top: 0; }
+  .send-ways { width: 100%; }
   .form-submit { width: 100%; justify-content: center; }
 }
 
