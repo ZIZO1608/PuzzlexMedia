@@ -33,3 +33,6 @@ mobile-ui/
 user-guide/out/
 user-guide/demo-data/
 .build-*
+
+# review exports (client names and links): import with tools/import-reviews.py, never commit
+*.xlsx
