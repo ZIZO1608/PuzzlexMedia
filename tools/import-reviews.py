@@ -19,7 +19,7 @@ import sys
 import openpyxl
 
 HEADER_ROW = 4  # the column titles; the reviews start on the row below
-NAME, STARS, QUOTE, SERVICE, DATE, LINK = 0, 3, 5, 6, 7, 9  # columns, from 0
+NAME, STARS, QUOTE, DATE, LINK = 0, 3, 5, 6, 7, 9  # columns, from 0
 HOME = 6
 ARABIC = re.compile(r'[؀-ۿ]')
 
@@ -69,11 +69,10 @@ def main(xlsx, data_dir):
 
         stars = int(float(row[STARS] or 0))
         date = row[DATE].strftime('%Y-%m-%d') if hasattr(row[DATE], 'strftime') else ''
-        service = str(row[SERVICE] or '').strip()[:200]
         added.append({
             'id': uid,
             'name': by_language(tidy_name(row[NAME])[:200]),
-            'role': by_language(service) if service else {'ar': '', 'en': ''},
+            'role': {'ar': '', 'en': ''},  # the cards don't show the service bought
             'quote': by_language(quote[:1200]),
             'photo': photo, 'images': [], 'rating': stars, 'date': date,
             'visible': stars >= 4 or stars == 0, 'featured': False,
