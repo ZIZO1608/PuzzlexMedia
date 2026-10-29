@@ -108,7 +108,8 @@ function makeEntry(body, ext) {
   const entry = { body, etag: `"${crypto.createHash('sha1').update(body).digest('base64url').slice(0, 20)}"` };
   if (ext === '.html') entry.csp = cspFor(inlineScriptHashes(body.toString('utf8')));
   if (COMPRESSIBLE.has(ext) && body.length > 1024) {
-    entry.br = zlib.brotliCompressSync(body, { params: { [zlib.constants.BROTLI_PARAM_QUALITY]: 9 } });
+    // max quality: each file is compressed once and kept in memory, and every byte counts on a slow line
+    entry.br = zlib.brotliCompressSync(body, { params: { [zlib.constants.BROTLI_PARAM_QUALITY]: 11 } });
     entry.gzip = zlib.gzipSync(body, { level: 9 });
   }
   return entry;

@@ -582,6 +582,8 @@ async function initSections() {
   if ($('.values')) initValues();
   if (!$('.partners')) return;
   await document.fonts.load('800 20px Alexandria', T('مكانك هنا', 'YOUR SPOT')).catch(() => {});
+  // the logos are far below the fold: fetch them once the page has loaded, so on a slow line they don't hold up the loader and the hero
+  if (document.readyState !== 'complete') await new Promise((res) => window.addEventListener('load', res, { once: true }));
   // a logo that fails to load is left out rather than breaking the puzzle
   partnerImgs = (await Promise.all(PARTNERS.map((p) => loadImage(assetUrl(p.src)).then((img) => Object.assign(img, { _name: p.name || '' }), () => null)))).filter(Boolean);
   GRID = 3;

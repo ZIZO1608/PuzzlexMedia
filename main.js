@@ -566,7 +566,7 @@ function buildTimeline(pieces, key, hole, { vw, vh, W, H, pw, ph, mobile }) {
   // timing: the tornado picks everything up, then drops the pieces into place from the edges inwards;
   // the key piece is the last one out of the storm
   const STORM_START = 0.6;
-  const ASM_START = 2.6, ASM_SPAN = 3.0, ASM_DUR = 1.1;
+  const ASM_START = 2.1, ASM_SPAN = 2.5, ASM_DUR = 1.1; // .hero's height in styles.css is sized to this timeline
   const KEY_OUT = ASM_START + ASM_SPAN, KEY_HOVER = 1.4;
   const STORM_END = KEY_OUT;
   const CAPTION = KEY_OUT + KEY_HOVER + 0.2;

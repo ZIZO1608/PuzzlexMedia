@@ -62,7 +62,7 @@ html.lenis, html.lenis body { height: auto; }
 }
 
 /* ---------- Scroll scene ---------- */
-.hero { position: relative; height: 320vh; }
+.hero { position: relative; height: 298vh; }
 .stage {
   position: sticky; top: 0;
   height: 100vh; height: 100svh;
@@ -1274,7 +1274,7 @@ html .loader.is-leaving { display: grid; position: fixed; inset: 0; z-index: 900
   .topbar { padding-top: 14px; }
   .cta { flex-direction: row; gap: 8px; }
   .cta .btn { font-size: 13px; }
-  .hero { height: 260vh; } /* a shorter story on phones: the finished picture and its buttons come sooner */
+  .hero { height: 244vh; } /* a shorter story on phones: the finished picture and its buttons come sooner */
   .intro-title { margin-bottom: 12px; }
   .intro-actions .btn { font-size: 14px; padding-inline: 18px; }
 }
