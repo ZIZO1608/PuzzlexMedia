@@ -83,7 +83,10 @@ html.lenis, html.lenis body { height: auto; }
 .brand-name { font-family: var(--lat); font-weight: 900; font-size: 15px; letter-spacing: .06em; direction: ltr; }
 .brand-name span { font-weight: 400; color: var(--accent-text); margin-inline-start: 6px; }
 .nav { display: flex; gap: 28px; font-size: 14px; color: var(--muted); }
-.nav a { transition: color .2s; }
+.nav a { transition: color .2s; white-space: nowrap; }
+/* just above the phone menu the bar is tight: closer links keep each one on one line */
+@media (max-width: 1000px) { .topbar { gap: 16px; } .nav { gap: 18px; } }
+@media (max-width: 820px) { .nav { gap: 12px; } }
 .nav a:hover { color: var(--text); }
 
 .btn {

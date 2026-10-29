@@ -61,6 +61,7 @@ const MIME = {
   '.json': 'application/json; charset=utf-8', '.svg': 'image/svg+xml', '.png': 'image/png', '.webp': 'image/webp',
   '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.ico': 'image/x-icon', '.woff2': 'font/woff2',
   '.txt': 'text/plain; charset=utf-8', '.xml': 'application/xml; charset=utf-8',
+  '.mp3': 'audio/mpeg',
 };
 const COMPRESSIBLE = new Set(['.html', '.css', '.js', '.json', '.svg', '.txt', '.xml']);
 // the server's own files sit next to the site: never hand them out

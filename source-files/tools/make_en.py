@@ -11,7 +11,7 @@ AR = re.compile('[؀-ۿ]')
 EN = {
 # shared chrome
 'PuzzleX Media — الرئيسية': 'PuzzleX Media — Home', 'القائمة': 'Menu', 'من نحن': 'About', 'خدماتنا': 'Services',
-'أعمالنا': 'Work', 'الوضع الفاتح': 'Light mode', 'تواصل معنا': 'Contact us', 'جارٍ التحميل': 'Loading',
+'أعمالنا': 'Work', 'الوضع الفاتح': 'Light mode', 'الموسيقى': 'Music', 'تواصل معنا': 'Contact us', 'جارٍ التحميل': 'Loading',
 'قسمك الإبداعي الجاهز — وكالة تسويق وإبداع.': 'Your ready-made creative department — a marketing and creative agency.',
 'روابط الموقع': 'Site links', 'الموقع': 'Site', 'الرئيسية': 'Home', 'تواصل': 'Contact',
 'رقم الهاتف — يُضاف لاحقاً': 'Phone — coming soon', 'البريد الإلكتروني — يُضاف لاحقاً': 'Email — coming soon',
