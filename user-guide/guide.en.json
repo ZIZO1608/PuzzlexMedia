@@ -1164,7 +1164,7 @@
       "fix": "Wait 15 minutes, then try once, carefully."
     },
     {
-      "problem": "*سجّل الدخول أولًا* (Sign in first), or the sign-in page appears suddenly",
+      "problem": "*سجّل الدخول أولاً* (Sign in first), or the sign-in page appears suddenly",
       "cause": "The session ended (12 hours unused), or the password was changed on another device.",
       "fix": "Sign in again. Unsaved changes are lost — save as you go."
     },

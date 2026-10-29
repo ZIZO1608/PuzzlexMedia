@@ -192,18 +192,18 @@ async function viewHome(view) {
     h('div', { class: 'page-head' }, h('div', null,
       h('p', { class: 'kicker' }, 'PUZZLEX ADMIN'),
       h('h1', null, `${hour < 12 ? 'صباح الخير' : 'مساء الخير'}، ${me.name}`),
-      h('p', null, 'من هنا تعدّل كل ما يظهر على الموقع: النصوص بالعربية والإنجليزية، المشاريع وصورها، شعارات الشركاء، آراء العملاء، ومعلومات التواصل. كل تغيير تحفظه يظهر على الموقع فورًا.'))),
+      h('p', null, 'من هنا تعدّل كل ما يظهر على الموقع: النصوص بالعربية والإنجليزية، المشاريع وصورها، شعارات الشركاء، آراء العملاء، ومعلومات التواصل. كل تغيير تحفظه يظهر على الموقع فوراً.'))),
     h('div', { class: 'stats' },
       stat(stats.unread, noun(stats.unread, ['رسالة جديدة', 'رسالتان جديدتان', 'رسائل جديدة', 'رسالة جديدة']), '#/messages', stats.unread > 0),
-      stats.today ? stat(stats.today.visitors, `${noun(stats.today.visitors, ['زائر', 'زائران', 'زوار', 'زائرًا'])} اليوم · ${stats.today.views} ${noun(stats.today.views, ['مشاهدة', 'مشاهدتان', 'مشاهدات', 'مشاهدة'])}`, '#/stats') : null,
-      stat(stats.projects, noun(stats.projects, ['مشروع', 'مشروعان', 'مشاريع', 'مشروعًا']), '#/projects'),
+      stats.today ? stat(stats.today.visitors, `${noun(stats.today.visitors, ['زائر', 'زائران', 'زوار', 'زائراً'])} اليوم · ${stats.today.views} ${noun(stats.today.views, ['مشاهدة', 'مشاهدتان', 'مشاهدات', 'مشاهدة'])}`, '#/stats') : null,
+      stat(stats.projects, noun(stats.projects, ['مشروع', 'مشروعان', 'مشاريع', 'مشروعاً']), '#/projects'),
       stat(stats.partners, noun(stats.partners, ['شعار شريك', 'شعارا شريكين', 'شعارات شركاء', 'شعار شريك']), '#/partners'),
       stat(stats.testimonials, noun(stats.testimonials, ['رأي عميل', 'رأيا عميلين', 'آراء عملاء', 'رأي عميل']), '#/testimonials'),
-      stat(stats.editedTexts, noun(stats.editedTexts, ['نص معدّل', 'نصان معدّلان', 'نصوص معدّلة', 'نصًا معدّلًا']), '#/texts')),
+      stat(stats.editedTexts, noun(stats.editedTexts, ['نص معدّل', 'نصان معدّلان', 'نصوص معدّلة', 'نصاً معدّلاً']), '#/texts')),
     h('h2', { class: 'section-title' }, 'ماذا تريد أن تعدّل؟'),
     h('div', { class: 'stats' },
       short('النصوص', 'العناوين والفقرات والأزرار في كل الصفحات', '#/texts'),
-      short('المشاريع', 'أضف مشروعًا، ارفع صوره، رتّب الأعمال', '#/projects'),
+      short('المشاريع', 'أضف مشروعاً، ارفع صوره، رتّب الأعمال', '#/projects'),
       short('شعارات الشركاء', 'الشعارات في أحجية «شركاء النجاح»', '#/partners'),
       short('آراء العملاء', 'الآراء والنجوم والصور، واستيراد من Excel', '#/testimonials'),
       short('التواصل والروابط', 'الهاتف، واتساب، البريد، حسابات التواصل', '#/contact')),
@@ -323,7 +323,7 @@ async function viewTexts(view) {
     h('div', { class: 'page-head' }, h('div', null,
       h('p', { class: 'kicker' }, 'TEXTS'),
       h('h1', null, 'النصوص'),
-      h('p', null, 'كل نص على الموقع بلغتيه جنبًا إلى جنب. عدّل ما تريد ثم اضغط «حفظ التغييرات». النص المشترك (مثل روابط القائمة) يتغيّر في كل الصفحات معًا. اترك الحقل فارغًا ليعود إلى الأصل.')),
+      h('p', null, 'كل نص على الموقع بلغتيه جنباً إلى جنب. عدّل ما تريد ثم اضغط «حفظ التغييرات». النص المشترك (مثل روابط القائمة) يتغيّر في كل الصفحات معاً. اترك الحقل فارغاً ليعود إلى الأصل.')),
       h('a', { class: 'btn btn-ghost', href: g ? g[2] : '/', target: '_blank', rel: 'noopener' }, 'افتح الصفحة ↗')),
     h('div', { class: 'toolbar' }, search, chips),
     list,
@@ -380,7 +380,7 @@ async function viewProjects(view, arg) {
     h('div', { class: 'page-head' }, h('div', null,
       h('p', { class: 'kicker' }, 'WORK'),
       h('h1', null, 'المشاريع'),
-      h('p', null, 'المشاريع بالترتيب الذي تظهر به في صفحة «أعمالنا». أضف مشروعًا جديدًا أو افتح أي مشروع لتعديل نصوصه وصوره.')),
+      h('p', null, 'المشاريع بالترتيب الذي تظهر به في صفحة «أعمالنا». أضف مشروعاً جديداً أو افتح أي مشروع لتعديل نصوصه وصوره.')),
       h('div', { class: 'row' },
         h('a', { class: 'btn btn-ghost', href: '/work', target: '_blank', rel: 'noopener' }, 'افتح صفحة الأعمال ↗'),
         h('button', { type: 'button', class: 'btn btn-primary', onclick: addProject }, '+ مشروع جديد'))),
@@ -506,7 +506,7 @@ function projectEditor(view, id) {
       h('div', { class: 'card' }, h('h2', null, 'صورة الغلاف'),
         h('p', { class: 'hint' }, 'تظهر في بطاقة المشروع في صفحة الأعمال. بدونها يظهر غلاف مؤقت بألوان المشروع والشعار.'), coverWrap),
       h('div', { class: 'card' }, h('h2', null, 'معرض الصور'),
-        h('p', { class: 'hint' }, 'صور صفحة المشروع، بالترتيب: الأولى عريضة ثم صورتان متجاورتان، وهكذا. تُصغَّر الصور تلقائيًا قبل الرفع.'), gallery),
+        h('p', { class: 'hint' }, 'صور صفحة المشروع، بالترتيب: الأولى عريضة ثم صورتان متجاورتان، وهكذا. تُصغَّر الصور تلقائياً قبل الرفع.'), gallery),
       h('div', { class: 'card' }, h('h2', null, 'ألوان الغلاف المؤقت'),
         h('div', { class: 'row' }, [0, 1].map((k) => h('label', { class: 'row' }, h('input', { type: 'color', value: p.colors[k], oninput: (e) => { p.colors[k] = e.target.value; changed(); } }), k ? 'اللون الثاني' : 'اللون الأول')))),
     ),
@@ -530,7 +530,7 @@ async function viewPartners(view) {
   const size = (n) => { let g = 3; while (g * g - 1 < n) g += 2; return g; };
   function draw() {
     const g = size(list.length);
-    info.textContent = `${list.length} شعارًا → أحجية ${g}×${g}${g * g - 1 > list.length ? ` (${g * g - 1 - list.length} قطع بيضاء فارغة)` : ''}. الأحجية تكبر وتصغر تلقائيًا: حتى 24 شعارًا 5×5، حتى 48 → 7×7، حتى 80 → 9×9.`;
+    info.textContent = `${list.length} شعاراً → أحجية ${g}×${g}${g * g - 1 > list.length ? ` (${g * g - 1 - list.length} قطع بيضاء فارغة)` : ''}. الأحجية تكبر وتصغر تلقائياً: حتى 24 شعاراً 5×5، حتى 48 → 7×7، حتى 80 → 9×9.`;
     grid.replaceChildren(...list.map((pt, i) => h('div', { class: 'logo-tile' },
       h('span', { class: 'n' }, `#${i + 1}`),
       h('div', { class: 'logo-box' }, h('img', { src: asset(pt.src), alt: pt.name || '', loading: 'lazy' })),
@@ -622,7 +622,7 @@ async function viewTestimonials(view) {
         h('button', { type: 'button', class: 'btn btn-icon btn-small', title: 'تقديم', 'aria-label': 'تقديم', disabled: k === 0, onclick: () => { [t.images[k - 1], t.images[k]] = [t.images[k], t.images[k - 1]]; drawImages(); refreshBar(); } }, '→'),
         h('button', { type: 'button', class: 'btn btn-icon btn-small btn-danger', title: 'حذف', 'aria-label': 'حذف', onclick: () => { t.images.splice(k, 1); drawImages(); refreshBar(); } }, '✕'),
         h('button', { type: 'button', class: 'btn btn-icon btn-small', title: 'تأخير', 'aria-label': 'تأخير', disabled: k === t.images.length - 1, onclick: () => { [t.images[k + 1], t.images[k]] = [t.images[k], t.images[k + 1]]; drawImages(); refreshBar(); } }, '←')))),
-      t.images.length < 6 ? dropZone('أضف صورًا', true, async (files) => {
+      t.images.length < 6 ? dropZone('أضف صوراً', true, async (files) => {
         const room = files.slice(0, 6 - t.images.length);
         if (room.length < files.length) toast('الحد الأقصى 6 صور لكل رأي — أُضيفت أول الصور فقط', 'err');
         for (const [k, f] of room.entries()) {
@@ -671,12 +671,12 @@ async function viewTestimonials(view) {
   function drawInfo() {
     const shown = list.filter((t) => t.visible), home = shown.filter((t) => t.featured).length;
     info.textContent = list.length
-      ? `${list.length} ${noun(list.length, ['رأي', 'رأيان', 'آراء', 'رأيًا'])} · ${shown.length} ظاهر على الموقع · ${home} في الصفحة الرئيسية${home > HOME_FEEDBACK ? ` (يظهر أول ${HOME_FEEDBACK} منها فقط)` : ''}. الاسم والنص مطلوبان بلغة واحدة على الأقل؛ إن تركت الإنجليزية فارغة تعرض الصفحة الإنجليزية النص العربي (والعكس).`
+      ? `${list.length} ${noun(list.length, ['رأي', 'رأيان', 'آراء', 'رأياً'])} · ${shown.length} ظاهر على الموقع · ${home} في الصفحة الرئيسية${home > HOME_FEEDBACK ? ` (يظهر أول ${HOME_FEEDBACK} منها فقط)` : ''}. الاسم والنص مطلوبان بلغة واحدة على الأقل؛ إن تركت الإنجليزية فارغة تعرض الصفحة الإنجليزية النص العربي (والعكس).`
       : '';
   }
   function draw() {
     cards = list.map((t, i) => [card(t, i), t]);
-    box.replaceChildren(...(list.length ? cards.map(([el]) => el) : [h('p', { class: 'empty' }, 'لا آراء بعد. أضف أول رأي، أو استوردها كلها مرة واحدة من ملف Excel — تظهر صفحة «آراء العملاء» وقسمها في الصفحة الرئيسية تلقائيًا عندما يكون هناك رأي ظاهر واحد على الأقل.')]));
+    box.replaceChildren(...(list.length ? cards.map(([el]) => el) : [h('p', { class: 'empty' }, 'لا آراء بعد. أضف أول رأي، أو استوردها كلها مرة واحدة من ملف Excel — تظهر صفحة «آراء العملاء» وقسمها في الصفحة الرئيسية تلقائياً عندما يكون هناك رأي ظاهر واحد على الأقل.')]));
     drawInfo();
     applySearch();
     refreshBar();
@@ -695,7 +695,7 @@ async function viewTestimonials(view) {
       else list.push(...items);
       search.value = '';
       draw();
-      toast(`${items.length === 1 ? 'أُضيف رأي واحد' : items.length === 2 ? 'أُضيف رأيان' : `أُضيف ${items.length} ${noun(items.length, ['', '', 'آراء', 'رأيًا'])}`} — راجعها ثم اضغط «حفظ التغييرات»`);
+      toast(`${items.length === 1 ? 'أُضيف رأي واحد' : items.length === 2 ? 'أُضيف رأيان' : `أُضيف ${items.length} ${noun(items.length, ['', '', 'آراء', 'رأياً'])}`} — راجعها ثم اضغط «حفظ التغييرات»`);
     },
   });
   const exportNow = () => {
@@ -706,7 +706,7 @@ async function viewTestimonials(view) {
     h('div', { class: 'page-head' }, h('div', null,
       h('p', { class: 'kicker' }, 'CLIENT FEEDBACK'),
       h('h1', null, 'آراء العملاء'),
-      h('p', null, `ما يقوله عملاؤكم عنكم، بالعربية والإنجليزية، مع النجوم والصور. تظهر كلها بهذا الترتيب في صفحة «آراء العملاء»، والمعلَّمة «في الصفحة الرئيسية» (أول ${HOME_FEEDBACK}) في قسم «ماذا يقول عملاؤنا». أخفِ الرأي بدل حذفه إن أردت إرجاعه لاحقًا.`)),
+      h('p', null, `ما يقوله عملاؤكم عنكم، بالعربية والإنجليزية، مع النجوم والصور. تظهر كلها بهذا الترتيب في صفحة «آراء العملاء»، والمعلَّمة «في الصفحة الرئيسية» (أول ${HOME_FEEDBACK}) في قسم «ماذا يقول عملاؤنا». أخفِ الرأي بدل حذفه إن أردت إرجاعه لاحقاً.`)),
       h('div', { class: 'row' },
         h('a', { class: 'btn btn-ghost', href: '/feedback.html', target: '_blank', rel: 'noopener' }, 'افتح صفحة الآراء ↗'),
         h('button', { type: 'button', class: 'btn btn-primary', onclick: add }, '+ رأي جديد'))),
@@ -724,7 +724,7 @@ const FEEDBACK_COLUMNS = [
   { key: 'name.ar', head: 'اسم العميل (عربي)', alias: ['name_ar', 'الاسم', 'اسم العميل', 'العميل', 'name'], width: 24,
     help: 'اسم العميل كما يظهر على الموقع. مطلوب بالعربية أو بالإنجليزية.', example: 'م. خالد العتيبي' },
   { key: 'name.en', head: 'Client name (English)', alias: ['name_en', 'name english', 'english name', 'الاسم بالانجليزية', 'client name'], width: 24,
-    help: 'الاسم للصفحة الإنجليزية (اختياري — إن تُرك فارغًا يظهر الاسم العربي).', example: 'Eng. Khalid Al-Otaibi' },
+    help: 'الاسم للصفحة الإنجليزية (اختياري — إن تُرك فارغاً يظهر الاسم العربي).', example: 'Eng. Khalid Al-Otaibi' },
   { key: 'role.ar', head: 'المنصب والشركة (عربي)', alias: ['role_ar', 'المنصب', 'الشركة', 'المنصب والشركة', 'role'], width: 26,
     help: 'المنصب والشركة (اختياري).', example: 'مدير التسويق — شركة الأفق' },
   { key: 'role.en', head: 'Role & company (English)', alias: ['role_en', 'role english', 'company', 'title'], width: 26,
@@ -734,7 +734,7 @@ const FEEDBACK_COLUMNS = [
   { key: 'quote.en', head: 'Review (English)', alias: ['quote_en', 'review_en', 'review english', 'english review'], width: 60,
     help: 'نص الرأي بالإنجليزية (اختياري).', example: 'A professional team that got our idea from the first meeting and delivered early.' },
   { key: 'rating', head: 'التقييم (0–5)', alias: ['rating', 'stars', 'التقييم', 'النجوم', 'نجوم', 'عدد النجوم'], width: 13,
-    help: 'عدد النجوم من 1 إلى 5. اكتب 0 أو اتركه فارغًا لرأي بدون نجوم.', example: '5' },
+    help: 'عدد النجوم من 1 إلى 5. اكتب 0 أو اتركه فارغاً لرأي بدون نجوم.', example: '5' },
   { key: 'date', head: 'التاريخ', alias: ['date', 'تاريخ', 'تاريخ الرأي'], width: 14,
     help: 'تاريخ الرأي (اختياري): 2026-05-14 أو 2026-05 أو 2026، أو تاريخ Excel عادي.', example: '2026-05-14' },
   { key: 'photo', head: 'صورة العميل (اسم الملف)', alias: ['photo', 'logo', 'image', 'الصورة', 'الشعار', 'صورة العميل', 'صورة'], width: 22,
@@ -742,9 +742,9 @@ const FEEDBACK_COLUMNS = [
   { key: 'images', head: 'صور مرفقة (أسماء الملفات)', alias: ['images', 'attachments', 'gallery', 'الصور', 'صور مرفقة', 'المرفقات', 'صور'], width: 30,
     help: 'صور مع الرأي (لقطة محادثة، صورة من العمل…): أسماء الملفات مفصولة بفاصلة، حتى 6.', example: 'chat-1.png, chat-2.png' },
   { key: 'featured', head: 'في الصفحة الرئيسية؟', alias: ['featured', 'home', 'الرئيسية', 'في الرئيسية'], width: 16,
-    help: `نعم = يظهر أيضًا في قسم «ماذا يقول عملاؤنا» في الصفحة الرئيسية (أول ${HOME_FEEDBACK}). فارغ = لا.`, example: 'لا' },
+    help: `نعم = يظهر أيضاً في قسم «ماذا يقول عملاؤنا» في الصفحة الرئيسية (أول ${HOME_FEEDBACK}). فارغ = لا.`, example: 'لا' },
   { key: 'visible', head: 'ظاهر على الموقع؟', alias: ['visible', 'show', 'ظاهر', 'اظهار', 'منشور'], width: 15,
-    help: 'لا = يُحفظ مخفيًا ولا يظهر على الموقع. فارغ = ظاهر.', example: 'نعم' },
+    help: 'لا = يُحفظ مخفياً ولا يظهر على الموقع. فارغ = ظاهر.', example: 'نعم' },
 ];
 const YES_NO = ['نعم', 'لا'];
 const colOf = (key) => FEEDBACK_COLUMNS.findIndex((c) => c.key === key);
@@ -851,7 +851,7 @@ function readFeedbackSheet(rows, files, partners, existing) {
     const rating = parseRating(get('rating'));
     if (rating === null) errors.push(`التقييم «${get('rating')}» غير مفهوم — رقم من 0 إلى 5`); else t.rating = rating;
     const date = parseDate(get('date'));
-    if (date === null) warnings.push(`التاريخ «${get('date')}» غير مفهوم — سيُترك فارغًا`); else t.date = date;
+    if (date === null) warnings.push(`التاريخ «${get('date')}» غير مفهوم — سيُترك فارغاً`); else t.date = date;
     // a long import shouldn't fill the home page: only the rows marked "نعم" go there
     for (const [key, empty, label] of [['featured', false, 'في الصفحة الرئيسية'], ['visible', true, 'ظاهر']]) {
       const yes = yesNo(get(key), empty);
@@ -931,7 +931,7 @@ function importFeedback({ existing, partners, onDone }) {
         bad ? h('span', { class: 'tag err' }, `✕ ${bad} فيه خطأ — لن يُستورد`) : null,
         dups ? h('span', { class: 'tag' }, `↺ ${dups} مكرر`) : null),
       result.unknown.length ? h('p', { class: 'hint' }, `أعمدة لم أتعرّف عليها وتجاهلتها: ${result.unknown.join('، ')}`) : null,
-      tooMany ? h('p', { class: 'import-error' }, `المجموع سيصبح ${total} رأيًا — الحد الأقصى 500. احذف بعض الصفوف أو اختر «استبدال كل الآراء الحالية».`) : null,
+      tooMany ? h('p', { class: 'import-error' }, `المجموع سيصبح ${total} رأياً — الحد الأقصى 500. احذف بعض الصفوف أو اختر «استبدال كل الآراء الحالية».`) : null,
       result.rows.length ? h('div', { class: 'import-table-wrap' }, h('table', { class: 'import-table' },
         h('thead', null, h('tr', null, ['الصف', 'العميل', 'التقييم', 'الصور', 'الحالة'].map((x) => h('th', null, x)))),
         h('tbody', null, shown.map((r) => h('tr', { class: r.errors.length ? 'err' : r.dup ? 'dup' : null },
@@ -940,9 +940,9 @@ function importFeedback({ existing, partners, onDone }) {
           h('td', { class: 'ltr' }, r.t.rating ? '★'.repeat(r.t.rating) : '—'),
           h('td', null, (r.photo ? 1 : 0) + r.images.length || '—'),
           h('td', null, status(r))))))) : h('p', { class: 'empty' }, 'لا صفوف في الملف تحت العناوين.'),
-      result.rows.length > shown.length ? h('p', { class: 'hint' }, `يعرض أول ${shown.length} صفًا من ${result.rows.length}.`) : null,
+      result.rows.length > shown.length ? h('p', { class: 'hint' }, `يعرض أول ${shown.length} صفاً من ${result.rows.length}.`) : null,
     ].filter(Boolean));
-    go.textContent = `استيراد ${ok.length === 1 ? 'رأي واحد' : ok.length === 2 ? 'رأيين' : `${ok.length} ${noun(ok.length, ['', '', 'آراء', 'رأيًا'])}`}`;
+    go.textContent = `استيراد ${ok.length === 1 ? 'رأي واحد' : ok.length === 2 ? 'رأيين' : `${ok.length} ${noun(ok.length, ['', '', 'آراء', 'رأياً'])}`}`;
     go.disabled = !ok.length || tooMany;
   }
 
@@ -1021,7 +1021,7 @@ async function viewContact(view) {
     body.replaceChildren(...FIELDS.map(([title, fields]) => h('div', { class: 'card grid' }, h('h2', { class: 'section-title', style: 'margin:0' }, title),
       h('div', { class: 'grid two' }, fields.map(([k, label, type, ph, hint]) => h('label', { class: 'field' }, h('span', null, label),
         h('input', { type, value: s[k] || '', placeholder: ph, dir: 'ltr', oninput: (e) => { s[k] = e.target.value; refreshBar(); } }),
-        h('span', { class: 'hint' }, hint || 'اتركه فارغًا ليختفي من الموقع (لا يظهر رابط أو أيقونة فارغة).')))))));
+        h('span', { class: 'hint' }, hint || 'اتركه فارغاً ليختفي من الموقع (لا يظهر رابط أو أيقونة فارغة).')))))));
     refreshBar();
   }
   view.replaceChildren(
@@ -1051,7 +1051,7 @@ function mailCard() {
           line(m.reminderHours > 0, m.reminderHours > 0 ? `تذكير للفريق إن بقي طلب دون فتح ${m.reminderHours} ساعة (ما عدا يوم الجمعة)` : 'التذكير متوقف (REMINDER_HOURS=0)'))
         : h('p', null, '⚠️ البريد غير مفعّل: الطلبات تُحفظ هنا فقط. أضف إعدادات SMTP و CONTACT_TO في Hostinger ثم أعد النشر.'),
       h('div', { class: 'row' }, btn,
-        h('span', { class: 'hint' }, 'تصلك 4 رسائل: ردّ العميل بالعربية والإنجليزية، وإشعار الفريق، ورسالة التذكير — لترى ما يصل للعملاء تمامًا.')));
+        h('span', { class: 'hint' }, 'تصلك 4 رسائل: ردّ العميل بالعربية والإنجليزية، وإشعار الفريق، ورسالة التذكير — لترى ما يصل للعملاء تماماً.')));
   }).catch((err) => card.replaceChildren(card.firstChild, h('p', { class: 'muted' }, `تعذّر تحميل حالة البريد: ${err.message}`)));
   return card;
 }
@@ -1091,13 +1091,13 @@ async function viewMessages(view) {
             h('dt', null, 'لغة الصفحة'), h('dd', null, m.lang === 'en' ? 'الإنجليزية' : 'العربية')),
           h('div', { class: 'text', dir: 'auto' }, m.message),
           h('div', { class: 'row' },
-            h('a', { class: 'btn btn-primary btn-small', href: `mailto:${m.email}?subject=${encodeURIComponent('PuzzleX Media — ردًا على رسالتك')}` }, 'رد بالبريد'),
+            h('a', { class: 'btn btn-primary btn-small', href: `mailto:${m.email}?subject=${encodeURIComponent('PuzzleX Media — رداً على رسالتك')}` }, 'رد بالبريد'),
             h('button', { type: 'button', class: 'btn btn-small', 'data-read-toggle': '', onclick: async () => { try { await setRead(m, !m.read); draw(); } catch (err) { toast(err.message, 'err'); } } }, m.read ? 'تعليم كغير مقروءة' : 'تعليم كمقروءة'),
             h('span', { class: 'spacer' }),
             h('button', {
               type: 'button', class: 'btn btn-small btn-danger',
               onclick: async () => {
-                if (!confirm(`حذف رسالة ${m.name} نهائيًا؟`)) return;
+                if (!confirm(`حذف رسالة ${m.name} نهائياً؟`)) return;
                 try { await api('DELETE', `/messages/${m.id}`); msgs = msgs.filter((x) => x !== m); refreshMe().catch(() => {}); draw(); toast('تم حذف الرسالة'); } catch (err) { toast(err.message, 'err'); }
               },
             }, 'حذف'))));
@@ -1116,7 +1116,7 @@ async function viewMessages(view) {
     h('div', { class: 'page-head' }, h('div', null,
       h('p', { class: 'kicker' }, 'INBOX'),
       h('h1', null, 'الرسائل'),
-      h('p', null, 'كل ما يُرسل من نموذج «تواصل معنا»، الأحدث أولًا. افتح الرسالة لتعلَّم كمقروءة.'))),
+      h('p', null, 'كل ما يُرسل من نموذج «تواصل معنا»، الأحدث أولاً. افتح الرسالة لتعلَّم كمقروءة.'))),
     filter, h('div', { style: 'height:14px' }), list);
   draw();
 }
@@ -1152,7 +1152,7 @@ async function viewStats(view) {
   const r = await api('GET', `/analytics?days=${statDays}`);
   const t = r.totals;
   const tile = (n, label, hint) => h('div', { class: 'stat stat-static' }, h('b', null, n), h('span', null, label), hint ? h('small', { class: 'muted' }, hint) : null);
-  const ranges = [[1, 'اليوم'], [7, '7 أيام'], [30, '30 يومًا'], [90, '3 أشهر'], [365, 'سنة']];
+  const ranges = [[1, 'اليوم'], [7, '7 أيام'], [30, '30 يوماً'], [90, '3 أشهر'], [365, 'سنة']];
   const known = (list) => list.map((p) => ({ ...p, name: p.known ? `${p.client} — ${p.title}` : p.id }));
   const projects = known(r.projects);
 
@@ -1255,7 +1255,7 @@ function statChart(daily) {
     const nice = Math.ceil(max / step) * step;
     const n = daily.length, slot = (W - left - right) / n, bw = Math.max(2, Math.min(28, slot - 2));
     const y = (v) => top + (H - top - bottom) * (1 - v / nice);
-    const svg = el('svg', { viewBox: `0 0 ${W} ${H}`, class: 'chart', role: 'img', 'aria-label': `${metrics.find((m) => m[0] === statMetric)[1]} يوميًا` });
+    const svg = el('svg', { viewBox: `0 0 ${W} ${H}`, class: 'chart', role: 'img', 'aria-label': `${metrics.find((m) => m[0] === statMetric)[1]} يومياً` });
     for (let i = 0; i <= 3; i++) {
       const v = Math.round((nice / 3) * i), yy = y(v);
       svg.append(el('line', { x1: left, x2: W - right, y1: yy, y2: yy, class: i ? 'grid' : 'base' }), el('text', { x: left - 6, y: yy + 4, class: 'axis', 'text-anchor': 'end' }, v));
@@ -1278,7 +1278,7 @@ function statChart(daily) {
     });
     card.replaceChildren(
       h('div', { class: 'row', style: 'justify-content:space-between' },
-        h('h2', { class: 'section-title', style: 'margin:0' }, 'يومًا بيوم'),
+        h('h2', { class: 'section-title', style: 'margin:0' }, 'يوماً بيوم'),
         h('div', { class: 'chips' }, metrics.map(([k, name]) => h('button', { type: 'button', class: 'chip', 'aria-pressed': String(statMetric === k), onclick: () => { statMetric = k; draw(); } }, name)))),
       h('div', { class: 'chart-wrap' }, svg, tip),
       h('details', { class: 'small' }, h('summary', { class: 'muted' }, 'عرض كجدول'),

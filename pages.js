@@ -765,7 +765,7 @@ const SERVICE_GROUPS = [
   { title: T('التسويقية', 'Marketing'), items: [['copywriting', T('كتابة المحتوى التسويقي', 'Marketing copywriting')], ['content-plan', T('خطة المحتوى الشهرية', 'Monthly content plan')], ['community', T('إدارة التفاعل', 'Community management')], ['kpi', T('تحليل الأداء', 'Performance analysis')]] },
   { title: T('لينكدإن', 'LinkedIn'), items: [['li-profile', T('تحسين الحساب', 'Profile optimization')], ['li-content', T('محتوى أسبوعي متخصص', 'Weekly expert content')], ['li-jobs', T('التقديم لفرص العمل', 'Job application support')], ['li-coaching', T('جلسات تدريب شخصية', '1:1 coaching sessions')], ['li-audit', T('تدقيق حساب الشركة', 'Company page audit')], ['li-plan', T('خطة محتوى مؤسسي', 'Corporate content plan')], ['li-talent', T('استقطاب الكفاءات', 'Talent acquisition')], ['li-ads', T('حملات ممولة', 'Paid campaigns')]] },
   { title: T('البرمجية', 'Programming'), items: [['dev-crm', T('أنظمة CRM', 'CRM systems')], ['dev-erp', T('أنظمة ERP', 'ERP systems')], ['dev-pos', T('أنظمة نقاط البيع', 'POS systems')], ['dev-custom', T('أنظمة ولوحات تحكم مخصصة', 'Custom systems & dashboards')], ['dev-automation', T('الأتمتة بالذكاء الاصطناعي (n8n)', 'AI automation (n8n)')], ['dev-landing', T('صفحات الهبوط', 'Landing pages')], ['dev-website', T('المواقع الإلكترونية', 'Websites')], ['dev-store', T('التجارة الإلكترونية', 'E-commerce')], ['dev-app', T('تطبيقات الجوال', 'Mobile apps')]] },
-  { title: T('أخرى', 'Other'), items: [['other', T('لست متأكدًا بعد — ساعدوني', 'Not sure yet — help me')]] },
+  { title: T('أخرى', 'Other'), items: [['other', T('لست متأكداً بعد — ساعدوني', 'Not sure yet — help me')]] },
 ];
 
 function initContact() {
@@ -815,7 +815,7 @@ function initContact() {
     f.el.closest('.field').classList.toggle('has-error', !!msg);
   };
   const checkServices = () => {
-    const msg = picked.size ? '' : T('اختر قطعة واحدة على الأقل، أو «لست متأكدًا بعد».', 'Pick at least one piece, or “Not sure yet”.');
+    const msg = picked.size ? '' : T('اختر قطعة واحدة على الأقل، أو «لست متأكداً بعد».', 'Pick at least one piece, or “Not sure yet”.');
     servicesErr.textContent = msg;
     piecesField.classList.toggle('has-error', !!msg);
     return !msg;
@@ -900,7 +900,7 @@ function initContact() {
   const whatsappUrl = (number) => {
     const val = (id) => form.querySelector(id).value.trim();
     const lines = [
-      T('مرحبًا PuzzleX Media 👋 طلب جديد من الموقع:', 'Hi PuzzleX Media 👋 A new request from the website:'), '',
+      T('مرحباً PuzzleX Media 👋 طلب جديد من الموقع:', 'Hi PuzzleX Media 👋 A new request from the website:'), '',
       `${T('الاسم', 'Name')}: ${val('#f-name')}`,
       val('#f-company') ? `${T('الشركة', 'Company')}: ${val('#f-company')}` : null,
       `${T('البريد', 'Email')}: ${val('#f-email')}`,

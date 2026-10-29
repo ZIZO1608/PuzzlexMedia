@@ -151,7 +151,7 @@ EN = {
 'نستخدم بياناتك فقط للرد على طلبك.': 'We only use your details to reply to your request.',
 '— وصلتنا رسالتك، وسنعود إليك قريبًا على بريدك الإلكتروني.': '— we’ve received your message and will get back to you by email soon.', 'تواصل مباشر': 'Direct contact', 'تفضّل بمراسلتنا عبر القناة التي تناسبك.': 'Reach us on whichever channel suits you.',
 'الهاتف': 'Phone', 'يُضاف لاحقًا': 'coming soon',
-'رقم واتساب يُضاف لاحقًا': 'WhatsApp number coming soon', 'واتساب': 'WhatsApp',
+'رقم واتساب يُضاف لاحقًا': 'WhatsApp number coming soon', 'واتساب': 'WhatsApp', 'تواصل معنا الآن': 'Talk with us now',
 'طريقة الإرسال': 'How to send', 'أرسل بالبريد الإلكتروني': 'Send by email', 'أرسل عبر واتساب': 'Send on WhatsApp',
 '— وصلنا طلبك، وسيتواصل معك فريقنا خلال 48 ساعة.': '— we’ve received your request, and our team will contact you within 48 hours.',
 '— فتحنا لك واتساب وفيه تفاصيل طلبك جاهزة؛ اضغط «إرسال» هناك لتصلنا. سيتواصل معك فريقنا خلال 48 ساعة.': '— we’ve opened WhatsApp with your details ready; press “Send” there so they reach us. Our team will contact you within 48 hours.',
