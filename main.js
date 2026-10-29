@@ -296,7 +296,7 @@ function drawArt(ctx, W, H, mobile) {
       x += (EN ? 1 : -1) * (w + u * 1);
     }
 
-    return { key: { x: vx, y: vy }, cta: { x: tx, y: y + ph + u * 3.6, align, size: u * 2.1 }, chips: rects };
+    return { key: { x: vx, y: vy }, icon: H * 0.38, cta: { x: tx, y: y + ph + u * 3.6, align, size: u * 2.1 }, chips: rects };
   }
 
   // ---- mobile / portrait ----
@@ -324,7 +324,7 @@ function drawArt(ctx, W, H, mobile) {
   ctx.fillStyle = PAL.muted;
   for (const l of wrap(ctx, sub, W * 0.82)) { ctx.fillText(l, cx, y); y += u * 5.6; }
 
-  return { key: { x: vx, y: vy }, cta: { x: cx, y: y + u * 3, align: 'center', size: u * 3.6 }, chips: [] };
+  return { key: { x: vx, y: vy }, icon: W * 0.3, cta: { x: cx, y: y + u * 3, align: 'center', size: u * 3.6 }, chips: [] };
 }
 
 /* ---------- build ---------- */
@@ -449,9 +449,10 @@ function build() {
   drawGhost(W, H, pw, ph, pad, size, pieces);
   placeCta(layout.cta, W);
   placeChipLinks(layout.chips);
+  placeIconShine(layout.key, layout.icon);
 
   if (REDUCED) {
-    gsap.set([ctaEl, chipLinksEl].filter(Boolean), { autoAlpha: 1 });
+    gsap.set([ctaEl, chipLinksEl, '.icon-shine'].filter(Boolean), { autoAlpha: 1 });
     gsap.set(master, { '--wipe': '165%', visibility: 'visible' });
     master.classList.add('clean');
     gsap.set('.intro', { autoAlpha: 0 });
@@ -524,6 +525,20 @@ function drawGhost(W, H, pw, ph, pad, size, pieces) {
     g.moveTo(x + sx * k, y); g.lineTo(x, y); g.lineTo(x, y + sy * k);
   }
   g.stroke();
+}
+
+// a light that keeps gliding over the big icon tile once the picture is whole, clipped to the tile's rounded square
+function placeIconShine(at, size) {
+  let el = boardEl.querySelector('.icon-shine');
+  if (!el) {
+    el = document.createElement('div');
+    el.className = 'icon-shine';
+    el.setAttribute('aria-hidden', 'true');
+    boardEl.insertBefore(el, sheenEl);
+  }
+  el.style.left = at.x + 'px';
+  el.style.top = at.y + 'px';
+  el.style.width = el.style.height = size + 'px';
 }
 
 function placeCta(cta, W) {
@@ -738,6 +753,7 @@ function buildTimeline(pieces, key, hole, { vw, vh, W, H, pw, ph, mobile }) {
   tl.to(boardEl, { '--glow': 0.35, duration: 0.6 }, done + 0.3);
   tl.fromTo(ctaEl, { autoAlpha: 0, y: 18 }, { autoAlpha: 1, y: 0, duration: 0.4, ease: 'power2.out' }, done + 0.25);
   if (chipLinksEl) tl.fromTo(chipLinksEl, { autoAlpha: 0 }, { autoAlpha: 1, duration: 0.3 }, done + 0.25);
+  tl.fromTo('.icon-shine', { autoAlpha: 0 }, { autoAlpha: 1, duration: 0.3 }, done + 0.6); // starts once the sweep has passed
   tl.to({}, { duration: 0.5 }, done + 0.6); // a short hold so the finished picture and its buttons settle before the next section
 }
 

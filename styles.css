@@ -203,6 +203,34 @@ html.lenis, html.lenis body { height: auto; }
   background: linear-gradient(100deg, transparent, rgba(215, 255, 0, .22), rgba(255, 255, 255, .18), transparent);
   transform: translateX(-150%) skewX(-12deg);
 }
+/* the icon tile in the finished artwork (drawn turned -7°): a glass glint keeps crossing it, its rim lighting up as it passes */
+.icon-shine {
+  position: absolute; z-index: 3; pointer-events: none; overflow: hidden;
+  border-radius: 12.8%; /* the tile's rx: 38.78 / 302.86 */
+  transform: translate(-50%, -50%) rotate(-7deg);
+  opacity: 0; visibility: hidden;
+}
+.icon-shine::before {
+  content: ""; position: absolute; top: -30%; bottom: -30%; left: 0; width: 38%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, .12) 30%, rgba(255, 255, 255, .6) 50%, rgba(255, 255, 255, .12) 70%, transparent);
+  transform: translateX(-140%) skewX(-22deg);
+  animation: icon-glint 3.8s cubic-bezier(.45, 0, .25, 1) infinite;
+}
+.icon-shine::after { /* the rounded rim catching the light */
+  content: ""; position: absolute; inset: 0; border-radius: inherit;
+  box-shadow: inset 0 0 0 2px rgba(255, 255, 255, .55), inset 0 0 18px rgba(255, 255, 255, .25);
+  opacity: 0;
+  animation: icon-rim 3.8s ease-in-out infinite;
+}
+@keyframes icon-glint {
+  0% { transform: translateX(-140%) skewX(-22deg); }
+  38%, 100% { transform: translateX(330%) skewX(-22deg); }
+}
+@keyframes icon-rim {
+  0%, 6% { opacity: 0; }
+  20% { opacity: 1; }
+  42%, 100% { opacity: 0; }
+}
 
 .cta { position: absolute; z-index: 4; display: flex; gap: 12px; opacity: 0; visibility: hidden; }
 /* links laid over the chips drawn into the hero artwork: the drawing shows the label, the link adds the hover */
@@ -1313,7 +1341,7 @@ html .loader.is-leaving { display: grid; position: fixed; inset: 0; z-index: 900
 
 @media (prefers-reduced-motion: reduce) {  .hero { height: auto; }
   .stage { position: relative; }
-  .piece .inner, .mouse span { animation: none; }
+  .piece .inner, .mouse span, .icon-shine::before, .icon-shine::after { animation: none; }
   .intro { display: none; }
   .values, .partners { height: auto; }
   .values-stage, .partners-stage { position: relative; height: auto; min-height: 100vh; }
