@@ -24,6 +24,7 @@ const boardEl = $('.board');
 const ghostEl = $('.ghost');
 const piecesEl = $('.pieces');
 const ctaEl = $('.cta');
+const chipLinksEl = $('.chip-links');
 
 
 let images = {};
@@ -203,6 +204,9 @@ function drawBrand(ctx, x, y, h, align) {
   ctx.restore();
 }
 
+// where a line drawn at `y` (textBaseline 'top', current font) really ends: Arabic letters hang well below the em box
+const inkBottom = (ctx, text, y) => y + ctx.measureText(text).actualBoundingBoxDescent;
+
 function drawArt(ctx, W, H, mobile) {
   const u = mobile ? W / 100 : H / 100;
 
@@ -252,20 +256,21 @@ function drawArt(ctx, W, H, mobile) {
     // headline
     const hs = fitSize(ctx, head, 900, u * 10.5, 'Alexandria', colW);
     ctx.textAlign = align;
-    let y = u * 21;
+    let y = u * 21, bottom = 0;
     head.forEach((line, i) => {
       ctx.font = `900 ${hs}px Alexandria`;
       if (i === 1) accentLine(ctx, line, tx, y, hs, align);
       else { ctx.fillStyle = PAL.text; ctx.fillText(line, tx, y); }
+      bottom = inkBottom(ctx, line, y);
       y += hs * 1.12;
     });
 
-    // sub
-    y += u * 2;
+    // sub: below the lowest letter, wherever the Arabic ي / ج hang
+    y = Math.max(y, bottom + u * 1.6) + u * 2;
     ctx.font = `600 ${u * 2.8}px Alexandria`;
     ctx.fillStyle = PAL.text;
     ctx.fillText(lead, tx, y);
-    y += u * 4.4;
+    y = Math.max(y + u * 4.4, inkBottom(ctx, lead, y) + u * 1.4);
     ctx.font = `300 ${u * 2.4}px Alexandria`;
     ctx.fillStyle = PAL.muted;
     for (const l of wrap(ctx, sub, colW * 0.92)) { ctx.fillText(l, tx, y); y += u * 3.8; }
@@ -275,11 +280,13 @@ function drawArt(ctx, W, H, mobile) {
     ctx.font = `400 ${u * 1.9}px Alexandria`;
     let x = tx;
     const ph = u * 4.4, pad = u * 1.8;
+    const rects = []; // where each chip lands: the links to the matching work are laid over them (placeChipLinks)
     ctx.lineWidth = 1;
     for (const c of chips) {
       const w = ctx.measureText(c).width + pad * 2;
       // English chips are wider: start a new row instead of running past the margin
       if (EN && x > tx && x + w > right) { x = tx; y += ph + u; }
+      rects.push({ x: EN ? x : x - w, y, w, h: ph });
       ctx.strokeStyle = PAL.chip;
       ctx.beginPath(); ctx.roundRect(EN ? x : x - w, y, w, ph, ph / 2); ctx.stroke();
       ctx.fillStyle = PAL.chipText;
@@ -289,7 +296,7 @@ function drawArt(ctx, W, H, mobile) {
       x += (EN ? 1 : -1) * (w + u * 1);
     }
 
-    return { key: { x: vx, y: vy }, cta: { x: tx, y: y + ph + u * 3.6, align, size: u * 2.1 } };
+    return { key: { x: vx, y: vy }, cta: { x: tx, y: y + ph + u * 3.6, align, size: u * 2.1 }, chips: rects };
   }
 
   // ---- mobile / portrait ----
@@ -300,23 +307,24 @@ function drawArt(ctx, W, H, mobile) {
 
   ctx.textAlign = 'center';
   const hs = fitSize(ctx, head, 900, u * 12, 'Alexandria', W * 0.84);
-  let y = H * 0.555;
+  let y = H * 0.555, bottom = 0;
   head.forEach((line, i) => {
     ctx.font = `900 ${hs}px Alexandria`;
     if (i === 1) accentLine(ctx, line, cx, y, hs, 'center');
     else { ctx.fillStyle = PAL.text; ctx.fillText(line, cx, y); }
+    bottom = inkBottom(ctx, line, y);
     y += hs * 1.1;
   });
-  y += u * 2.5;
+  y = Math.max(y, bottom + u * 2) + u * 2.5;
   ctx.font = `600 ${u * 4.2}px Alexandria`;
   ctx.fillStyle = PAL.text;
   ctx.fillText(lead, cx, y);
-  y += u * 6.4;
+  y = Math.max(y + u * 6.4, inkBottom(ctx, lead, y) + u * 2);
   ctx.font = `300 ${u * 3.6}px Alexandria`;
   ctx.fillStyle = PAL.muted;
   for (const l of wrap(ctx, sub, W * 0.82)) { ctx.fillText(l, cx, y); y += u * 5.6; }
 
-  return { key: { x: vx, y: vy }, cta: { x: cx, y: y + u * 3, align: 'center', size: u * 3.6 } };
+  return { key: { x: vx, y: vy }, cta: { x: cx, y: y + u * 3, align: 'center', size: u * 3.6 }, chips: [] };
 }
 
 /* ---------- build ---------- */
@@ -361,7 +369,7 @@ function build() {
   mctx.stroke();
   mctx.translate(ox, oy);
   const layout = drawArt(mctx, vw, vh - topH, mobile);
-  for (const pt of [layout.key, layout.cta]) { pt.x += ox; pt.y += oy; }
+  for (const pt of [layout.key, layout.cta, ...layout.chips]) { pt.x += ox; pt.y += oy; }
   // the same artwork without seams, laid over the pieces and wiped in behind the final light sweep
   boardEl.querySelector('.seamless')?.remove();
   master.className = 'seamless';
@@ -440,9 +448,10 @@ function build() {
 
   drawGhost(W, H, pw, ph, pad, size, pieces);
   placeCta(layout.cta, W);
+  placeChipLinks(layout.chips);
 
   if (REDUCED) {
-    gsap.set([ctaEl], { autoAlpha: 1 });
+    gsap.set([ctaEl, chipLinksEl].filter(Boolean), { autoAlpha: 1 });
     gsap.set(master, { '--wipe': '165%', visibility: 'visible' });
     master.classList.add('clean');
     gsap.set('.intro', { autoAlpha: 0 });
@@ -533,6 +542,20 @@ function placeCta(cta, W) {
     ctaEl.style.right = '';
     gsap.set(ctaEl, { xPercent: -50 });
   }
+}
+
+// the service chips are part of the artwork: an invisible link sits on each one, opening the work of that kind.
+// Phones draw no chips, so the links stay hidden there.
+function placeChipLinks(rects) {
+  if (!chipLinksEl) return;
+  const links = [...chipLinksEl.querySelectorAll('a')];
+  chipLinksEl.hidden = !rects.length;
+  links.forEach((a, i) => {
+    const r = rects[i];
+    a.hidden = !r;
+    if (!r) return;
+    Object.assign(a.style, { left: r.x + 'px', top: r.y + 'px', width: r.w + 'px', height: r.h + 'px' });
+  });
 }
 
 /* ---------- scroll timeline ---------- */
@@ -714,6 +737,7 @@ function buildTimeline(pieces, key, hole, { vw, vh, W, H, pw, ph, mobile }) {
   tl.fromTo('.seamless', { '--wipe': '-35%' }, { '--wipe': '165%', duration: 0.9, ease: 'none' }, done);
   tl.to(boardEl, { '--glow': 0.35, duration: 0.6 }, done + 0.3);
   tl.fromTo(ctaEl, { autoAlpha: 0, y: 18 }, { autoAlpha: 1, y: 0, duration: 0.4, ease: 'power2.out' }, done + 0.25);
+  if (chipLinksEl) tl.fromTo(chipLinksEl, { autoAlpha: 0 }, { autoAlpha: 1, duration: 0.3 }, done + 0.25);
   tl.to({}, { duration: 0.5 }, done + 0.6); // a short hold so the finished picture and its buttons settle before the next section
 }
 

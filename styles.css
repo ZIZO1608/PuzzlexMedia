@@ -205,6 +205,15 @@ html.lenis, html.lenis body { height: auto; }
 }
 
 .cta { position: absolute; z-index: 4; display: flex; gap: 12px; opacity: 0; visibility: hidden; }
+/* links laid over the chips drawn into the hero artwork: the drawing shows the label, the link adds the hover */
+.chip-links { position: absolute; inset: 0; z-index: 4; pointer-events: none; opacity: 0; visibility: hidden; }
+.chip-links[hidden], .chip-links a[hidden] { display: none; }
+.chip-links a {
+  position: absolute; pointer-events: auto; border-radius: 999px; border: 1px solid transparent;
+  color: transparent; overflow: hidden; white-space: nowrap; transition: border-color .2s, background-color .2s, box-shadow .2s;
+}
+.chip-links a:hover { border-color: var(--lime); background: rgba(215, 255, 0, .1); box-shadow: 0 0 18px rgba(215, 255, 0, .25); }
+.chip-links a:focus-visible { outline: 2px solid var(--lime); outline-offset: 2px; }
 
 
 /* ---------- The missing piece ---------- */
@@ -944,6 +953,12 @@ button.my-puzzle-send { border: 0; cursor: pointer; font-family: var(--ar); } /*
 
 .work { padding: 10px clamp(16px, 6vw, 96px) 60px; }
 .work-filters { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 34px; }
+/* the second row, type of work (pages.js): tucked under the sectors, with a small label in front */
+.work-filters + .work-types { margin-top: -22px; align-items: center; }
+.work-types-label { font-size: 13px; color: var(--muted); margin-inline-end: 4px; }
+.work-empty { display: grid; justify-items: start; gap: 16px; padding: 34px; border: 1px dashed var(--line); border-radius: 22px; }
+.work-empty[hidden] { display: none; }
+.work-empty p { color: var(--muted); font-size: 16px; line-height: 1.8; max-width: 52ch; }
 .chip {
   font: 600 14px var(--ar); color: var(--muted); background: none; cursor: pointer;
   border: 1px solid var(--line); border-radius: 999px; padding: 10px 18px;

@@ -592,12 +592,24 @@ const miniArrowPiece = () => {
   </svg>`;
 };
 
-/* ---------- Work · the grid, filtered by sector ---------- */
+/* ---------- Work · the grid, filtered by sector and by type of work ---------- */
+// a project's type comes from words in its service tags (either language), so new projects from the
+// admin panel sort themselves; `contact` is the service the empty-type message offers in the form.
+// The ids are the ones the home page's hero chips link to (work.html?type=…).
+const WORK_TYPES = [
+  { id: 'identity', name: T('هوية بصرية', 'Visual identity'), words: ['هوية', 'identity'], contact: 'identity' },
+  { id: 'social', name: T('سوشال ميديا', 'Social media'), words: ['سوشال', 'social'], contact: 'social-design' },
+  { id: 'video', name: T('مونتاج وفيديو', 'Video & editing'), words: ['فيديو', 'موشن', 'مونتاج', 'video', 'motion', 'edit'], contact: 'ad-edit' },
+  { id: 'content', name: T('محتوى تسويقي', 'Marketing content'), words: ['محتوى', 'حملة', 'كتابة', 'content', 'campaign', 'copy'], contact: 'copywriting' },
+  { id: 'linkedin', name: T('لينكدإن', 'LinkedIn'), words: ['لينكد', 'linkedin'], contact: 'li-profile' },
+];
+const typesOf = (p) => WORK_TYPES.filter((t) => p.services.some((s) => t.words.some((w) => s.toLowerCase().includes(w)))).map((t) => t.id);
+
 function initWork() {
   const grid = document.querySelector('.work-grid');
   if (!grid || typeof PROJECTS === 'undefined') return;
   grid.innerHTML = PROJECTS.map((p) => `
-    <li class="work-item" data-sector="${escHtml(p.sector)}">
+    <li class="work-item" data-sector="${escHtml(p.sector)}" data-types="${typesOf(p).join(' ')}">
       <a class="work-card" href="project.html?id=${encodeURIComponent(p.id)}">
         <div class="work-cover">${projectImage(p, p.cover, 0, 400, 300)}<span class="work-go">${miniArrowPiece()}</span></div>
         <div class="work-meta">
@@ -617,12 +629,42 @@ function initWork() {
     chip.querySelector('.chip-count').textContent = f === 'all' ? PROJECTS.length : PROJECTS.filter((p) => p.sector === f).length;
   });
 
+  // the second row: type of work, opened from the home page's chips with ?type=…
+  const sectorRow = document.querySelector('.work-filters');
+  const typeRow = document.createElement('div');
+  typeRow.className = 'work-filters work-types';
+  typeRow.setAttribute('role', 'group');
+  typeRow.setAttribute('aria-label', T('تصفية حسب نوع العمل', 'Filter by type of work'));
+  const typeCount = (id) => PROJECTS.filter((p) => id === 'all' || typesOf(p).includes(id)).length;
+  typeRow.innerHTML = `<span class="work-types-label">${T('نوع العمل', 'Type of work')}</span>` + [{ id: 'all', name: T('الكل', 'All') }, ...WORK_TYPES]
+    .map((t) => `<button class="chip" type="button" data-type="${t.id}" aria-pressed="false">${escHtml(t.name)} <span class="chip-count">${typeCount(t.id)}</span></button>`).join('');
+  sectorRow.after(typeRow);
+  const typeChips = [...typeRow.querySelectorAll('.chip')];
+
+  // nothing of a kind published yet: say so, and offer that service in the contact form instead of an empty grid
+  const empty = document.createElement('div');
+  empty.className = 'work-empty';
+  empty.hidden = true;
+  grid.after(empty);
+
+  let sector = 'all';
+  let type = new URLSearchParams(location.search).get('type');
+  if (!WORK_TYPES.some((t) => t.id === type)) type = 'all';
+  const show = (it) => (sector === 'all' || it.dataset.sector === sector) && (type === 'all' || it.dataset.types.split(' ').includes(type));
+
   // filtering: the grid dips out, the cards are swapped, and the ones that stay come back in turn
-  const apply = (filter, animate) => {
-    const show = (it) => filter === 'all' || it.dataset.sector === filter;
-    chips.forEach((c) => c.setAttribute('aria-pressed', String(c.dataset.filter === filter)));
+  const apply = (animate) => {
+    chips.forEach((c) => c.setAttribute('aria-pressed', String(c.dataset.filter === sector)));
+    typeChips.forEach((c) => c.setAttribute('aria-pressed', String(c.dataset.type === type)));
     const swap = () => {
       items.forEach((it) => it.classList.toggle('is-hidden', !show(it)));
+      const t = WORK_TYPES.find((x) => x.id === type);
+      empty.hidden = items.some(show);
+      if (!empty.hidden) {
+        empty.innerHTML = `<p>${t ? T(`لا توجد أعمال منشورة في «${escHtml(t.name)}» هنا بعد — لكنّها من صميم ما نقدّمه.`, `No published “${escHtml(t.name)}” work here yet — but it’s very much what we do.`)
+          : T('لا توجد أعمال منشورة هنا بعد.', 'No published work here yet.')}</p>
+          <a class="btn btn-primary" href="contact.html${t ? `?services=${t.contact}` : ''}">${T('ابدأ مشروعك', 'Start your project')}</a>`;
+      }
       ScrollTrigger.refresh();
     };
     if (!animate || REDUCED) { swap(); return; }
@@ -636,7 +678,16 @@ function initWork() {
       },
     });
   };
-  chips.forEach((chip) => chip.addEventListener('click', () => apply(chip.dataset.filter, true)));
+  chips.forEach((chip) => chip.addEventListener('click', () => { sector = chip.dataset.filter; apply(true); }));
+  typeChips.forEach((chip) => chip.addEventListener('click', () => {
+    type = chip.dataset.type;
+    // the address keeps the type, so the page can be shared or switched to the other language as it is
+    const q = type === 'all' ? '' : `?type=${type}`;
+    history.replaceState(null, '', location.pathname + q);
+    document.querySelectorAll('.lang-switch').forEach((l) => { l.search = q; });
+    apply(true);
+  }));
+  apply(false);
 
   if (!REDUCED) {
     gsap.set(items, { y: 40, autoAlpha: 0 });
