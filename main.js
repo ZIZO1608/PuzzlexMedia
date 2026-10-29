@@ -206,6 +206,10 @@ function drawBrand(ctx, x, y, h, align) {
 
 // where a line drawn at `y` (textBaseline 'top', current font) really ends: Arabic letters hang well below the em box
 const inkBottom = (ctx, text, y) => y + ctx.measureText(text).actualBoundingBoxDescent;
+// the y for the next line (current font) so its highest mark (the hamza on أ, a lam's top) clears `bottom` by `gap`
+const clearOf = (ctx, text, bottom, gap) => bottom + gap + ctx.measureText(text).actualBoundingBoxAscent;
+// the headline's lowest point: its letters, and on the accent line the light theme's marker bar (accentLine)
+const headBottom = (ctx, line, y, hs, accent) => Math.max(inkBottom(ctx, line, y), accent && PAL.marker ? y + hs * 0.94 : 0);
 
 function drawArt(ctx, W, H, mobile) {
   const u = mobile ? W / 100 : H / 100;
@@ -256,24 +260,29 @@ function drawArt(ctx, W, H, mobile) {
     // headline
     const hs = fitSize(ctx, head, 900, u * 10.5, 'Alexandria', colW);
     ctx.textAlign = align;
+    // every line starts below the one above it by what the letters really reach: the ي / ج hanging
+    // under one line and the hamza on أ rising over the next would otherwise touch
     let y = u * 21, bottom = 0;
     head.forEach((line, i) => {
       ctx.font = `900 ${hs}px Alexandria`;
+      if (i) y = Math.max(y, clearOf(ctx, line, bottom, hs * 0.08));
       if (i === 1) accentLine(ctx, line, tx, y, hs, align);
       else { ctx.fillStyle = PAL.text; ctx.fillText(line, tx, y); }
-      bottom = inkBottom(ctx, line, y);
+      bottom = headBottom(ctx, line, y, hs, i === 1);
       y += hs * 1.12;
     });
 
-    // sub: below the lowest letter, wherever the Arabic ي / ج hang
-    y = Math.max(y, bottom + u * 1.6) + u * 2;
+    // sub
     ctx.font = `600 ${u * 2.8}px Alexandria`;
+    y = Math.max(y + u * 2, clearOf(ctx, lead, bottom, u * 2.2));
     ctx.fillStyle = PAL.text;
     ctx.fillText(lead, tx, y);
-    y = Math.max(y + u * 4.4, inkBottom(ctx, lead, y) + u * 1.4);
+    bottom = inkBottom(ctx, lead, y);
     ctx.font = `300 ${u * 2.4}px Alexandria`;
+    const subLines = wrap(ctx, sub, colW * 0.92);
+    y = Math.max(y + u * 4.4, clearOf(ctx, subLines[0], bottom, u * 1.2));
     ctx.fillStyle = PAL.muted;
-    for (const l of wrap(ctx, sub, colW * 0.92)) { ctx.fillText(l, tx, y); y += u * 3.8; }
+    for (const l of subLines) { ctx.fillText(l, tx, y); y += u * 3.8; }
 
     // chips
     y += u * 1.8;
@@ -310,19 +319,22 @@ function drawArt(ctx, W, H, mobile) {
   let y = H * 0.555, bottom = 0;
   head.forEach((line, i) => {
     ctx.font = `900 ${hs}px Alexandria`;
+    if (i) y = Math.max(y, clearOf(ctx, line, bottom, hs * 0.08));
     if (i === 1) accentLine(ctx, line, cx, y, hs, 'center');
     else { ctx.fillStyle = PAL.text; ctx.fillText(line, cx, y); }
-    bottom = inkBottom(ctx, line, y);
+    bottom = headBottom(ctx, line, y, hs, i === 1);
     y += hs * 1.1;
   });
-  y = Math.max(y, bottom + u * 2) + u * 2.5;
   ctx.font = `600 ${u * 4.2}px Alexandria`;
+  y = Math.max(y + u * 2.5, clearOf(ctx, lead, bottom, u * 3));
   ctx.fillStyle = PAL.text;
   ctx.fillText(lead, cx, y);
-  y = Math.max(y + u * 6.4, inkBottom(ctx, lead, y) + u * 2);
+  bottom = inkBottom(ctx, lead, y);
   ctx.font = `300 ${u * 3.6}px Alexandria`;
+  const subLines = wrap(ctx, sub, W * 0.82);
+  y = Math.max(y + u * 6.4, clearOf(ctx, subLines[0], bottom, u * 1.8));
   ctx.fillStyle = PAL.muted;
-  for (const l of wrap(ctx, sub, W * 0.82)) { ctx.fillText(l, cx, y); y += u * 5.6; }
+  for (const l of subLines) { ctx.fillText(l, cx, y); y += u * 5.6; }
 
   return { key: { x: vx, y: vy }, icon: W * 0.3, cta: { x: cx, y: y + u * 3, align: 'center', size: u * 3.6 }, chips: [] };
 }
