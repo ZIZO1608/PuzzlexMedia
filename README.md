@@ -33,6 +33,15 @@ puzzlexmedia.com {
 
 **Update after changes:** `git pull && docker compose up -d --build`
 
+## Visitor statistics
+
+`track.js` (added to every page by the server) sends page views, clicks on buttons and links, and time on
+page to `/api/track`; the admin panel shows them under «الإحصائيات». Everything stays on this server in
+`/data/analytics/YYYY-MM-DD.jsonl`, one file per day, deleted after `ANALYTICS_DAYS` (default 395). IP addresses
+are never written: visitors are counted with a daily anonymous code. Visitors who press «موافق» in the
+site's privacy banner also get a random visit id, so the panel can show each visit's path. Bots and
+signed-in admins aren't counted. See `lib/analytics.js`.
+
 ## Contact form
 
 Every message is appended to `/data/messages.jsonl` inside the container (a Docker volume, kept across

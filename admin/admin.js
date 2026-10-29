@@ -144,7 +144,7 @@ async function refreshMe() {
 }
 
 /* ---------- routing ---------- */
-const VIEWS = { home: viewHome, texts: viewTexts, projects: viewProjects, partners: viewPartners, testimonials: viewTestimonials, contact: viewContact, messages: viewMessages, account: viewAccount };
+const VIEWS = { home: viewHome, texts: viewTexts, projects: viewProjects, partners: viewPartners, testimonials: viewTestimonials, contact: viewContact, messages: viewMessages, stats: viewStats, account: viewAccount };
 let shownHash = null;
 function route() {
   const [name, ...rest] = location.hash.replace(/^#\/?/, '').split('/');
@@ -195,6 +195,7 @@ async function viewHome(view) {
       h('p', null, 'من هنا تعدّل كل ما يظهر على الموقع: النصوص بالعربية والإنجليزية، المشاريع وصورها، شعارات الشركاء، آراء العملاء، ومعلومات التواصل. كل تغيير تحفظه يظهر على الموقع فورًا.'))),
     h('div', { class: 'stats' },
       stat(stats.unread, noun(stats.unread, ['رسالة جديدة', 'رسالتان جديدتان', 'رسائل جديدة', 'رسالة جديدة']), '#/messages', stats.unread > 0),
+      stats.today ? stat(stats.today.visitors, `${noun(stats.today.visitors, ['زائر', 'زائران', 'زوار', 'زائرًا'])} اليوم · ${stats.today.views} ${noun(stats.today.views, ['مشاهدة', 'مشاهدتان', 'مشاهدات', 'مشاهدة'])}`, '#/stats') : null,
       stat(stats.projects, noun(stats.projects, ['مشروع', 'مشروعان', 'مشاريع', 'مشروعًا']), '#/projects'),
       stat(stats.partners, noun(stats.partners, ['شعار شريك', 'شعارا شريكين', 'شعارات شركاء', 'شعار شريك']), '#/partners'),
       stat(stats.testimonials, noun(stats.testimonials, ['رأي عميل', 'رأيا عميلين', 'آراء عملاء', 'رأي عميل']), '#/testimonials'),
@@ -1118,6 +1119,199 @@ async function viewMessages(view) {
       h('p', null, 'كل ما يُرسل من نموذج «تواصل معنا»، الأحدث أولًا. افتح الرسالة لتعلَّم كمقروءة.'))),
     filter, h('div', { style: 'height:14px' }), list);
   draw();
+}
+
+/* =========================================================
+   Statistics (lib/analytics.js): visits, clicks, the clients' projects, where visitors come from, their journeys
+   ========================================================= */
+const STAT_PAGES = {
+  '/': 'الرئيسية', '/about.html': 'من نحن', '/services.html': 'الخدمات', '/work.html': 'أعمالنا', '/feedback.html': 'آراء العملاء',
+  '/project.html': 'صفحة مشروع', '/contact.html': 'تواصل معنا', '/privacy.html': 'الخصوصية', '/404.html': 'صفحة غير موجودة',
+};
+const CLICK_KINDS = {
+  whatsapp: 'واتساب', phone: 'اتصال هاتفي', email: 'بريد إلكتروني', social: 'حسابات التواصل', project: 'فتح مشروع',
+  form: 'إرسال نموذج التواصل', cta: 'زر «تواصل معنا»', link: 'رابط داخلي', out: 'رابط لموقع آخر', button: 'زر', lang: 'تبديل اللغة',
+};
+const DEVICES = { mobile: 'جوال', tablet: 'جهاز لوحي', desktop: 'كمبيوتر' };
+const LANGS = { ar: 'العربية', en: 'الإنجليزية' };
+const CONTACT_KINDS = ['whatsapp', 'phone', 'email', 'form'];
+const pageName = (p) => STAT_PAGES[p] || p;
+const fmtDur = (sec) => {
+  if (!sec) return '—';
+  if (sec < 60) return `${sec} ث`;
+  return `${Math.floor(sec / 60)} د${sec % 60 ? ` ${sec % 60} ث` : ''}`;
+};
+const fmtDay = (d) => new Date(`${d}T12:00:00Z`).toLocaleDateString('ar', { day: 'numeric', month: 'short' });
+const fmtTime = (iso) => new Date(iso).toLocaleTimeString('ar', { hour: 'numeric', minute: '2-digit' });
+const pct = (n, total) => (total ? Math.round((n / total) * 100) : 0);
+const countryName = (code) => { try { return new Intl.DisplayNames(['ar'], { type: 'region' }).of(code); } catch { return code; } };
+let statDays = 30, statMetric = 'views'; // kept while moving around the panel
+
+async function viewStats(view) {
+  setPending(null);
+  const r = await api('GET', `/analytics?days=${statDays}`);
+  const t = r.totals;
+  const tile = (n, label, hint) => h('div', { class: 'stat stat-static' }, h('b', null, n), h('span', null, label), hint ? h('small', { class: 'muted' }, hint) : null);
+  const ranges = [[1, 'اليوم'], [7, '7 أيام'], [30, '30 يومًا'], [90, '3 أشهر'], [365, 'سنة']];
+  const known = (list) => list.map((p) => ({ ...p, name: p.known ? `${p.client} — ${p.title}` : p.id }));
+  const projects = known(r.projects);
+
+  view.replaceChildren(...[
+    h('div', { class: 'page-head' },
+      h('div', null,
+        h('p', { class: 'kicker' }, 'ANALYTICS'),
+        h('h1', null, 'الإحصائيات'),
+        h('p', null, 'من يزور الموقع، أي الصفحات يفتح، على ماذا يضغط، وأي مشاريع العملاء تجذب الانتباه. زياراتك أنت وأنت مسجّل في اللوحة لا تُحسب.')),
+      h('div', { class: 'row' },
+        h('span', { class: `live${t.live ? ' on' : ''}` }, h('i', { 'aria-hidden': 'true' }), `${t.live} الآن على الموقع`),
+        h('button', { type: 'button', class: 'btn btn-small', onclick: render }, 'تحديث'))),
+    h('div', { class: 'chips' }, ranges.map(([d, name]) => h('button', {
+      type: 'button', class: 'chip', 'aria-pressed': String(statDays === d), onclick: () => { statDays = d; render(); },
+    }, name))),
+    h('div', { class: 'stats stats-tight', style: 'margin-top:16px' },
+      tile(t.visitors, 'الزوار', 'الزائر يُحسب مرة واحدة في اليوم'),
+      tile(t.views, 'مشاهدات الصفحات'),
+      tile(t.clicks, 'النقرات', 'على الأزرار والروابط'),
+      tile(fmtDur(t.avgTime), 'متوسط الوقت في الصفحة'),
+      tile(t.sessions, 'زيارات بمسار كامل', `${t.consent}% من الزوار وافقوا · ${t.returning} عادوا أكثر من مرة`)),
+    t.views || t.clicks ? null : h('p', { class: 'empty', style: 'margin-top:16px' }, 'لا زيارات مسجّلة في هذه الفترة بعد. تبدأ الأرقام بالظهور بعد نشر التحديث على الموقع.'),
+    statChart(r.daily),
+    h('div', { class: 'stat-grid' },
+      statCard('الصفحات', 'أكثر الصفحات مشاهدة', statTable(['الصفحة', 'مشاهدات', 'زوار', 'متوسط الوقت'],
+        r.pages.map((p) => [pageName(p.path), p.views, p.visitors, fmtDur(p.avgTime)]), 1)),
+      statCard('النقرات حسب النوع', 'كل ضغطة على زر أو رابط', barList(r.kinds.map((k) => ({ name: CLICK_KINDS[k.name] || k.name, count: k.count }))))),
+    statCard('مشاريع العملاء', 'كم مرة فُتحت صفحة كل مشروع، كم ضغطة وصلت إليه من بطاقته، وكم زائر ضغط واتساب أو اتصال أو بريد وهو يشاهده',
+      statTable(['العميل', 'المشروع', 'مشاهدات', 'زوار', 'ضغطات على بطاقته', 'تواصل من صفحته', 'متوسط الوقت'],
+        projects.map((p) => [p.client || p.id,
+          p.known ? h('a', { href: `/project.html?id=${encodeURIComponent(p.id)}`, target: '_blank', rel: 'noopener', class: 'link' }, p.title) : h('span', { class: 'muted' }, `${p.id} (محذوف)`),
+          p.views, p.visitors, p.cardClicks, p.contacts, fmtDur(p.avgTime)]), 2, 50)),
+    statCard('تفاصيل النقرات', 'على ماذا ضغط الزوار بالضبط، ومن أي صفحة',
+      statTable(['النوع', 'الزر أو الرابط', 'نقرات', 'من صفحة'],
+        r.clicks.map((c) => [CLICK_KINDS[c.kind] || c.kind, clickLabel(c.kind, c.label, projects), c.count, c.pages.map((p) => pageName(p.name)).join('، ')]), 2)),
+    h('div', { class: 'stat-grid' },
+      statCard('من أين يأتي الزوار', 'أول صفحة يفتحها الزائر: من بحث Google، من Instagram، أو مباشرة', barList(r.sources)),
+      statCard('الأجهزة', null, barList(r.devices.map((d) => ({ name: DEVICES[d.name] || d.name, count: d.count })))),
+      statCard('لغة الصفحة', null, barList(r.langs.map((d) => ({ name: LANGS[d.name] || d.name, count: d.count })))),
+      statCard('المتصفحات', null, barList(r.browsers)),
+      r.countries.length ? statCard('الدول', null, barList(r.countries.map((c) => ({ name: countryName(c.name), count: c.count })))) : null),
+    statSessions(r.sessions, projects),
+  ].filter(Boolean));
+}
+
+function clickLabel(kind, label, projects) {
+  if (kind === 'project') { const p = projects.find((x) => x.id === label); return p ? p.name : label; }
+  if (kind === 'link') { const [path, query] = label.split('?'); return pageName(path) + (query ? ` (${query})` : ''); }
+  if (kind === 'lang') return label === 'en' ? 'إلى الإنجليزية' : 'إلى العربية';
+  if (kind === 'form') return label === 'whatsapp' ? 'عبر واتساب' : 'عبر البريد';
+  if (kind === 'whatsapp') return `من ${pageName(label)}`;
+  return label || '—';
+}
+
+function statCard(title, hint, body) {
+  return h('section', { class: 'card stat-card' }, h('h2', { class: 'section-title', style: 'margin:0' }, title), hint ? h('p', { class: 'muted small' }, hint) : null, body);
+}
+// rows of [cell, …]; the number at barCol also gets a bar, scaled to the largest one. Long tables show the first `limit` rows.
+function statTable(head, rows, barCol, limit = 15) {
+  if (!rows.length) return h('p', { class: 'muted small' }, 'لا بيانات بعد.');
+  const max = Math.max(1, ...rows.map((r) => Number(r[barCol]) || 0));
+  const tr = (r) => h('tr', null, r.map((c, i) => (i === barCol
+    ? h('td', { class: 'num barcell' }, h('span', { class: 'bar', style: `width:${Math.max(2, (c / max) * 100)}%` }), h('b', null, c))
+    : h('td', { class: typeof c === 'number' ? 'num' : null }, c))));
+  const body = h('tbody', null, rows.slice(0, limit).map(tr));
+  return h('div', { class: 'table-wrap' }, h('table', { class: 'stat-table' },
+    h('thead', null, h('tr', null, head.map((c) => h('th', { scope: 'col' }, c)))), body),
+  showAll(rows.length - limit, () => body.append(...rows.slice(limit).map(tr))));
+}
+// a "show the rest" button that removes itself
+function showAll(more, onShow) {
+  if (more <= 0) return null;
+  const btn = h('button', { type: 'button', class: 'btn btn-small', style: 'margin-top:10px', onclick: () => { onShow(); btn.remove(); } }, `عرض الكل (${more} أخرى)`);
+  return btn;
+}
+function barList(items) {
+  if (!items.length) return h('p', { class: 'muted small' }, 'لا بيانات بعد.');
+  const total = items.reduce((a, b) => a + b.count, 0), max = Math.max(...items.map((i) => i.count));
+  return h('ul', { class: 'barlist' }, items.map((i) => h('li', null,
+    h('span', { class: 'name' }, i.name),
+    h('span', { class: 'track' }, h('span', { class: 'bar', style: `width:${Math.max(2, (i.count / max) * 100)}%` })),
+    h('b', null, i.count), h('small', { class: 'muted' }, `${pct(i.count, total)}%`))));
+}
+
+// one measure per day as bars, on one scale: the chips switch the measure
+function statChart(daily) {
+  const metrics = [['views', 'مشاهدات'], ['visitors', 'زوار'], ['clicks', 'نقرات']];
+  const card = h('section', { class: 'card stat-card', style: 'margin-top:16px' });
+  const ns = 'http://www.w3.org/2000/svg';
+  const el = (tag, attrs, text) => {
+    const e = document.createElementNS(ns, tag);
+    for (const k in attrs) e.setAttribute(k, attrs[k]);
+    if (text != null) e.textContent = text;
+    return e;
+  };
+  const draw = () => {
+    const W = 800, H = 220, top = 14, bottom = 28, left = 34, right = 6;
+    const max = Math.max(3, ...daily.map((d) => d[statMetric]));
+    const step = Math.pow(10, Math.floor(Math.log10(max)));
+    const nice = Math.ceil(max / step) * step;
+    const n = daily.length, slot = (W - left - right) / n, bw = Math.max(2, Math.min(28, slot - 2));
+    const y = (v) => top + (H - top - bottom) * (1 - v / nice);
+    const svg = el('svg', { viewBox: `0 0 ${W} ${H}`, class: 'chart', role: 'img', 'aria-label': `${metrics.find((m) => m[0] === statMetric)[1]} يوميًا` });
+    for (let i = 0; i <= 3; i++) {
+      const v = Math.round((nice / 3) * i), yy = y(v);
+      svg.append(el('line', { x1: left, x2: W - right, y1: yy, y2: yy, class: i ? 'grid' : 'base' }), el('text', { x: left - 6, y: yy + 4, class: 'axis', 'text-anchor': 'end' }, v));
+    }
+    const tip = h('div', { class: 'chart-tip', hidden: true });
+    const labelEvery = Math.ceil(n / 8);
+    daily.forEach((d, i) => {
+      const x = left + slot * i + (slot - bw) / 2, v = d[statMetric], yy = y(v), r = Math.min(4, bw / 2, H - bottom - yy);
+      if (v > 0) svg.append(el('path', { class: 'barmark', d: `M${x},${H - bottom} V${yy + r} Q${x},${yy} ${x + r},${yy} H${x + bw - r} Q${x + bw},${yy} ${x + bw},${yy + r} V${H - bottom} Z` }));
+      if (i % labelEvery === 0) svg.append(el('text', { x: x + bw / 2, y: H - 8, class: 'axis', 'text-anchor': 'middle' }, fmtDay(d.day)));
+      const hit = el('rect', { x: left + slot * i, y: top, width: slot, height: H - top - bottom, class: 'hit' });
+      hit.addEventListener('mouseenter', () => {
+        tip.hidden = false;
+        tip.replaceChildren(h('strong', null, fmtDay(d.day)), h('span', null, `مشاهدات: ${d.views}`), h('span', null, `زوار: ${d.visitors}`), h('span', null, `نقرات: ${d.clicks}`));
+        tip.style.left = `${((left + slot * (i + 0.5)) / W) * 100}%`;
+        hit.classList.add('on');
+      });
+      hit.addEventListener('mouseleave', () => { tip.hidden = true; hit.classList.remove('on'); });
+      svg.append(hit);
+    });
+    card.replaceChildren(
+      h('div', { class: 'row', style: 'justify-content:space-between' },
+        h('h2', { class: 'section-title', style: 'margin:0' }, 'يومًا بيوم'),
+        h('div', { class: 'chips' }, metrics.map(([k, name]) => h('button', { type: 'button', class: 'chip', 'aria-pressed': String(statMetric === k), onclick: () => { statMetric = k; draw(); } }, name)))),
+      h('div', { class: 'chart-wrap' }, svg, tip),
+      h('details', { class: 'small' }, h('summary', { class: 'muted' }, 'عرض كجدول'),
+        statTable(['اليوم', 'مشاهدات', 'زوار', 'نقرات'], daily.slice().reverse().map((d) => [fmtDay(d.day), d.views, d.visitors, d.clicks]), 1, 366)));
+  };
+  draw();
+  return card;
+}
+
+// each visit of a visitor who pressed "موافق" in the site's banner, page by page
+function statSessions(sessions, projects) {
+  const card = statCard('مسارات الزوار', 'آخر الزيارات بالتفصيل: الصفحات بالترتيب، الوقت في كل صفحة، وما ضغطوا عليه. تظهر فقط لمن وافق في شريط الخصوصية على الموقع.', null);
+  if (!sessions.length) { card.append(h('p', { class: 'muted small' }, 'لا زيارات بمسار كامل بعد.')); return card; }
+  const projectName = (id) => { const p = projects.find((x) => x.id === id); return p ? p.name : id; };
+  const one = (s) => {
+    const views = s.steps.filter((x) => x.t === 'view').length, clicks = s.steps.filter((x) => x.t === 'click');
+    const contacted = clicks.some((c) => CONTACT_KINDS.includes(c.k));
+    return h('details', { class: 'msg journey' },
+      h('summary', null, h('span', { class: `dot${contacted ? '' : ' off'}`, 'aria-hidden': 'true' }),
+        h('span', { class: 'who' }, `${views} ${noun(views, ['صفحة', 'صفحتان', 'صفحات', 'صفحة'])} · ${clicks.length} ${noun(clicks.length, ['نقرة', 'نقرتان', 'نقرات', 'نقرة'])}`,
+          h('small', null, ` · ${DEVICES[s.dev] || ''} · ${s.src} · ${fmtDur(s.duration)}`),
+          s.returning ? h('span', { class: 'tag lime', style: 'margin-inline-start:8px' }, 'زائر عائد') : null,
+          contacted ? h('span', { class: 'tag', style: 'margin-inline-start:8px' }, 'حاول التواصل') : null),
+        h('span', { class: 'when' }, fmtDate(s.start))),
+      h('ol', { class: 'steps' }, s.steps.map((x) => h('li', { class: x.t },
+        h('time', null, fmtTime(x.at)),
+        x.t === 'view'
+          ? h('span', null, '📄 ', x.pr ? `مشروع: ${projectName(x.pr)}` : pageName(x.p), x.d ? h('small', { class: 'muted' }, ` — ${fmtDur(x.d)}`) : null)
+          : h('span', null, '👆 ', CLICK_KINDS[x.k] || x.k, ': ', clickLabel(x.k, x.x, projects))))));
+  };
+  const list = h('div', { class: 'msgs' }, sessions.slice(0, 20).map(one));
+  card.append(list, showAll(sessions.length - 20, () => list.append(...sessions.slice(20).map(one))));
+  return card;
 }
 
 /* =========================================================

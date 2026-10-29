@@ -20,6 +20,7 @@ const { createAdmin } = require('./lib/admin');
 const { createIndexNow } = require('./lib/indexnow');
 const { createMail } = require('./lib/mail');
 const { serviceNames } = require('./lib/services');
+const { createAnalytics } = require('./lib/analytics');
 
 const ROOT = __dirname;
 const PORT = Number(process.argv[2] || process.env.PORT || 8080);
@@ -36,6 +37,8 @@ const store = createStore({ dataDir: DATA_DIR, root: ROOT });
 store.seed();
 const auth = createAuth({ store, secureCookies: () => process.env.COOKIE_SECURE !== '0' });
 const content = createContent({ root: ROOT, store, siteUrl: SITE_URL });
+// visitor statistics for the admin panel, kept in DATA_DIR/analytics (lib/analytics.js, sent by track.js)
+const analytics = createAnalytics({ dataDir: DATA_DIR, keepDays: Number(process.env.ANALYTICS_DAYS) || 395 });
 // IndexNow (Bing & co.): on with INDEXNOW=1; see lib/indexnow.js. The signature changes when a deploy changes the pages.
 const indexNow = createIndexNow({
   store, siteUrl: SITE_URL, urls: () => siteUrls(), enabled: process.env.INDEXNOW === '1',
@@ -342,6 +345,22 @@ async function handleContact(req, res) {
   json(res, 200, { ok: true, confirmed });
 }
 
+/* ---------- visitor statistics: track.js sends each page view / click / time on page (lib/analytics.js) ---------- */
+async function handleTrack(req, res) {
+  if (req.method !== 'POST') { res.setHeader('Allow', 'POST'); return json(res, 405, { ok: false }); }
+  let raw;
+  try { raw = await readBody(req, 4 * 1024); } catch { return json(res, 413, { ok: false }); }
+  // the team's own visits (signed in to the admin panel) would only blur the numbers
+  if (!auth.sessionFrom(req)) {
+    let body = null;
+    try { body = JSON.parse(raw.toString('utf8')); } catch { /* not ours */ }
+    const country = TRUST_PROXY ? String(req.headers['cf-ipcountry'] || '').toUpperCase() : '';
+    analytics.record(body, { ip: clientIp(req), ua: String(req.headers['user-agent'] || '').slice(0, 400), country });
+  }
+  res.writeHead(204, { ...SECURITY_HEADERS, 'Cache-Control': 'no-store' });
+  res.end();
+}
+
 /* ---------- CSP reports: what the policy would block, written to the log while it is Report-Only ---------- */
 let cspReports = 0;
 setInterval(() => { cspReports = 0; }, 60 * 60 * 1000).unref();
@@ -392,7 +411,7 @@ async function readBody(req, limit) {
   return Buffer.concat(chunks);
 }
 
-const admin = createAdmin({ store, auth, content, clientIp, json, readBody, serviceLabels: SERVICES, mail });
+const admin = createAdmin({ store, auth, content, clientIp, json, readBody, serviceLabels: SERVICES, mail, analytics });
 
 const server = http.createServer(async (req, res) => {
   try {
@@ -402,6 +421,7 @@ const server = http.createServer(async (req, res) => {
 
     if (p === '/healthz' || p === '/health') return json(res, 200, { ok: true });
     if (p === '/api/csp-report') return await handleCspReport(req, res);
+    if (p === '/api/track') return await handleTrack(req, res);
     if (p === '/api/contact') {
       if (req.method !== 'POST') { res.setHeader('Allow', 'POST'); return json(res, 405, { ok: false }); }
       return await handleContact(req, res);
@@ -455,6 +475,7 @@ if (!store.read('users.json', []).length) console.warn('[admin] no admin users y
 server.listen(PORT, HOST, () => {
   console.log(`PuzzleX Media on http://${HOST}:${PORT} · messages → ${DATA_DIR} · email ${mail.enabled ? `→ ${mail.to}` : 'off (no SMTP set)'}`);
 });
-const stop = () => server.close(() => process.exit(0));
+// unsaved statistics are written before the server stops
+const stop = () => server.close(() => analytics.flush().then(() => process.exit(0)));
 process.on('SIGTERM', stop);
 process.on('SIGINT', stop);
