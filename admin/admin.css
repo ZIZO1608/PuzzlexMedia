@@ -287,6 +287,11 @@ input[type="color"] { width: 52px; height: 42px; border: 1px solid var(--line-2)
 .steps li { display: grid; grid-template-columns: 64px minmax(0, 1fr); gap: 10px; }
 .steps time { color: var(--muted); font-variant-numeric: tabular-nums; }
 .steps li.click { color: var(--lime); }
+.map-link { margin-inline-start: 10px; color: var(--lime); font-size: 12.5px; white-space: nowrap; }
+.map-box { position: relative; margin-inline: auto; overflow: hidden; border: 1px solid var(--line-2); border-radius: 14px; background: #fff; }
+.map-frame { position: absolute; top: 0; left: 0; border: 0; transform-origin: 0 0; background: var(--ink); }
+.map-list { margin-top: 14px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--ink-2); }
+.map-list li.on a { color: var(--danger); font-weight: 800; }
 @media (max-width: 560px) {
   .stats-tight { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
   .stats-tight .stat { min-height: 0; padding: 14px; }

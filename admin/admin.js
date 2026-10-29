@@ -1131,6 +1131,7 @@ const STAT_PAGES = {
 const CLICK_KINDS = {
   whatsapp: 'واتساب', phone: 'اتصال هاتفي', email: 'بريد إلكتروني', social: 'حسابات التواصل', project: 'فتح مشروع',
   form: 'إرسال نموذج التواصل', cta: 'زر «تواصل معنا»', link: 'رابط داخلي', out: 'رابط لموقع آخر', button: 'زر', lang: 'تبديل اللغة',
+  tap: 'نقرة على شيء ليس رابطاً',
 };
 const DEVICES = { mobile: 'جوال', tablet: 'جهاز لوحي', desktop: 'كمبيوتر' };
 const LANGS = { ar: 'العربية', en: 'الإنجليزية' };
@@ -1147,7 +1148,8 @@ const pct = (n, total) => (total ? Math.round((n / total) * 100) : 0);
 const countryName = (code) => { try { return new Intl.DisplayNames(['ar'], { type: 'region' }).of(code); } catch { return code; } };
 let statDays = 30, statMetric = 'views'; // kept while moving around the panel
 
-async function viewStats(view) {
+async function viewStats(view, arg) {
+  if (arg && arg.startsWith('map')) return viewClickMap(view, arg.replace(/^map\??/, ''));
   setPending(null);
   const r = await api('GET', `/analytics?days=${statDays}`);
   const t = r.totals;
@@ -1193,7 +1195,11 @@ async function viewStats(view) {
       statCard('الأجهزة', null, barList(r.devices.map((d) => ({ name: DEVICES[d.name] || d.name, count: d.count })))),
       statCard('لغة الصفحة', null, barList(r.langs.map((d) => ({ name: LANGS[d.name] || d.name, count: d.count })))),
       statCard('المتصفحات', null, barList(r.browsers)),
-      r.countries.length ? statCard('الدول', null, barList(r.countries.map((c) => ({ name: countryName(c.name), count: c.count })))) : null),
+      r.countries.length ? statCard('الدول', 'من عنوان IP لحظة الزيارة — IP Geolocation by DB-IP (db-ip.com)', barList(r.countries.map((c) => ({ name: countryName(c.name), count: c.count })))) : null),
+    statCard('خريطة النقرات', 'افتح أي صفحة لترى عليها أين يضغط الزوار، على الجوال أو الكمبيوتر. ولتسجيلات فيديو كاملة للزيارات افتح Microsoft Clarity.',
+      h('div', { class: 'row' },
+        Object.entries(STAT_PAGES).filter(([p]) => p !== '/404.html').map(([p, name]) => h('a', { class: 'btn btn-small', href: mapHash({ p, l: 'ar', dev: 'mobile' }) }, `📍 ${name}`)),
+        h('a', { class: 'btn btn-small', href: 'https://clarity.microsoft.com/projects', target: '_blank', rel: 'noopener' }, '🎥 تسجيلات Clarity ↗'))),
     statSessions(r.sessions, projects),
   ].filter(Boolean));
 }
@@ -1299,7 +1305,7 @@ function statSessions(sessions, projects) {
     return h('details', { class: 'msg journey' },
       h('summary', null, h('span', { class: `dot${contacted ? '' : ' off'}`, 'aria-hidden': 'true' }),
         h('span', { class: 'who' }, `${views} ${noun(views, ['صفحة', 'صفحتان', 'صفحات', 'صفحة'])} · ${clicks.length} ${noun(clicks.length, ['نقرة', 'نقرتان', 'نقرات', 'نقرة'])}`,
-          h('small', null, ` · ${DEVICES[s.dev] || ''} · ${s.src} · ${fmtDur(s.duration)}`),
+          h('small', null, ` · ${DEVICES[s.dev] || ''}${s.c ? ` · ${countryName(s.c)}` : ''} · ${s.src} · ${fmtDur(s.duration)}`),
           s.returning ? h('span', { class: 'tag lime', style: 'margin-inline-start:8px' }, 'زائر عائد') : null,
           contacted ? h('span', { class: 'tag', style: 'margin-inline-start:8px' }, 'حاول التواصل') : null),
         h('span', { class: 'when' }, fmtDate(s.start))),
@@ -1307,11 +1313,153 @@ function statSessions(sessions, projects) {
         h('time', null, fmtTime(x.at)),
         x.t === 'view'
           ? h('span', null, '📄 ', x.pr ? `مشروع: ${projectName(x.pr)}` : pageName(x.p), x.d ? h('small', { class: 'muted' }, ` — ${fmtDur(x.d)}`) : null)
-          : h('span', null, '👆 ', CLICK_KINDS[x.k] || x.k, ': ', clickLabel(x.k, x.x, projects))))));
+          : h('span', null, '👆 ', CLICK_KINDS[x.k] || x.k, ': ', clickLabel(x.k, x.x, projects),
+            x.pos ? h('a', { class: 'map-link', href: mapHash({ s: s.id, at: x.at }) }, '📍 أين ضغط') : null)))));
   };
   const list = h('div', { class: 'msgs' }, sessions.slice(0, 20).map(one));
   card.append(list, showAll(sessions.length - 20, () => list.append(...sessions.slice(20).map(one))));
   return card;
+}
+
+/* ---------- the click map: the real page in a frame, with a dot wherever visitors clicked ----------
+   #/stats/map?p=/work.html&l=ar&dev=mobile          everyone's clicks on a page (a heatmap)
+   #/stats/map?s=<visit id>&at=<time>                one visitor's clicks, numbered in order, that click highlighted */
+const MAP_WIDTH = { mobile: 390, desktop: 1280 };
+const mapHash = (q) => `#/stats/map?${new URLSearchParams(Object.entries(q).filter(([, v]) => v)).toString()}`;
+
+async function viewClickMap(view, query) {
+  setPending(null);
+  const q = Object.fromEntries(new URLSearchParams(query));
+  const visit = q.s || '';
+  const params = visit ? { s: visit, days: statDays } : { p: q.p || '/', l: q.l || 'ar', pr: q.pr || '', dev: q.dev || 'mobile', days: statDays };
+  const r = await api('GET', `/analytics/clicks?${new URLSearchParams(Object.entries(params).filter(([, v]) => v)).toString()}`);
+  let clicks = r.clicks.slice().reverse(); // oldest first: the numbers follow the visit's order
+  let projects = [];
+  try { projects = (await api('GET', '/projects')).data.projects; } catch { /* the page still works without names */ }
+  const projectTitle = (id) => { const p = projects.find((x) => x.id === id); return p ? `${p.client.ar || p.client.en} — ${p.title.ar || p.title.en}` : id; };
+
+  // one visit: show the page of the chosen click (or the first), with tabs for its other pages
+  let page = { p: params.p, l: params.l, pr: params.pr, dev: params.dev };
+  if (visit) {
+    const chosen = clicks.find((c) => c.ts === q.at) || clicks[0];
+    if (!chosen) {
+      view.replaceChildren(h('a', { class: 'btn btn-small', href: '#/stats' }, '→ الإحصائيات'), h('p', { class: 'empty', style: 'margin-top:16px' }, 'لا نقرات محفوظة لهذه الزيارة.'));
+      return;
+    }
+    page = { p: q.p || chosen.p, l: q.l || chosen.l, pr: q.pr || chosen.pr || '', dev: chosen.mobile ? 'mobile' : 'desktop' };
+  }
+  const key = (c) => `${c.p}|${c.l}|${c.pr || ''}`;
+  const pagesOfVisit = visit ? [...new Map(clicks.map((c) => [key(c), c])).values()] : [];
+  const onPage = clicks.filter((c) => key(c) === `${page.p}|${page.l}|${page.pr || ''}`);
+  const pageLabel = (c) => `${c.pr ? `مشروع: ${projectTitle(c.pr)}` : pageName(c.p)}${c.l === 'en' ? ' (EN)' : ''}`;
+
+  const chip = (label, on, href) => h('a', { class: 'chip', href, 'aria-pressed': String(on) }, label);
+  const controls = visit
+    ? h('div', { class: 'chips' }, pagesOfVisit.map((c) => chip(pageLabel(c), key(c) === `${page.p}|${page.l}|${page.pr || ''}`, mapHash({ s: visit, at: q.at, p: c.p, l: c.l, pr: c.pr }))))
+    : h('div', { class: 'grid', style: 'gap:10px' },
+      h('div', { class: 'chips' }, Object.entries(STAT_PAGES).filter(([p]) => p !== '/404.html').map(([p, name]) => chip(name, p === page.p, mapHash({ ...page, p, pr: '' })))),
+      page.p === '/project.html' ? h('div', { class: 'chips' }, projects.map((p) => chip(projectTitle(p.id), p.id === page.pr, mapHash({ ...page, pr: p.id })))) : null,
+      h('div', { class: 'chips' },
+        chip('جوال', page.dev === 'mobile', mapHash({ ...page, dev: 'mobile' })), chip('كمبيوتر', page.dev === 'desktop', mapHash({ ...page, dev: 'desktop' })),
+        h('span', { style: 'width:12px' }),
+        chip('العربية', page.l === 'ar', mapHash({ ...page, l: 'ar' })), chip('الإنجليزية', page.l === 'en', mapHash({ ...page, l: 'en' }))));
+
+  const width = MAP_WIDTH[page.dev] || 390;
+  const src = `${page.l === 'en' ? '/en' : ''}${page.p}${page.p === '/project.html' && page.pr ? `?id=${encodeURIComponent(page.pr)}` : ''}`;
+  const frame = h('iframe', { class: 'map-frame', src, title: 'الصفحة مع أماكن النقرات', width });
+  const box = h('div', { class: 'map-box' }, frame);
+  const status = h('p', { class: 'muted small' }, 'جارٍ تحميل الصفحة…');
+  const list = visit ? h('ol', { class: 'steps map-list' }) : null;
+
+  view.replaceChildren(...[
+    h('div', { class: 'page-head' }, h('div', null,
+      h('p', { class: 'kicker' }, 'CLICK MAP'),
+      h('h1', null, visit ? 'أين ضغط هذا الزائر' : 'خريطة النقرات'),
+      h('p', null, visit
+        ? 'الصفحة كما يراها الزائر، والأرقام بترتيب نقراته. النقرة التي اخترتها بالأحمر.'
+        : 'الصفحة الحقيقية، وكل نقطة مكان ضغط فيه زائر. كلما تجمّعت النقاط وتوهّجت، كثرت النقرات هناك.')),
+      h('a', { class: 'btn btn-small', href: '#/stats' }, '→ الإحصائيات')),
+    controls,
+    h('div', { class: 'row', style: 'margin:14px 0 10px;justify-content:space-between' }, status,
+      h('a', { class: 'btn btn-small', href: src, target: '_blank', rel: 'noopener' }, 'فتح الصفحة ↗')),
+    box,
+    list,
+  ].filter(Boolean));
+
+  // fit the page's real width into the panel
+  const fit = () => {
+    const avail = Math.max(280, view.clientWidth - 2);
+    const scale = Math.min(1, avail / width);
+    const height = Math.round(Math.max(420, window.innerHeight - 220) / scale);
+    frame.style.width = `${width}px`;
+    frame.style.height = `${height}px`;
+    frame.style.transform = `scale(${scale})`;
+    box.style.width = `${width * scale}px`;
+    box.style.height = `${height * scale}px`;
+  };
+  fit();
+  window.addEventListener('resize', fit);
+  const stop = () => { window.removeEventListener('resize', fit); window.removeEventListener('hashchange', stop); };
+  window.addEventListener('hashchange', stop);
+
+  frame.addEventListener('load', () => {
+    let win, doc;
+    try { win = frame.contentWindow; doc = frame.contentDocument; } catch { status.textContent = 'تعذّر فتح الصفحة'; return; }
+    doc.documentElement.classList.remove('is-loading');
+    const css = doc.createElement('style');
+    css.textContent = '.px-consent,.loader{display:none!important}'
+      + '.pxm-layer{position:absolute;left:0;top:0;width:0;height:0;z-index:2147483647;pointer-events:none}'
+      + '.pxm-heat{position:absolute;width:44px;height:44px;margin:-22px 0 0 -22px;border-radius:50%;background:radial-gradient(circle,rgba(255,64,64,.55) 0,rgba(255,170,0,.25) 40%,rgba(255,170,0,0) 70%)}'
+      + '.pxm-heat::after{content:"";position:absolute;left:19px;top:19px;width:6px;height:6px;border-radius:50%;background:#ff3b3b;box-shadow:0 0 0 1.5px #fff}'
+      + '.pxm-num{position:absolute;min-width:28px;height:28px;margin:-14px 0 0 -14px;padding:0 6px;border-radius:14px;background:#D7FF00;color:#0a0a0b;'
+      + 'font:800 13px/28px system-ui,sans-serif;text-align:center;box-shadow:0 0 0 2px #0a0a0b,0 4px 14px rgba(0,0,0,.5)}'
+      + '.pxm-num.on{background:#ff3b3b;color:#fff;animation:pxm 1s ease-in-out infinite alternate}@keyframes pxm{to{box-shadow:0 0 0 2px #0a0a0b,0 0 0 12px rgba(255,59,59,.3)}}';
+    doc.head.append(css);
+    // the page shouldn't navigate away from under the dots
+    doc.addEventListener('click', (e) => { if (e.target.closest('a, button, form')) e.preventDefault(); }, true);
+    const layer = doc.createElement('div');
+    layer.className = 'pxm-layer';
+    doc.documentElement.append(layer);
+    const dots = onPage.map((c, i) => {
+      const d = doc.createElement('div');
+      d.className = visit ? `pxm-num${c.ts === q.at ? ' on' : ''}` : 'pxm-heat';
+      if (visit) d.textContent = clicks.indexOf(c) + 1;
+      layer.append(d);
+      return { c, d, i };
+    });
+    let missing = 0;
+    const place = () => {
+      missing = 0;
+      for (const { c, d } of dots) {
+        let x = null, y = null, el = null;
+        try { el = c.sel ? doc.querySelector(c.sel) : null; } catch { el = null; }
+        const rect = el && el.getClientRects().length ? el.getBoundingClientRect() : null;
+        if (rect && rect.width) { x = rect.left + c.ox * rect.width + win.scrollX; y = rect.top + c.oy * rect.height + win.scrollY; }
+        else if (c.px !== undefined && c.px !== null) { x = c.px * doc.documentElement.scrollWidth; y = c.py; }
+        d.style.display = x === null ? 'none' : '';
+        if (x === null) { missing++; continue; }
+        d.style.left = `${x}px`;
+        d.style.top = `${y}px`;
+      }
+      status.textContent = onPage.length
+        ? `${onPage.length} ${noun(onPage.length, ['نقرة', 'نقرتان', 'نقرات', 'نقرة'])} على هذه الصفحة${missing ? ` · ${missing} لم يعد مكانها موجوداً (تغيّرت الصفحة)` : ''}`
+        : 'لا نقرات على هذه الصفحة في هذه الفترة.';
+    };
+    let queued = false;
+    const later = () => { if (!queued) { queued = true; win.requestAnimationFrame(() => { queued = false; place(); }); } };
+    win.addEventListener('scroll', later, { passive: true });
+    win.addEventListener('resize', later);
+    // the page animates in: place the dots again while it settles
+    [0, 400, 1200, 2500, 4500].forEach((t) => setTimeout(place, t));
+    const chosen = dots.find(({ c }) => c.ts === q.at);
+    if (chosen) setTimeout(() => { const y = parseFloat(chosen.d.style.top) || 0; win.scrollTo(0, Math.max(0, y - 260)); setTimeout(place, 300); }, 1300);
+  });
+
+  if (list) {
+    list.replaceChildren(...clicks.map((c, i) => h('li', { class: `click${c.ts === q.at ? ' on' : ''}` },
+      h('time', null, `${i + 1} · ${fmtTime(c.ts)}`),
+      h('a', { href: mapHash({ s: visit, at: c.ts }) }, CLICK_KINDS[c.k] || c.k, ': ', clickLabel(c.k, c.x, projects.map((p) => ({ id: p.id, name: projectTitle(p.id) }))), h('small', { class: 'muted' }, ` — ${pageLabel(c)}`)))));
+  }
 }
 
 /* =========================================================

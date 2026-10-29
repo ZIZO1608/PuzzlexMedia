@@ -21,6 +21,7 @@ const { createIndexNow } = require('./lib/indexnow');
 const { createMail } = require('./lib/mail');
 const { serviceNames } = require('./lib/services');
 const { createAnalytics } = require('./lib/analytics');
+const { createGeo } = require('./lib/geo');
 
 const ROOT = __dirname;
 const PORT = Number(process.argv[2] || process.env.PORT || 8080);
@@ -36,9 +37,13 @@ const TRUST_PROXY = process.env.TRUST_PROXY === '1';
 const store = createStore({ dataDir: DATA_DIR, root: ROOT });
 store.seed();
 const auth = createAuth({ store, secureCookies: () => process.env.COOKIE_SECURE !== '0' });
-const content = createContent({ root: ROOT, store, siteUrl: SITE_URL });
+// Microsoft Clarity (recordings and heatmaps), loaded by track.js only for visitors who press «موافق»
+const CLARITY_ID = /^[a-z0-9]{6,20}$/i.test(process.env.CLARITY_ID || '') ? process.env.CLARITY_ID : '';
+const content = createContent({ root: ROOT, store, siteUrl: SITE_URL, clarityId: CLARITY_ID });
 // visitor statistics for the admin panel, kept in DATA_DIR/analytics (lib/analytics.js, sent by track.js)
 const analytics = createAnalytics({ dataDir: DATA_DIR, keepDays: Number(process.env.ANALYTICS_DAYS) || 395 });
+// the visitor's country from their IP (lib/geo.js, downloads its own data); GEO=0 turns it off
+const geo = createGeo({ dataDir: DATA_DIR, enabled: process.env.GEO !== '0' });
 // IndexNow (Bing & co.): on with INDEXNOW=1; see lib/indexnow.js. The signature changes when a deploy changes the pages.
 const indexNow = createIndexNow({
   store, siteUrl: SITE_URL, urls: () => siteUrls(), enabled: process.env.INDEXNOW === '1',
@@ -75,11 +80,11 @@ const HSTS = 'max-age=31536000';
 const CSP_HEADER = process.env.CSP_ENFORCE === '1' ? 'Content-Security-Policy' : 'Content-Security-Policy-Report-Only';
 const cspFor = (hashes) => [
   "default-src 'self'",
-  `script-src 'self'${hashes.map((h) => ` 'sha256-${h}'`).join('')}`,
+  `script-src 'self'${hashes.map((h) => ` 'sha256-${h}'`).join('')}${CLARITY_ID ? ' https://*.clarity.ms' : ''}`,
   "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com", // style="" attributes and the animations' inline styles
   "font-src 'self' https://fonts.gstatic.com",
-  "img-src 'self' data: blob:",
-  "connect-src 'self'",
+  `img-src 'self' data: blob:${CLARITY_ID ? ' https://*.clarity.ms https://c.bing.com' : ''}`,
+  `connect-src 'self'${CLARITY_ID ? ' https://*.clarity.ms https://c.bing.com' : ''}`,
   "object-src 'none'",
   "base-uri 'self'",
   "form-action 'self'",
@@ -354,8 +359,9 @@ async function handleTrack(req, res) {
   if (!auth.sessionFrom(req)) {
     let body = null;
     try { body = JSON.parse(raw.toString('utf8')); } catch { /* not ours */ }
-    const country = TRUST_PROXY ? String(req.headers['cf-ipcountry'] || '').toUpperCase() : '';
-    analytics.record(body, { ip: clientIp(req), ua: String(req.headers['user-agent'] || '').slice(0, 400), country });
+    const ip = clientIp(req);
+    const country = (TRUST_PROXY && String(req.headers['cf-ipcountry'] || '').toUpperCase()) || geo.country(ip);
+    analytics.record(body, { ip, ua: String(req.headers['user-agent'] || '').slice(0, 400), country });
   }
   res.writeHead(204, { ...SECURITY_HEADERS, 'Cache-Control': 'no-store' });
   res.end();

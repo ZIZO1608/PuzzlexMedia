@@ -42,6 +42,12 @@ are never written: visitors are counted with a daily anonymous code. Visitors wh
 site's privacy banner also get a random visit id, so the panel can show each visit's path. Bots and
 signed-in admins aren't counted. See `lib/analytics.js`.
 
+Each click also keeps where it landed (the element and the spot inside it), so «خريطة النقرات» can open the
+real page in the panel with a dot on every click, or one visitor's clicks in order. The country comes from
+the IP at the moment of the visit (`lib/geo.js`, DB-IP's free data, downloaded into `/data/geo` and refreshed
+monthly); the IP itself is not kept. With `CLARITY_ID` set, visitors who accept the banner are also recorded by
+Microsoft Clarity (videos and heatmaps at clarity.microsoft.com).
+
 ## Contact form
 
 Every message is appended to `/data/messages.jsonl` inside the container (a Docker volume, kept across
