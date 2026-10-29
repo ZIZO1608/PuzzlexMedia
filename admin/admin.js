@@ -1173,7 +1173,7 @@ async function viewStats(view) {
       tile(t.views, 'مشاهدات الصفحات'),
       tile(t.clicks, 'النقرات', 'على الأزرار والروابط'),
       tile(fmtDur(t.avgTime), 'متوسط الوقت في الصفحة'),
-      tile(t.sessions, 'زيارات بمسار كامل', `${t.consent}% من الزوار وافقوا · ${t.returning} عادوا أكثر من مرة`)),
+      tile(t.sessions, 'زيارات بمسار كامل', 'كل زيارة صفحةً بصفحة')),
     t.views || t.clicks ? null : h('p', { class: 'empty', style: 'margin-top:16px' }, 'لا زيارات مسجّلة في هذه الفترة بعد. تبدأ الأرقام بالظهور بعد نشر التحديث على الموقع.'),
     statChart(r.daily),
     h('div', { class: 'stat-grid' },
@@ -1288,7 +1288,7 @@ function statChart(daily) {
   return card;
 }
 
-// each visit of a visitor who pressed "موافق" in the site's banner, page by page
+// each visit, page by page
 function statSessions(sessions, projects) {
   const card = statCard('مسارات الزوار', 'آخر الزيارات بالتفصيل: الصفحات بالترتيب، الوقت في كل صفحة، وما ضغطوا عليه. تظهر فقط لمن وافق في شريط الخصوصية على الموقع.', null);
   if (!sessions.length) { card.append(h('p', { class: 'muted small' }, 'لا زيارات بمسار كامل بعد.')); return card; }

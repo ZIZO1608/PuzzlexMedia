@@ -749,19 +749,28 @@ html.has-cursor, html.has-cursor * { cursor: none !important; }
 .cta-band .btn { margin-top: 10px; }
 
 /* ---------- footer (every page) ---------- */
-.site-footer { position: relative; background: var(--ink-2); padding: 72px clamp(16px, 6vw, 96px) 26px; }
+.site-footer { position: relative; background: var(--ink-2); padding: 80px clamp(16px, 6vw, 96px) 30px; }
 .footer-edge { /* a row of puzzle tabs along the top edge */
   position: absolute; left: 0; right: 0; top: 0; height: 20px; translate: 0 -100%;
   background: radial-gradient(circle at 50% 100%, var(--ink-2) 11px, transparent 11.5px) 0 0 / 64px 20px repeat-x;
 }
-.footer-grid { display: grid; grid-template-columns: minmax(0, 1.5fr) repeat(3, minmax(0, 1fr)); gap: 40px; }
+/* intro first and wider; the rest share what's left (the socials column drops out when no links are set) */
+.footer-grid {
+  display: grid; grid-template-columns: minmax(0, 1.7fr); grid-auto-flow: column; grid-auto-columns: minmax(0, 1fr);
+  gap: 48px; align-items: start;
+}
 .footer-col a, .footer-col .placeholder { overflow-wrap: anywhere; } /* the domain can't wrap otherwise and pushed the page wider on phones */
-.footer-brand p { margin-top: 18px; color: var(--muted); line-height: 1.9; max-width: 32ch; }
+.footer-brand { display: flex; flex-direction: column; align-items: flex-start; }
+.footer-brand p { margin-top: 14px; color: var(--muted); line-height: 1.9; max-width: 34ch; }
+.footer-brand .footer-slogan { margin-top: 0; color: var(--text); font-weight: 900; font-size: clamp(24px, 2.4vw, 34px); line-height: 1.3; }
+.footer-cta { margin-top: 24px; }
 .footer-col { display: flex; flex-direction: column; align-items: flex-start; gap: 12px; }
 .footer-col h3 { font-family: var(--ar); font-weight: 800; font-size: 14px; color: var(--accent-text); margin-bottom: 4px; }
 .footer-col a { color: var(--muted); transition: color .2s ease; }
 .footer-col a:hover { color: var(--text); }
 .footer-col .placeholder { color: var(--muted); opacity: .7; border-bottom: 1px dashed var(--line); padding-bottom: 2px; }
+.footer-links { display: grid; grid-template-columns: repeat(2, max-content); gap: 12px 40px; justify-items: start; }
+.footer-links h3 { grid-column: 1 / -1; }
 .socials { display: flex; gap: 10px; }
 .socials a {
   width: 40px; height: 40px; border-radius: 50%; border: 1px solid var(--line);
@@ -769,11 +778,63 @@ html.has-cursor, html.has-cursor * { cursor: none !important; }
   transition: border-color .2s ease, color .2s ease, transform .2s ease;
 }
 .socials a:hover { border-color: var(--lime); color: var(--accent-text); transform: translateY(-2px); }
+/* small print on one side, the logo in the bottom-left corner (in both languages) */
 .footer-bottom {
-  margin-top: 54px; padding-top: 22px; border-top: 1px solid var(--line);
-  display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; color: var(--muted); font-size: 13px;
+  margin-top: 60px; padding-top: 28px; border-top: 1px solid var(--line);
+  display: flex; justify-content: space-between; align-items: center; gap: 20px; flex-wrap: wrap;
 }
-.footer-bottom > span:first-child { font-family: var(--lat); direction: ltr; }
+[dir="ltr"] .footer-bottom { flex-direction: row-reverse; }
+.footer-legal { display: flex; align-items: center; flex-wrap: wrap; gap: 8px 22px; color: var(--muted); font-size: 13px; }
+.footer-legal a { color: var(--muted); transition: color .2s ease; }
+.footer-legal a:hover { color: var(--text); }
+.footer-copy { font-family: var(--lat); direction: ltr; }
+
+/* the footer mark: assembles once in view (tile spins in, the white piece drops into place, the name slides out),
+   then floats with the hero's glint crossing it; hovering nudges the piece */
+.footer-mark { display: flex; align-items: center; gap: 18px; direction: ltr; }
+.fm-icon {
+  position: relative; flex: none; width: clamp(64px, 7vw, 92px); aspect-ratio: 1; overflow: hidden;
+  border-radius: 12.8%; /* the tile's rx: 38.78 / 302.86 */
+  animation: fm-float 6s ease-in-out infinite;
+  transition: scale .9s cubic-bezier(.34, 1.56, .64, 1), rotate .9s cubic-bezier(.34, 1.56, .64, 1), opacity .4s ease;
+}
+.fm-svg { display: block; width: 100%; height: 100%; }
+.fm-x { transition: opacity .5s ease .25s; }
+.fm-piece { transform-box: fill-box; transform-origin: center; transition: translate .7s cubic-bezier(.34, 1.7, .64, 1) .45s; }
+.fm-icon::before, .fm-icon::after { content: ""; position: absolute; pointer-events: none; }
+.fm-icon::before {
+  top: -30%; bottom: -30%; left: 0; width: 38%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, .12) 30%, rgba(255, 255, 255, .6) 50%, rgba(255, 255, 255, .12) 70%, transparent);
+  transform: translateX(-140%) skewX(-22deg);
+  animation: icon-glint 5s cubic-bezier(.45, 0, .25, 1) 1.4s infinite;
+}
+.fm-icon::after {
+  inset: 0; border-radius: inherit; opacity: 0;
+  box-shadow: inset 0 0 0 2px rgba(255, 255, 255, .55), inset 0 0 18px rgba(255, 255, 255, .25);
+  animation: icon-rim 5s ease-in-out 1.4s infinite;
+}
+.footer-mark .brand-name {
+  font-size: clamp(16px, 1.7vw, 24px); color: var(--text);
+  transition: opacity .5s ease .7s, translate .7s cubic-bezier(.2, .8, .2, 1) .7s, clip-path .7s cubic-bezier(.2, .8, .2, 1) .7s;
+}
+.footer-mark:hover .fm-piece { animation: fm-nudge .7s ease; }
+.footer-mark.is-armed:not(.is-in) .fm-icon { scale: .3; rotate: -60deg; opacity: 0; }
+.footer-mark.is-armed:not(.is-in) .fm-x { opacity: 0; }
+.footer-mark.is-armed:not(.is-in) .fm-piece { translate: 0 -320px; }
+.footer-mark.is-armed:not(.is-in) .brand-name { opacity: 0; translate: -18px 0; clip-path: inset(0 100% 0 0); }
+@keyframes fm-float {
+  0%, 100% { transform: translateY(0) rotate(-7deg); }
+  50% { transform: translateY(-6px) rotate(-3deg); }
+}
+@keyframes fm-nudge {
+  0%, 100% { rotate: 0deg; scale: 1; }
+  30% { rotate: 18deg; scale: 1.18; }
+  60% { rotate: -10deg; scale: .94; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .fm-icon, .fm-icon::before, .fm-icon::after, .footer-mark:hover .fm-piece { animation: none; }
+  .fm-icon { transform: rotate(-7deg); }
+}
 
 /* ---------- placeholder pages (until each page is built) ---------- */
 .soon { min-height: 70vh; display: grid; place-content: center; text-align: center; gap: 14px; padding: 140px 16px 80px; }
@@ -788,8 +849,9 @@ html.has-cursor, html.has-cursor * { cursor: none !important; }
   .reasons-stage { position: relative; height: auto; grid-template-columns: 1fr; padding: 80px 16px 70px; gap: 36px; }
   .reasons-board { justify-self: center; }
   .vision { height: 170vh; }
-  .footer-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 32px 20px; }
-  .footer-brand { grid-column: 1 / -1; }
+  .footer-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); grid-auto-flow: row; gap: 32px 20px; }
+  .footer-brand, .footer-links { grid-column: 1 / -1; }
+  .footer-bottom, [dir="ltr"] .footer-bottom { flex-direction: column-reverse; align-items: flex-start; gap: 22px; }
 }
 @media (prefers-reduced-motion: reduce) {
   .reasons, .vision { height: auto; }
@@ -1175,12 +1237,39 @@ img.cover { object-fit: cover; } /* uploaded project images fill their frame lik
 .cl-label { font-size: 12px; color: var(--muted); }
 .contact-lines a { font: 600 15px var(--lat); color: var(--accent-text); }
 .placeholder { color: var(--muted); font-style: italic; }
+/* WhatsApp green, a light running round its rim and a glint crossing its face */
+@property --wa-spin { syntax: "<angle>"; inherits: false; initial-value: 0deg; }
 .btn-whatsapp {
+  position: relative; isolation: isolate; overflow: hidden;
   display: inline-flex; justify-content: center; align-items: center; gap: 10px;
-  border: 1px solid var(--line); border-radius: 999px; padding: 13px 20px; font-weight: 700;
+  border-radius: 999px; padding: 14px 20px; font-weight: 800; color: #fff;
+  background: linear-gradient(135deg, #25D366, #128C7E);
+  box-shadow: 0 10px 30px -12px rgba(37, 211, 102, .75);
+  animation: wa-glow 2.8s ease-in-out infinite;
 }
+.btn-whatsapp::before {
+  content: ""; position: absolute; inset: 0; border-radius: inherit; padding: 2px; pointer-events: none;
+  background: conic-gradient(from var(--wa-spin), transparent 0 62%, rgba(255, 255, 255, .95) 80%, transparent 96%);
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor; mask-composite: exclude;
+  animation: wa-spin 2.6s linear infinite;
+}
+.btn-whatsapp::after {
+  content: ""; position: absolute; inset: 0; z-index: -1; pointer-events: none; /* above the green, under the label */
+  background: linear-gradient(105deg, transparent 35%, rgba(255, 255, 255, .45) 50%, transparent 65%);
+  transform: translateX(-120%);
+  animation: wa-glint 3.2s ease-in-out infinite;
+}
+.btn-whatsapp:hover { transform: translateY(-2px); }
 .btn-whatsapp[aria-disabled="true"] { opacity: .7; cursor: not-allowed; }
-.btn-whatsapp[href^="https://wa.me/"]:hover { border-color: #25D366; color: #25D366; }
+@keyframes wa-spin { to { --wa-spin: 360deg; } }
+@keyframes wa-glint { 0%, 30% { transform: translateX(-120%); } 70%, 100% { transform: translateX(120%); } }
+@keyframes wa-glow {
+  50% { box-shadow: 0 12px 38px -8px rgba(37, 211, 102, .95), 0 0 0 6px rgba(37, 211, 102, .12); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .btn-whatsapp, .btn-whatsapp::before, .btn-whatsapp::after { animation: none; }
+}
 .placeholder-tag { font-size: 11px; font-weight: 600; color: var(--muted); border: 1px dashed var(--line); border-radius: 999px; padding: 2px 8px; }
 .socials { display: flex; gap: 10px; }
 .socials a {
@@ -1390,9 +1479,11 @@ html .loader.is-leaving { display: grid; position: fixed; inset: 0; z-index: 900
   .footer-col { gap: 0; }
   .footer-col h3 { margin-bottom: 6px; }
   .footer-col a, .footer-col .placeholder { padding-block: 11px; }
+  .footer-links { gap: 0 40px; }
+  .footer-legal a { display: inline-block; padding-block: 12px; }
   .footer-col .socials { flex-wrap: wrap; }
   .footer-col .socials a { padding-block: 0; width: 44px; height: 44px; }
-  .contact-card a { display: inline-block; padding-block: 12px; }
+  .contact-card a:not(.btn) { display: inline-block; padding-block: 12px; }
   .piece-opt { min-height: 44px; }
   .form-submit { min-height: 52px; }
   .seg-btn { min-height: 44px; padding-inline: 16px; white-space: nowrap; }

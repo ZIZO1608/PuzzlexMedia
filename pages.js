@@ -58,6 +58,18 @@
   // switching language keeps the same project / picked services
   if (location.search) document.querySelectorAll('.lang-switch').forEach((l) => { l.search = location.search; });
   document.querySelectorAll('.site-footer .year').forEach((el) => { el.textContent = new Date().getFullYear(); });
+  // the footer mark assembles itself the first time it scrolls into view
+  const mark = document.querySelector('.footer-mark');
+  if (mark && 'IntersectionObserver' in window && !matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    mark.classList.add('is-armed');
+    void mark.offsetWidth; // commit the hidden state, so a footer already on screen still animates in
+    const io = new IntersectionObserver(([e]) => {
+      if (!e.isIntersecting) return;
+      mark.classList.add('is-in');
+      io.disconnect();
+    }, { threshold: 0.6 });
+    io.observe(mark);
+  }
 })();
 
 // a jigsaw outline as SVG path data: body `w` square at (ox, oy), tabs sized for a `tab`-sized piece
