@@ -18,6 +18,7 @@ input[readonly] { color: var(--muted); }
 .ivx-sum b { font-size: 14.5px; font-variant-numeric: tabular-nums; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .ivx-sum b.ok { color: var(--ok); }
 .ivx-sum b.warn { color: #ffd166; }
+.ivx-sum small.late { color: var(--danger); font-weight: 700; }
 .ivx-tools { gap: 10px; }
 .ivx-chips { display: flex; flex-wrap: wrap; gap: 6px; }
 .ivx-chips .chip {
@@ -27,11 +28,12 @@ input[readonly] { color: var(--muted); }
 .ivx-chips .chip .n { font-size: 11.5px; color: var(--muted); }
 .ivx-chips .chip.on { background: var(--lime); border-color: var(--lime); color: #0a0a0b; }
 .ivx-chips .chip.on .n { color: rgba(10, 10, 11, .6); }
-.ivx-status-sel { width: auto; min-width: 150px; padding-block: 8px; }
+.ivx-filter { width: 200px; }
+.ivx-filter .ivdd-btn { min-height: 40px; border-radius: 999px; font-size: 14px; }
 
 .ivx-list { display: grid; gap: 8px; }
 .ivx-row {
-  display: grid; grid-template-columns: minmax(0, 1fr) auto 118px auto; align-items: center; gap: 14px;
+  display: grid; grid-template-columns: minmax(0, 1fr) auto 128px auto; align-items: center; gap: 14px;
   padding: 12px 14px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--ink-2);
   border-inline-start: 3px solid var(--lime); transition: border-color .2s;
 }
@@ -53,7 +55,18 @@ input[readonly] { color: var(--muted); }
 .st-partial { background: rgba(255, 209, 102, .14); color: #ffd166; }
 .st-paid, .st-issued, .st-accepted { background: rgba(126, 231, 135, .14); color: var(--ok); }
 .st-cancelled, .st-rejected { background: rgba(255, 107, 107, .12); color: var(--danger); text-decoration: line-through; }
-.ivx-acts { display: flex; gap: 6px; justify-content: flex-end; }
+.ivx-acts { display: flex; gap: 6px; justify-content: flex-end; align-items: center; }
+.ivx-sts { display: grid; gap: 4px; justify-items: center; }
+.st-late { background: rgba(255, 107, 107, .12); color: var(--danger); text-decoration: none; }
+.ivx-row.is-late { border-inline-start-color: var(--danger); }
+
+/* one height for every control in the editor, so fields on a row line up */
+.ivx-form .three, .ivx-form .two, .editor .two { align-items: start; }
+.ivx-form input:not([type="search"]):not([readonly]), .ivx-form .ivdd-btn, .editor .ivdd-btn { min-height: 50px; }
+.hint.warn { color: #ffb86b; }
+.hint.warn:empty { display: none; }
+.ivx-terms { gap: 6px; }
+.ivx-terms .chip { min-height: 30px; padding: 0 11px; font-size: 12.5px; }
 
 /* the editor: the form, and the A4 sheet beside it */
 .ivx-editor { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 22px; align-items: start; }
@@ -68,16 +81,16 @@ input[readonly] { color: var(--muted); }
 
 .ivx-items { display: grid; gap: 10px; }
 .ivx-item {
-  display: grid; grid-template-columns: auto minmax(0, 1fr) 84px 120px; grid-template-areas: "n desc qty price" ". end end end";
+  display: grid; align-items: end; grid-template-columns: auto minmax(0, 1fr) 84px 130px; grid-template-areas: "n desc qty price" ". end end end";
   gap: 8px 10px; padding: 12px; border: 1px solid var(--line); border-radius: 14px; background: var(--ink);
 }
-.ivx-item > .tag { grid-area: n; align-self: start; margin-top: 30px; }
+.ivx-item > .tag { grid-area: n; align-self: center; margin-top: 26px; }
 .ivx-desc { grid-area: desc; }
-.ivx-item .ivx-n:nth-of-type(2) { grid-area: qty; }
-.ivx-item .ivx-n:nth-of-type(3) { grid-area: price; }
-.ivx-item textarea { min-height: 46px; field-sizing: content; }
+.ivx-item .ivx-qty { grid-area: qty; }
+.ivx-item .ivx-price { grid-area: price; }
+.ivx-item textarea { min-height: 50px; field-sizing: content; resize: none; }
 .ivx-item input { padding-inline: 10px; }
-.ivx-item-end { grid-area: end; display: flex; justify-content: space-between; align-items: center; gap: 10px; }
+.ivx-item-end { grid-area: end; display: flex; flex-wrap: wrap; justify-content: space-between; align-items: center; gap: 10px; }
 .ivx-line { font-variant-numeric: tabular-nums; }
 .ivx-add { justify-self: start; }
 
@@ -108,6 +121,9 @@ input[readonly] { color: var(--muted); }
   .ivx-item { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); grid-template-areas: "desc desc" "qty price" "end end"; }
   .ivx-item > .tag { display: none; }
   .ivx-tools .tm-search { max-width: none; }
+  .ivx-filter { width: calc(50% - 5px); }
+  .ivx-sts { justify-items: start; }
+  .ivx-item .ivx-qty, .ivx-item .ivx-price { align-self: end; }
 }
 
 /* «تنزيل PDF» from the panel: only the sheet goes to the printer */
@@ -117,3 +133,57 @@ input[readonly] { color: var(--muted); }
   body.ivd-printing #ivd-print { display: block; }
   body.ivd-printing { background: #fff !important; }
 }
+
+/* ---------- dropdowns (ivDrop) and action menus (ivMenu) ---------- */
+.ivdd { position: relative; min-width: 0; }
+.ivmm { display: inline-block; }
+.ivdd-btn {
+  width: 100%; min-height: 46px; display: flex; align-items: center; gap: 10px; padding: 0 14px;
+  background: var(--ink); border: 1px solid var(--line-2); border-radius: 12px; font-size: 15.5px; cursor: pointer;
+  text-align: start; transition: border-color .2s, box-shadow .2s;
+}
+.ivdd-btn:hover:not(:disabled) { border-color: rgba(215, 255, 0, .55); }
+.ivdd-btn[aria-expanded="true"], .ivdd-btn:focus-visible { outline: none; border-color: var(--lime); box-shadow: 0 0 0 3px rgba(215, 255, 0, .15); }
+.ivdd-btn:disabled { opacity: .55; cursor: not-allowed; }
+.ivdd-label { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ivdd-chev {
+  flex: none; width: 8px; height: 8px; margin-inline-start: 2px; border: solid currentColor; border-width: 0 2px 2px 0;
+  opacity: .65; transform: translateY(-2px) rotate(45deg); transition: transform .2s;
+}
+.ivdd-btn[aria-expanded="true"] .ivdd-chev { transform: translateY(2px) rotate(-135deg); opacity: 1; color: var(--lime); }
+i.ivdd-dot { flex: none; width: 9px; height: 9px; padding: 0; border-radius: 50%; background: currentColor !important; color: var(--muted); }
+i.ivdd-dot.st-late { color: var(--danger); }
+.ivmm-btn[aria-expanded="true"] { border-color: var(--lime); color: var(--lime); }
+
+.ivdd-pop {
+  position: absolute; z-index: 40; top: calc(100% + 6px); inset-inline-start: 0;
+  min-width: max(100%, 200px); width: max-content; max-width: min(440px, calc(100vw - 24px));
+  display: grid; gap: 6px; padding: 6px; border: 1px solid var(--line-2); border-radius: 14px; background: var(--ink-3);
+  box-shadow: 0 24px 60px rgba(0, 0, 0, .65), 0 0 0 1px rgba(0, 0, 0, .4); animation: ivdd-in .14s ease-out;
+}
+.ivdd-pop.up { top: auto; bottom: calc(100% + 6px); animation-name: ivdd-up; }
+.ivdd-pop.end { inset-inline-start: auto; inset-inline-end: 0; }
+@keyframes ivdd-in { from { opacity: 0; transform: translateY(-6px); } }
+@keyframes ivdd-up { from { opacity: 0; transform: translateY(6px); } }
+.ivdd-pop .ivdd-search { padding: 9px 12px; font-size: 14px; border-radius: 10px; }
+.ivdd-list { position: relative; display: grid; gap: 2px; max-height: 300px; overflow-y: auto; overscroll-behavior: contain; }
+.ivdd-list::-webkit-scrollbar-track { background: var(--ink-3); }
+.ivdd-list::-webkit-scrollbar-thumb { border-color: var(--ink-3); }
+.ivdd-opt {
+  display: flex; align-items: center; gap: 10px; width: 100%; padding: 9px 12px; border: 0; border-radius: 10px;
+  background: none; color: var(--text); font-size: 14.5px; text-align: start; cursor: pointer;
+}
+.ivdd-opt:hover, .ivdd-opt:focus { outline: none; background: var(--ink-4); }
+.ivdd-opt:focus-visible { box-shadow: inset 0 0 0 1px var(--lime); }
+.ivdd-opt[aria-selected="true"] { color: var(--lime); font-weight: 700; }
+.ivdd-opt[aria-disabled="true"] { opacity: .4; cursor: default; }
+.ivdd-opt[aria-disabled="true"]:hover { background: none; }
+.ivdd-opt.danger { color: var(--danger); }
+.ivdd-opt.danger:hover, .ivdd-opt.danger:focus { background: rgba(255, 107, 107, .12); }
+.ivdd-text { flex: 1; min-width: 0; display: grid; }
+.ivdd-text small { color: var(--muted); font-size: 12px; font-weight: 400; }
+.ivdd-check { margin-inline-start: auto; font-weight: 900; }
+.ivdd-empty { padding: 10px 12px; color: var(--muted); font-size: 13.5px; }
+.ivdd-pop hr { border: 0; border-top: 1px solid var(--line); margin: 4px 6px; }
+.ivmm-ico { width: 18px; text-align: center; opacity: .75; font-weight: 800; }
+@media (prefers-reduced-motion: reduce) { .ivdd-pop { animation: none; } .ivdd-chev { transition: none; } }
