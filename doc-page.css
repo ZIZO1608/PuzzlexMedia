@@ -1,0 +1,31 @@
+/* PuzzleX — the page around a shared invoice (doc.html): dark like the site, the sheet in the middle */
+* { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { background: #0a0a0b; color: #f4f4f1; font-family: "Alexandria", system-ui, sans-serif; }
+[hidden] { display: none !important; }
+.dp-bar {
+  position: sticky; top: 0; z-index: 2; display: flex; justify-content: space-between; align-items: center; gap: 12px;
+  padding: 12px max(16px, calc(50% - 420px)); background: rgba(10, 10, 11, .86); backdrop-filter: blur(10px);
+  border-bottom: 1px solid rgba(244, 244, 241, .1);
+}
+.dp-brand { display: inline-flex; align-items: center; gap: 8px; font-weight: 900; letter-spacing: .08em; direction: ltr; }
+.dp-brand img { border-radius: 8px; }
+.dp-brand span { color: #D8FF06; font-weight: 400; }
+.dp-btn {
+  min-height: 44px; padding: 0 22px; border: 0; border-radius: 999px; cursor: pointer;
+  background: #D8FF06; color: #0a0a0b; font: 800 14px "Alexandria", system-ui, sans-serif;
+  box-shadow: 0 10px 30px -12px rgba(216, 255, 6, .7); transition: transform .15s;
+}
+.dp-btn:hover { transform: translateY(-2px); }
+.dp-btn:focus-visible { outline: 2px solid #fff; outline-offset: 3px; }
+.dp-main { display: grid; justify-items: center; padding: 28px 12px 60px; }
+.dp-msg { padding: 80px 16px; color: rgba(244, 244, 241, .7); text-align: center; line-height: 1.9; }
+.dp-paper { position: relative; }
+.dp-paper .ivd { transform-origin: top left; border-radius: 6px; box-shadow: 0 30px 80px rgba(0, 0, 0, .55); }
+html[dir="rtl"] .dp-paper .ivd { transform-origin: top right; }
+html[dir="rtl"] .dp-paper { direction: rtl; }
+@media print {
+  .dp-bar { display: none !important; }
+  .dp-main { padding: 0; display: block; }
+  .dp-paper { width: auto !important; height: auto !important; }
+  .dp-paper .ivd { transform: none !important; }
+}

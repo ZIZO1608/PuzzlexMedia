@@ -29,8 +29,8 @@
   <meta name="twitter:card" content="summary_large_image">
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Alexandria:wght@300;400;600;800;900&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="../styles.css?v=79">
+  <link href="https://fonts.googleapis.com/css2?family=Alexandria:wght@300;400;600;800;900&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../styles.css?v=81">
 </head>
 <body>
   <div class="loader" role="status" aria-live="polite" aria-label="Loading">
@@ -60,6 +60,7 @@
           <a href="services.html">Services</a>
           <a href="work.html">Work</a>
           <a href="feedback.html">Feedback</a>
+          <a href="blog.html">Blog</a>
         </nav>
         <div class="top-actions">
           <a class="lang-switch" href="../" hreflang="ar" lang="ar" aria-label="العربية">ع</a>
@@ -190,16 +191,101 @@
     </div>
   </section>
 
+  <!-- ===== Every partner logo on two moving rows (extras.js, from the admin panel's logos); more logos only make it longer ===== -->
+  <section class="logo-strip" aria-label="Our partners’ logos">
+    <div class="ls-rows" data-logo-strip></div>
+  </section>
+
   <!-- ===== Client feedback: up to 6 cards from the admin panel (the rest on feedback.html); left out while there are none ===== -->
   <section class="testimonials" aria-labelledby="testimonials-title">
     <div class="tm-stage">
       <header class="tm-head">
-        <p class="kicker">CLIENT FEEDBACK</p>
-        <h2 class="section-title" id="testimonials-title">What our clients say</h2>
-        <p class="tm-sub">In their own words… about the pieces we completed together.</p>
+        <div class="tm-head-text">
+          <h2 class="section-title" id="testimonials-title">What our clients say</h2>
+          <p class="tm-sub">In their own words… about the pieces we completed together.</p>
+        </div>
+        <div class="tm-score" data-tm-score></div>
       </header>
       <div class="tm-list" data-testimonials></div>
-      <a class="btn btn-ghost tm-all" href="feedback.html">All client feedback <span class="tm-all-count"></span></a>
+      <div class="tm-foot">
+        <div class="tm-dots" aria-hidden="true"></div>
+        <a class="btn btn-ghost tm-all" href="feedback.html">All client feedback <span class="tm-all-count"></span></a>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== Service request: pick the pieces the project needs; the button opens the contact form with them already chosen ===== -->
+  <section class="request" id="request" aria-labelledby="request-title">
+    <div class="rq-stage">
+      <header class="rq-head">
+        <h2 class="section-title" id="request-title">Request a service</h2>
+        <p class="rq-sub">Pick the pieces your project is missing, and we’ll come back with a clear proposal within 48 hours.</p>
+      </header>
+      <div class="rq-grid" data-request>
+        <article class="rq-card">
+          <span class="rq-num" aria-hidden="true">01</span>
+          <h3>Creative services</h3>
+          <p>An identity people know at first glance, and designs and video that stop the scroll.</p>
+          <div class="rq-opts">
+            <button class="rq-opt" type="button" data-id="identity" aria-pressed="false">Visual identity</button>
+            <button class="rq-opt" type="button" data-id="social-design" aria-pressed="false">Social media design</button>
+            <button class="rq-opt" type="button" data-id="ad-edit" aria-pressed="false">Ad editing</button>
+            <button class="rq-opt" type="button" data-id="profiles" aria-pressed="false">Profiles & decks</button>
+          </div>
+        </article>
+        <article class="rq-card">
+          <span class="rq-num" aria-hidden="true">02</span>
+          <h3>Marketing services</h3>
+          <p>Content with a plan, engagement managed daily, and numbers that show what works.</p>
+          <div class="rq-opts">
+            <button class="rq-opt" type="button" data-id="copywriting" aria-pressed="false">Marketing copywriting</button>
+            <button class="rq-opt" type="button" data-id="content-plan" aria-pressed="false">Monthly content plan</button>
+            <button class="rq-opt" type="button" data-id="community" aria-pressed="false">Community management</button>
+            <button class="rq-opt" type="button" data-id="kpi" aria-pressed="false">Performance analysis</button>
+          </div>
+        </article>
+        <article class="rq-card">
+          <span class="rq-num" aria-hidden="true">03</span>
+          <h3>LinkedIn services</h3>
+          <p>A profile that draws opportunities, and a company page clients and talent trust.</p>
+          <div class="rq-opts">
+            <button class="rq-opt" type="button" data-id="li-profile" aria-pressed="false">Profile optimization</button>
+            <button class="rq-opt" type="button" data-id="li-content" aria-pressed="false">Weekly expert content</button>
+            <button class="rq-opt" type="button" data-id="li-audit" aria-pressed="false">Company page audit</button>
+            <button class="rq-opt" type="button" data-id="li-ads" aria-pressed="false">Paid campaigns</button>
+          </div>
+        </article>
+        <article class="rq-card">
+          <span class="rq-num" aria-hidden="true">04</span>
+          <h3>Software services</h3>
+          <p>Websites, stores and systems that work the way your team works, not the other way round.</p>
+          <div class="rq-opts">
+            <button class="rq-opt" type="button" data-id="dev-website" aria-pressed="false">Websites</button>
+            <button class="rq-opt" type="button" data-id="dev-store" aria-pressed="false">E-commerce</button>
+            <button class="rq-opt" type="button" data-id="dev-app" aria-pressed="false">Mobile apps</button>
+            <button class="rq-opt" type="button" data-id="dev-custom" aria-pressed="false">Custom systems & dashboards</button>
+          </div>
+        </article>
+      </div>
+      <div class="rq-bar">
+        <p class="rq-count" aria-live="polite">Pick one service or more, or ask for advice if you’re not sure yet.</p>
+        <div class="rq-actions">
+          <a class="btn btn-primary rq-go" href="contact.html">Request the service</a>
+          <a class="btn btn-ghost rq-help" href="contact.html?services=other">Help me choose</a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== Latest articles: the newest three from the admin panel (blog.html has them all); left out while there are none ===== -->
+  <section class="blog-home" aria-labelledby="blog-home-title">
+    <div class="bh-stage">
+      <header class="bh-head">
+        <h2 class="section-title" id="blog-home-title">From the blog</h2>
+        <p class="bh-sub">Practical ideas on identity, content, marketing and LinkedIn, from the PuzzleX team.</p>
+      </header>
+      <div class="blog-grid" data-latest-articles></div>
+      <a class="btn btn-ghost bh-all" href="blog.html">All articles</a>
     </div>
   </section>
 
@@ -218,6 +304,7 @@
         <a href="services.html">Services</a>
         <a href="work.html">Work</a>
         <a href="feedback.html">Feedback</a>
+        <a href="blog.html">Blog</a>
         <a href="contact.html">Contact us</a>
       </nav>
       <div class="footer-col">
@@ -259,9 +346,10 @@
   <script src="../assets/vendor/lenis.min.js?v=1327"></script>
   <script src="../scroll.js?v=2"></script>
   <script src="../main.js?v=65"></script>
-  <script src="../sections.js?v=58"></script>
+  <script src="../sections.js?v=60"></script>
   <script src="../cursor.js?v=55"></script>
   <script src="../music.js?v=1"></script>
   <script src="../pages.js?v=69"></script>
+  <script src="../extras.js?v=2"></script>
 </body>
 </html>

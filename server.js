@@ -22,6 +22,8 @@ const { createMail } = require('./lib/mail');
 const { serviceNames } = require('./lib/services');
 const { createAnalytics } = require('./lib/analytics');
 const { createGeo } = require('./lib/geo');
+const { createInvoices } = require('./lib/invoices');
+const { articlePage, shownIn, hasLang, articleHref } = require('./lib/articles');
 
 const ROOT = __dirname;
 const PORT = Number(process.argv[2] || process.env.PORT || 8080);
@@ -36,10 +38,14 @@ const TRUST_PROXY = process.env.TRUST_PROXY === '1';
 // editable content (admin panel) lives in DATA_DIR next to the messages; see lib/store.js
 const store = createStore({ dataDir: DATA_DIR, root: ROOT });
 store.seed();
+store.applyReviewTranslations(path.join(ROOT, 'content', 'reviews-en.json'))
+  .then((n) => n && console.log(`[content] English added to ${n} client review(s)`), (err) => console.error('[content] review translations:', err.message));
 const auth = createAuth({ store, secureCookies: () => process.env.COOKIE_SECURE !== '0' });
 // Microsoft Clarity (recordings and heatmaps), loaded by track.js only for visitors who press «موافق»
 const CLARITY_ID = /^[a-z0-9]{6,20}$/i.test(process.env.CLARITY_ID || '') ? process.env.CLARITY_ID : '';
-const content = createContent({ root: ROOT, store, siteUrl: SITE_URL, clarityId: CLARITY_ID });
+// Google Search Console: the code from its "HTML tag" verification method (only the content="…" value)
+const GOOGLE_VERIFICATION = /^[\w-]{10,100}$/.test(process.env.GOOGLE_SITE_VERIFICATION || '') ? process.env.GOOGLE_SITE_VERIFICATION : '';
+const content = createContent({ root: ROOT, store, siteUrl: SITE_URL, clarityId: CLARITY_ID, googleVerification: GOOGLE_VERIFICATION });
 // visitor statistics for the admin panel, kept in DATA_DIR/analytics (lib/analytics.js, sent by track.js)
 const analytics = createAnalytics({ dataDir: DATA_DIR, keepDays: Number(process.env.ANALYTICS_DAYS) || 395 });
 // the visitor's country from their IP (lib/geo.js, downloads its own data); GEO=0 turns it off
@@ -50,7 +56,7 @@ const indexNow = createIndexNow({
   signature: () => {
     const h = crypto.createHash('sha1');
     for (const page of PAGES) for (const f of [page, path.join('en', page)]) { try { h.update(fs.readFileSync(path.join(ROOT, f))); } catch { /* no such page */ } }
-    for (const name of ['texts.json', 'projects.json', 'partners.json', 'settings.json', 'testimonials.json']) h.update(JSON.stringify(store.read(name, null)));
+    for (const name of ['texts.json', 'projects.json', 'partners.json', 'settings.json', 'testimonials.json', 'articles.json']) h.update(JSON.stringify(store.read(name, null)));
     return h.digest('hex');
   },
 });
@@ -66,7 +72,7 @@ const MIME = {
 const COMPRESSIBLE = new Set(['.html', '.css', '.js', '.json', '.svg', '.txt', '.xml']);
 // the server's own files sit next to the site: never hand them out
 const PRIVATE = new Set(['server.js', 'package.json', 'package-lock.json', 'dockerfile', 'docker-compose.yml',
-  'readme.md', 'node_modules', 'source-files', 'data', 'lib', 'tools', 'mobile-ui', 'user-guide', 'portfolio-kit']);
+  'readme.md', 'node_modules', 'source-files', 'content', 'data', 'lib', 'tools', 'mobile-ui', 'user-guide', 'portfolio-kit']);
 
 const SECURITY_HEADERS = {
   'X-Content-Type-Options': 'nosniff',
@@ -150,10 +156,16 @@ async function pageEntry(file) {
 // sitemap.xml: the pages plus every project in the admin panel, each in both languages
 let sitemap = null; // { version, entry }
 const hasFeedback = () => store.read('testimonials.json', []).some((t) => t.visible !== false); // else the page is an empty shell
-const sitePaths = () => ['', 'about.html', 'services.html', 'work.html', ...(hasFeedback() ? ['feedback.html'] : []), 'contact.html', 'privacy.html',
+const articles = () => store.read('articles.json', []);
+const sitePaths = () => ['', 'about.html', 'services.html', 'work.html', ...(hasFeedback() ? ['feedback.html'] : []), 'blog.html', 'contact.html', 'privacy.html',
   ...store.read('projects.json', { projects: [] }).projects.map((p) => `project.html?id=${encodeURIComponent(p.id)}`)];
 // every indexable address, both languages (the sitemap's <loc>s; also what IndexNow submits)
-const siteUrls = () => sitePaths().flatMap((p) => [`${SITE_URL}/${p}`, `${SITE_URL}/en/${p}`]);
+// each article only in the languages it's written in (lib/articles.js)
+const articleLangs = () => articles().filter((a) => a.published !== false)
+  .map((a) => ({ p: articleHref(a), langs: ['ar', 'en'].filter((l) => hasLang(a, l)), date: a.updated || a.date }))
+  .filter((x) => x.langs.length);
+const siteUrls = () => [...sitePaths().flatMap((p) => [`${SITE_URL}/${p}`, `${SITE_URL}/en/${p}`]),
+  ...articleLangs().flatMap((x) => x.langs.map((l) => `${SITE_URL}/${l === 'en' ? 'en/' : ''}${x.p}`))];
 
 function sitemapEntry() {
   if (!sitemap || sitemap.version !== store.version) {
@@ -167,6 +179,13 @@ ${paths.flatMap((p) => ['ar', 'en'].map((lang) => `  <url>
     <xhtml:link rel="alternate" hreflang="en" href="${url('en', p)}"/>
     <xhtml:link rel="alternate" hreflang="x-default" href="${url('ar', p)}"/>
   </url>`)).join('\n')}
+${articleLangs().flatMap((x) => x.langs.map((lang) => `  <url>
+    <loc>${url(lang, x.p)}</loc>
+    <lastmod>${esc(x.date)}</lastmod>
+${x.langs.length === 2 ? `    <xhtml:link rel="alternate" hreflang="ar" href="${url('ar', x.p)}"/>
+    <xhtml:link rel="alternate" hreflang="en" href="${url('en', x.p)}"/>
+    <xhtml:link rel="alternate" hreflang="x-default" href="${url('ar', x.p)}"/>
+` : ''}  </url>`)).join('\n')}
 </urlset>
 `;
     sitemap = { version: store.version, entry: makeEntry(Buffer.from(xml), '.xml') };
@@ -427,6 +446,8 @@ async function readBody(req, limit) {
 }
 
 const admin = createAdmin({ store, auth, content, clientIp, json, readBody, serviceLabels: SERVICES, mail, analytics });
+// the client's copy of an invoice / receipt / quotation: /doc/<token> (doc.html, which fetches /api/doc/<token>)
+const invoices = createInvoices({ store, readBody });
 
 const server = http.createServer(async (req, res) => {
   try {
@@ -442,6 +463,18 @@ const server = http.createServer(async (req, res) => {
       return await handleContact(req, res);
     }
     if (p.startsWith('/api/admin/')) return await admin(req, res, p);
+    // a client's invoice / receipt / quotation, for whoever has the link: never indexed, never cached by a proxy
+    if (/^\/(api\/)?doc(\/|\.html$)/.test(p)) {
+      if (req.method !== 'GET' && req.method !== 'HEAD') { res.setHeader('Allow', 'GET, HEAD'); return json(res, 405, { ok: false }); }
+      res.setHeader('X-Robots-Tag', 'noindex, nofollow');
+      const shared = p.match(/^\/(api\/)?doc\/([a-f0-9]{24})$/);
+      if (shared && shared[1]) {
+        const doc = invoices.getShared(shared[2]);
+        return doc ? json(res, 200, { ok: true, ...doc }) : json(res, 404, { ok: false });
+      }
+      if (!shared) return p.startsWith('/api/') ? json(res, 404, { ok: false }) : await notFound(req, res, p);
+      return send(req, res, 200, await load(path.join(ROOT, 'doc.html')), '.html', { 'Cache-Control': 'no-store', 'Referrer-Policy': 'no-referrer' });
+    }
     if (req.method !== 'GET' && req.method !== 'HEAD') { res.setHeader('Allow', 'GET, HEAD'); return json(res, 405, { ok: false }); }
 
     // one address per page, so search engines don't see the same page several times:
@@ -478,6 +511,15 @@ const server = http.createServer(async (req, res) => {
     const ext = path.extname(file).toLowerCase();
     let entry = await pageEntry(file);
 
+    // an article: drawn in full on the server; an unknown one, or one not written in this language, is a 404
+    if (path.basename(file) === 'article.html') {
+      const lang = file.includes(`${path.sep}en${path.sep}`) ? 'en' : 'ar';
+      const list = articles();
+      const a = shownIn(list, lang).find((x) => x.id === url.searchParams.get('id'));
+      if (!a) return await notFound(req, res, p);
+      const html = articlePage(entry.body.toString('utf8'), a, lang, list, { seo: content.seo, siteUrl: SITE_URL, settings: store.read('settings.json', {}) });
+      return send(req, res, 200, makeEntry(Buffer.from(html), '.html'), ext, { 'Cache-Control': 'no-cache' });
+    }
     if (path.basename(file) === 'project.html' && url.searchParams.get('id')) {
       const html = projectPage(entry.body.toString('utf8'), url.searchParams.get('id'), file.includes(`${path.sep}en${path.sep}`));
       if (html) entry = makeEntry(Buffer.from(html), '.html');

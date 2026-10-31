@@ -30,7 +30,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Alexandria:wght@300;400;600;800;900&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="styles.css?v=79">
+  <link rel="stylesheet" href="styles.css?v=81">
 </head>
 <body>
   <div class="loader" role="status" aria-live="polite" aria-label="جارٍ التحميل">
@@ -60,6 +60,7 @@
           <a href="services.html">خدماتنا</a>
           <a href="work.html">أعمالنا</a>
           <a href="feedback.html">آراء العملاء</a>
+          <a href="blog.html">المدونة</a>
         </nav>
         <div class="top-actions">
           <a class="lang-switch" href="en/" hreflang="en" lang="en" aria-label="English">EN</a>
@@ -190,16 +191,101 @@
     </div>
   </section>
 
+  <!-- ===== Every partner logo on two moving rows (extras.js, from the admin panel's logos); more logos only make it longer ===== -->
+  <section class="logo-strip" aria-label="شعارات شركاء النجاح">
+    <div class="ls-rows" data-logo-strip></div>
+  </section>
+
   <!-- ===== Client feedback: up to 6 cards from the admin panel (the rest on feedback.html); left out while there are none ===== -->
   <section class="testimonials" aria-labelledby="testimonials-title">
     <div class="tm-stage">
       <header class="tm-head">
-        <p class="kicker">CLIENT FEEDBACK</p>
-        <h2 class="section-title" id="testimonials-title">ماذا يقول عملاؤنا</h2>
-        <p class="tm-sub">بكلماتهم… عن القطع التي أكملناها معاً.</p>
+        <div class="tm-head-text">
+          <h2 class="section-title" id="testimonials-title">ماذا يقول عملاؤنا</h2>
+          <p class="tm-sub">بكلماتهم… عن القطع التي أكملناها معاً.</p>
+        </div>
+        <div class="tm-score" data-tm-score></div>
       </header>
       <div class="tm-list" data-testimonials></div>
-      <a class="btn btn-ghost tm-all" href="feedback.html">كل آراء العملاء <span class="tm-all-count"></span></a>
+      <div class="tm-foot">
+        <div class="tm-dots" aria-hidden="true"></div>
+        <a class="btn btn-ghost tm-all" href="feedback.html">كل آراء العملاء <span class="tm-all-count"></span></a>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== Service request: pick the pieces the project needs; the button opens the contact form with them already chosen ===== -->
+  <section class="request" id="request" aria-labelledby="request-title">
+    <div class="rq-stage">
+      <header class="rq-head">
+        <h2 class="section-title" id="request-title">اطلب خدمتك</h2>
+        <p class="rq-sub">اختر القطع التي تنقص مشروعك، ونعود إليك بعرض واضح خلال 48 ساعة.</p>
+      </header>
+      <div class="rq-grid" data-request>
+        <article class="rq-card">
+          <span class="rq-num" aria-hidden="true">01</span>
+          <h3>الخدمات الإبداعية</h3>
+          <p>هوية تُعرَف من النظرة الأولى، وتصاميم وفيديو يوقفان التمرير.</p>
+          <div class="rq-opts">
+            <button class="rq-opt" type="button" data-id="identity" aria-pressed="false">الهوية البصرية</button>
+            <button class="rq-opt" type="button" data-id="social-design" aria-pressed="false">تصاميم السوشال ميديا</button>
+            <button class="rq-opt" type="button" data-id="ad-edit" aria-pressed="false">المونتاج الإعلاني</button>
+            <button class="rq-opt" type="button" data-id="profiles" aria-pressed="false">البروفايلات والعروض</button>
+          </div>
+        </article>
+        <article class="rq-card">
+          <span class="rq-num" aria-hidden="true">02</span>
+          <h3>الخدمات التسويقية</h3>
+          <p>محتوى بخطة، وتفاعل يُدار يومياً، وأرقام تقول ما الذي ينجح.</p>
+          <div class="rq-opts">
+            <button class="rq-opt" type="button" data-id="copywriting" aria-pressed="false">كتابة المحتوى التسويقي</button>
+            <button class="rq-opt" type="button" data-id="content-plan" aria-pressed="false">خطة المحتوى الشهرية</button>
+            <button class="rq-opt" type="button" data-id="community" aria-pressed="false">إدارة التفاعل</button>
+            <button class="rq-opt" type="button" data-id="kpi" aria-pressed="false">تحليل الأداء</button>
+          </div>
+        </article>
+        <article class="rq-card">
+          <span class="rq-num" aria-hidden="true">03</span>
+          <h3>خدمات لينكدإن</h3>
+          <p>حساب يجذب الفرص، وصفحة شركة يثق بها العملاء والكفاءات.</p>
+          <div class="rq-opts">
+            <button class="rq-opt" type="button" data-id="li-profile" aria-pressed="false">تحسين الحساب</button>
+            <button class="rq-opt" type="button" data-id="li-content" aria-pressed="false">محتوى أسبوعي متخصص</button>
+            <button class="rq-opt" type="button" data-id="li-audit" aria-pressed="false">تدقيق حساب الشركة</button>
+            <button class="rq-opt" type="button" data-id="li-ads" aria-pressed="false">حملات ممولة</button>
+          </div>
+        </article>
+        <article class="rq-card">
+          <span class="rq-num" aria-hidden="true">04</span>
+          <h3>الخدمات البرمجية</h3>
+          <p>مواقع ومتاجر وأنظمة تعمل كما يعمل فريقك، لا العكس.</p>
+          <div class="rq-opts">
+            <button class="rq-opt" type="button" data-id="dev-website" aria-pressed="false">المواقع الإلكترونية</button>
+            <button class="rq-opt" type="button" data-id="dev-store" aria-pressed="false">التجارة الإلكترونية</button>
+            <button class="rq-opt" type="button" data-id="dev-app" aria-pressed="false">تطبيقات الجوال</button>
+            <button class="rq-opt" type="button" data-id="dev-custom" aria-pressed="false">أنظمة ولوحات تحكم مخصصة</button>
+          </div>
+        </article>
+      </div>
+      <div class="rq-bar">
+        <p class="rq-count" aria-live="polite">اختر خدمة أو أكثر، أو اطلب استشارة إن لم تكن متأكداً.</p>
+        <div class="rq-actions">
+          <a class="btn btn-primary rq-go" href="contact.html">اطلب الخدمة</a>
+          <a class="btn btn-ghost rq-help" href="contact.html?services=other">ساعدني في الاختيار</a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ===== Latest articles: the newest three from the admin panel (blog.html has them all); left out while there are none ===== -->
+  <section class="blog-home" aria-labelledby="blog-home-title">
+    <div class="bh-stage">
+      <header class="bh-head">
+        <h2 class="section-title" id="blog-home-title">من المدونة</h2>
+        <p class="bh-sub">أفكار عملية في الهوية والمحتوى والتسويق ولينكدإن، من فريق PuzzleX.</p>
+      </header>
+      <div class="blog-grid" data-latest-articles></div>
+      <a class="btn btn-ghost bh-all" href="blog.html">كل المقالات</a>
     </div>
   </section>
 
@@ -218,6 +304,7 @@
         <a href="services.html">خدماتنا</a>
         <a href="work.html">أعمالنا</a>
         <a href="feedback.html">آراء العملاء</a>
+        <a href="blog.html">المدونة</a>
         <a href="contact.html">تواصل معنا</a>
       </nav>
       <div class="footer-col">
@@ -238,7 +325,7 @@
     </div>
     <div class="footer-bottom">
       <div class="footer-legal">
-        <span class="footer-copy">© <span class="year">2026</span> PuzzleX Media</span>
+        <span class="footer-copy">© <span class="year">2026</span> شركة بزل إكس ميديا</span>
         <a href="privacy.html">سياسة الخصوصية</a>
       </div>
       <a class="footer-mark" href="./" aria-label="PuzzleX Media — الرئيسية">
@@ -259,9 +346,10 @@
   <script src="assets/vendor/lenis.min.js?v=1327"></script>
   <script src="scroll.js?v=2"></script>
   <script src="main.js?v=65"></script>
-  <script src="sections.js?v=58"></script>
+  <script src="sections.js?v=60"></script>
   <script src="cursor.js?v=55"></script>
   <script src="music.js?v=1"></script>
   <script src="pages.js?v=69"></script>
+  <script src="extras.js?v=2"></script>
 </body>
 </html>

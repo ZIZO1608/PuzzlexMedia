@@ -5,7 +5,7 @@ import re, sys, os
 
 ROOT = sys.argv[1]
 SITE = 'https://www.puzzlexmedia.com'
-PAGES = ['index.html', 'about.html', 'services.html', 'work.html', 'feedback.html', 'project.html', 'contact.html', 'privacy.html', '404.html']
+PAGES = ['index.html', 'about.html', 'services.html', 'work.html', 'feedback.html', 'blog.html', 'article.html', 'project.html', 'contact.html', 'privacy.html', '404.html']
 AR = re.compile('[؀-ۿ]')
 
 EN = {
@@ -19,7 +19,7 @@ EN = {
 'Instagram (الرابط يُضاف لاحقاً)': 'Instagram (link coming soon)', 'X (الرابط يُضاف لاحقاً)': 'X (link coming soon)',
 'Facebook (الرابط يُضاف لاحقاً)': 'Facebook (link coming soon)', 'كل قطعة لها مكان.': 'Every piece has its place.',
 'PuzzleX Media — نحن القطعة الناقصة في أحجيتك': 'PuzzleX Media — We are the missing piece in your puzzle',
-'ابدأ مشروعك': 'Start your project', 'سياسة الخصوصية': 'Privacy policy',
+'ابدأ مشروعك': 'Start your project', 'سياسة الخصوصية': 'Privacy policy', 'شركة بزل إكس ميديا': 'PuzzleX Media',
 # home
 'PuzzleX Media — قسمك الإبداعي الجاهز': 'PuzzleX Media — Your ready-made creative department',
 'نحن القطعة الناقصة في أحجيتك: تصميم، محتوى، تسويق وخدمات لينكدإن — قسمك الإبداعي الجاهز في الخليج.': 'We are the missing piece in your puzzle: design, content, marketing and LinkedIn services — your ready-made creative department in the Gulf.',
@@ -41,6 +41,34 @@ EN = {
 'شركاء النجاح': 'Partners in success',
 'ماذا يقول عملاؤنا': 'What our clients say', 'أكمل رسالتك': 'Finish your message',
 'كل آراء العملاء': 'All client feedback',
+# home: service request, logo strip, latest articles
+'اطلب خدمتك': 'Request a service',
+'اختر القطع التي تنقص مشروعك، ونعود إليك بعرض واضح خلال 48 ساعة.': 'Pick the pieces your project is missing, and we’ll come back with a clear proposal within 48 hours.',
+'الخدمات الإبداعية': 'Creative services', 'الخدمات التسويقية': 'Marketing services', 'خدمات لينكدإن': 'LinkedIn services', 'الخدمات البرمجية': 'Software services',
+'هوية تُعرَف من النظرة الأولى، وتصاميم وفيديو يوقفان التمرير.': 'An identity people know at first glance, and designs and video that stop the scroll.',
+'محتوى بخطة، وتفاعل يُدار يومياً، وأرقام تقول ما الذي ينجح.': 'Content with a plan, engagement managed daily, and numbers that show what works.',
+'حساب يجذب الفرص، وصفحة شركة يثق بها العملاء والكفاءات.': 'A profile that draws opportunities, and a company page clients and talent trust.',
+'مواقع ومتاجر وأنظمة تعمل كما يعمل فريقك، لا العكس.': 'Websites, stores and systems that work the way your team works, not the other way round.',
+'تصاميم السوشال ميديا': 'Social media design', 'الهوية البصرية': 'Visual identity', 'المونتاج الإعلاني': 'Ad video editing',
+'البروفايلات والعروض': 'Company profiles & decks', 'كتابة المحتوى التسويقي': 'Marketing copywriting', 'خطة المحتوى الشهرية': 'Monthly content plan',
+'إدارة التفاعل': 'Community management', 'تحليل الأداء': 'Performance analysis', 'تحسين الحساب': 'Profile optimization',
+'محتوى أسبوعي متخصص': 'Weekly expert content', 'تدقيق حساب الشركة': 'Company page audit', 'حملات ممولة': 'Paid campaigns',
+'المواقع الإلكترونية': 'Websites', 'التجارة الإلكترونية': 'E-commerce', 'تطبيقات الجوال': 'Mobile apps', 'أنظمة ولوحات تحكم مخصصة': 'Custom systems & dashboards',
+'اختر خدمة أو أكثر، أو اطلب استشارة إن لم تكن متأكداً.': 'Pick one service or more, or ask for advice if you’re not sure yet.',
+'اطلب الخدمة': 'Request the service', 'ساعدني في الاختيار': 'Help me choose',
+'شعارات شركاء النجاح': 'Our partners’ logos',
+'من المدونة': 'From the blog', 'أفكار عملية في الهوية والمحتوى والتسويق ولينكدإن، من فريق PuzzleX.': 'Practical ideas on identity, content, marketing and LinkedIn, from the PuzzleX team.',
+'كل المقالات': 'All articles', 'المدونة': 'Blog',
+# blog and article pages
+'المدونة: مقالات في التسويق والهوية والمحتوى | PuzzleX Media': 'Blog: articles on marketing, branding and content | PuzzleX Media',
+'مقالات عملية من PuzzleX Media في الهوية البصرية، كتابة المحتوى، التسويق على السوشال ميديا ولينكدإن، وبناء المواقع والأنظمة.': 'Practical articles from PuzzleX Media on visual identity, copywriting, social media and LinkedIn marketing, and building websites and systems.',
+'المدونة:': 'The blog:', 'قطعٌ من المعرفة.': 'pieces of know-how.',
+'مقالات عملية في الهوية البصرية والمحتوى والتسويق ولينكدإن، نكتبها مما نتعلمه كل يوم مع عملائنا.': 'Practical articles on visual identity, content, marketing and LinkedIn, written from what we learn every day with our clients.',
+'المقالات': 'Articles', 'لم ننشر مقالات بعد، وأولها في الطريق.': 'No articles yet: the first one is on its way.',
+'هل تبحث عن القطعة الناقصة؟': 'Looking for the missing piece?',
+'من الفكرة إلى التنفيذ: أخبرنا عن مشروعك، ونقترح عليك الخطوة التالية.': 'From idea to execution: tell us about your project and we’ll suggest the next step.',
+'مقال | PuzzleX Media': 'Article | PuzzleX Media', 'مقال من مدونة PuzzleX Media.': 'An article from the PuzzleX Media blog.',
+'كل المقالات': 'All articles', 'اقرأ أيضاً': 'Read next',
 # feedback page (and its link in every menu)
 'آراء العملاء': 'Feedback', 'آراء العملاء: تجارب حقيقية مع PuzzleX Media': 'Client feedback: real experiences with PuzzleX Media',
 'ماذا يقول عملاء PuzzleX Media عن العمل معنا: آراء وتقييمات حقيقية من منظمات وشركات وعلامات تجارية.': 'What PuzzleX Media clients say about working with us: real reviews and ratings from organizations, companies and brands.',
@@ -264,6 +292,8 @@ for page in PAGES:
     en, missing = translate(ar, page)
     en = en.replace('<html lang="ar" dir="rtl"', '<html lang="en" dir="ltr"', 1)
     en = en.replace('content="ar_AR"', 'content="en_US"')
+    # English text in Plus Jakarta Sans (styles.css switches --ar on html[lang="en"])
+    en = en.replace('family=Alexandria:wght@300;400;600;800;900&display=swap', 'family=Alexandria:wght@300;400;600;800;900&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap')
     slug = '' if page == 'index.html' else page
     en = en.replace(f'<meta property="og:url" content="{SITE}/{slug}">', f'<meta property="og:url" content="{SITE}/en/{slug}">')
     en = en.replace(f'<link rel="canonical" href="{SITE}/{slug}">', f'<link rel="canonical" href="{SITE}/en/{slug}">')

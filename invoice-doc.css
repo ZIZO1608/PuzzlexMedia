@@ -1,0 +1,116 @@
+/* PuzzleX — the A4 invoice / receipt / quotation sheet drawn by invoice-doc.js.
+   White paper that prints well; the brand's ink and lime as accents. 794px = 210mm at 96dpi. */
+.ivd {
+  --ink: #0a0a0b; --lime: #D8FF06; --paper: #fff; --text: #17171a; --muted: #6b6b72; --line: #e6e6e1; --soft: #f6f6f1;
+  position: relative; overflow: hidden; width: 794px; min-height: 1123px; padding: 50px 56px 88px;
+  display: flex; flex-direction: column; gap: 22px;
+  background: var(--paper); color: var(--text); font: 400 13px/1.65 "Alexandria", system-ui, sans-serif;
+  -webkit-print-color-adjust: exact; print-color-adjust: exact; text-align: start;
+}
+.ivd * { box-sizing: border-box; margin: 0; padding: 0; }
+.ivd p { white-space: pre-line; overflow-wrap: anywhere; }
+.ivd-ltr { direction: ltr; unicode-bidi: isolate; display: inline-block; }
+.ivd-ltr-val b { direction: ltr; unicode-bidi: isolate; }
+.ivd-ltr-block { direction: ltr; unicode-bidi: plaintext; text-align: start; }
+.ivd-muted { color: var(--muted); font-size: 12px; }
+.ivd-label { font-size: 11px; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); margin-bottom: 6px; }
+
+/* the corner: a lime puzzle notch on ink */
+.ivd::before {
+  content: ""; position: absolute; top: 0; inset-inline-end: 0; width: 210px; height: 14px; background: var(--ink);
+  border-end-start-radius: 14px;
+}
+.ivd::after {
+  content: ""; position: absolute; top: 0; inset-inline-end: 210px; width: 70px; height: 14px; background: var(--lime);
+}
+
+.ivd-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 30px; padding-top: 10px; }
+.ivd-brand { display: flex; gap: 16px; align-items: flex-start; min-width: 0; max-width: 58%; }
+.ivd-logo { flex: none; width: 62px; height: 62px; object-fit: contain; border-radius: 14px; }
+.ivd-company { font-size: 18px; font-weight: 800; color: var(--ink); line-height: 1.3; margin-bottom: 4px; }
+.ivd-title { text-align: end; flex: none; }
+.ivd-kind { font-size: 38px; font-weight: 900; line-height: 1.1; color: var(--ink); letter-spacing: -.01em; }
+.ivd-kind-en { font-size: 11px; font-weight: 700; letter-spacing: .32em; color: var(--muted); margin-top: 4px; }
+.ivd-number {
+  display: inline-block; margin-top: 12px; padding: 6px 14px; border-radius: 999px; direction: ltr;
+  background: var(--ink); color: var(--lime); font-weight: 700; font-size: 13px; letter-spacing: .04em;
+}
+.ivd-rule { height: 2px; background: linear-gradient(to var(--ivd-rule-dir, left), var(--ink) 0 72%, var(--lime) 72% 100%); border-radius: 2px; }
+.ivd[dir="ltr"] .ivd-rule { --ivd-rule-dir: right; }
+
+.ivd-parties { display: grid; grid-template-columns: minmax(0, 1.3fr) minmax(0, 1fr); gap: 24px; }
+.ivd-client { padding: 18px 20px; border-radius: 16px; background: var(--soft); border-inline-start: 4px solid var(--lime); }
+.ivd-client-name { font-size: 16px; font-weight: 800; color: var(--ink); }
+.ivd-meta { display: grid; align-content: start; gap: 8px; }
+.ivd-kv { display: flex; justify-content: space-between; align-items: baseline; gap: 16px; padding-bottom: 8px; border-bottom: 1px dashed var(--line); }
+.ivd-kv span { color: var(--muted); }
+.ivd-kv b { color: var(--ink); font-weight: 700; text-align: end; }
+
+.ivd-items { width: 100%; border-collapse: separate; border-spacing: 0; }
+.ivd-items th {
+  background: var(--ink); color: #fff; font-size: 11.5px; font-weight: 700; padding: 11px 12px; text-align: start;
+}
+.ivd-items th:first-child { border-start-start-radius: 12px; border-end-start-radius: 12px; color: var(--lime); }
+.ivd-items th:last-child { border-start-end-radius: 12px; border-end-end-radius: 12px; }
+.ivd-items td { padding: 10px 12px; border-bottom: 1px solid var(--line); vertical-align: top; }
+.ivd-items tbody tr:nth-child(even) td { background: #fbfbf8; }
+.ivd-items .ivd-n { width: 40px; color: var(--muted); font-weight: 700; }
+.ivd-items .ivd-num { text-align: end; white-space: nowrap; font-variant-numeric: tabular-nums; width: 1%; }
+.ivd-items td.ivd-num:last-child { font-weight: 700; color: var(--ink); }
+.ivd-desc { white-space: pre-line; overflow-wrap: anywhere; }
+.ivd-items tr { break-inside: avoid; }
+
+.ivd-totals { display: grid; grid-template-columns: minmax(0, 1fr) 300px; gap: 30px; align-items: end; break-inside: avoid; }
+.ivd-thanks p { font-size: 22px; font-weight: 900; color: var(--ink); line-height: 1.25; }
+.ivd-dots { display: block; width: 64px; height: 8px; margin-top: 10px; border-radius: 4px; background: var(--lime); }
+.ivd-sums { display: grid; gap: 8px; }
+.ivd-sums .ivd-kv b { font-variant-numeric: tabular-nums; }
+.ivd-total { border: 0; padding: 14px 16px; margin-top: 4px; border-radius: 14px; background: var(--ink); }
+.ivd-total span { color: rgba(255, 255, 255, .7); font-weight: 600; }
+.ivd-total b { color: var(--lime); font-size: 20px; font-weight: 900; }
+.ivd-balance b { color: #c2410c; }
+
+.ivd-receipt {
+  display: grid; justify-items: center; gap: 4px; padding: 30px 24px; border-radius: 20px; text-align: center;
+  background: var(--ink); color: #fff; break-inside: avoid;
+}
+.ivd-receipt .ivd-label { color: rgba(255, 255, 255, .6); }
+.ivd-big { font-size: 40px; font-weight: 900; color: var(--lime); direction: ltr; line-height: 1.2; }
+.ivd-receipt-rows { width: min(460px, 100%); display: grid; gap: 8px; margin-top: 16px; }
+.ivd-receipt .ivd-kv { border-color: rgba(255, 255, 255, .15); }
+.ivd-receipt .ivd-kv span { color: rgba(255, 255, 255, .6); }
+.ivd-receipt .ivd-kv b { color: #fff; }
+
+.ivd-extra { display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 18px 28px; break-inside: avoid; }
+.ivd-extra > div { padding-top: 12px; border-top: 1px solid var(--line); }
+
+.ivd-sign { display: flex; justify-content: flex-end; margin-top: auto; break-inside: avoid; }
+.ivd-sign-box { position: relative; width: 210px; min-height: 76px; display: grid; align-content: end; justify-items: center; border-bottom: 1.5px solid var(--ink); }
+.ivd-sign-box span { position: absolute; bottom: -22px; font-size: 11px; color: var(--muted); }
+.ivd-stamp-img { max-width: 180px; max-height: 110px; object-fit: contain; opacity: .9; margin-bottom: 4px; }
+
+.ivd-status {
+  position: absolute; top: 210px; inset-inline-start: 50%; translate: -50% 0; rotate: -14deg; pointer-events: none;
+  padding: 10px 30px; border: 5px double currentColor; border-radius: 14px;
+  font-size: 46px; font-weight: 900; letter-spacing: .1em; opacity: .2; color: #15803d; white-space: nowrap;
+}
+.ivd[dir="rtl"] .ivd-status { translate: 50% 0; }
+.ivd-status-cancelled, .ivd-status-rejected { color: #b91c1c; }
+.ivd-status-accepted { color: #1d4ed8; }
+
+.ivd-foot {
+  position: absolute; inset-inline: 56px; bottom: 28px; display: flex; justify-content: space-between; gap: 16px;
+  padding-top: 12px; border-top: 1px solid var(--line); font-size: 11px; color: var(--muted);
+}
+.ivd-watermark {
+  position: absolute; inset: 0; display: grid; place-items: center; pointer-events: none;
+  font-size: 120px; font-weight: 900; color: rgba(10, 10, 11, .05); rotate: -30deg;
+}
+
+/* printing / Save as PDF: one sheet per page, nothing else */
+@page { size: A4; margin: 0; }
+@media print {
+  html, body { background: #fff !important; margin: 0 !important; padding: 0 !important; }
+  .ivd { width: 210mm; min-height: 297mm; box-shadow: none !important; border-radius: 0 !important; }
+  .ivd-items thead { display: table-header-group; }
+}

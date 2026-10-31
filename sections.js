@@ -106,35 +106,65 @@ function fitInto(box, rect) {
   return { x: rect.x + (rect.w - w) / 2, y: rect.y + (rect.h - h) / 2, w, h };
 }
 
-// the visible extent of a logo image (its tile has empty margins), in image pixels
-function trimBox(img) {
+// A logo as uploaded from the admin panel, in image pixels: its visible extent (a transparent margin, or a solid
+// white one round a JPG, is trimmed away) and whether it is light enough to vanish on a white piece.
+// admin/admin.js reads logos the same way (logoLook) to preview them; keep the two in step.
+function logoLook(img) {
   const c = document.createElement('canvas');
   c.width = img.naturalWidth;
   c.height = img.naturalHeight;
   const g = c.getContext('2d', { willReadFrequently: true });
   g.drawImage(img, 0, 0);
-  const { data, width, height } = g.getImageData(0, 0, c.width, c.height);
-  let x0 = width, y0 = height, x1 = -1, y1 = -1;
+  const { data: d, width, height } = g.getImageData(0, 0, c.width, c.height);
+  const white = (i) => d[i + 3] > 200 && d[i] > 235 && d[i + 1] > 235 && d[i + 2] > 235;
+  const whiteBg = [0, width - 1, (height - 1) * width, height * width - 1].every((p) => white(p * 4));
+  let x0 = width, y0 = height, x1 = -1, y1 = -1, ink = 0, lum = 0, pale = 0;
   for (let y = 0; y < height; y++) {
     for (let x = 0; x < width; x++) {
-      if (data[(y * width + x) * 4 + 3] > 24) {
-        if (x < x0) x0 = x;
-        if (x > x1) x1 = x;
-        if (y < y0) y0 = y;
-        if (y > y1) y1 = y;
-      }
+      const i = (y * width + x) * 4;
+      if (d[i + 3] <= 24 || (whiteBg && white(i))) continue;
+      if (x < x0) x0 = x;
+      if (x > x1) x1 = x;
+      if (y < y0) y0 = y;
+      if (y > y1) y1 = y;
+      const a = d[i + 3] / 255;
+      const l = (0.2126 * d[i] + 0.7152 * d[i + 1] + 0.0722 * d[i + 2]) / 255;
+      ink += a;
+      lum += l * a;
+      if (l > 0.86) pale += a;
     }
   }
-  return x1 < 0 ? { x: 0, y: 0, w: width, h: height } : { x: x0, y: y0, w: x1 - x0 + 1, h: y1 - y0 + 1 };
+  const box = x1 < 0 ? { x: 0, y: 0, w: width, h: height } : { x: x0, y: y0, w: x1 - x0 + 1, h: y1 - y0 + 1 };
+  // a white or pale logo on a transparent background: mostly near-white ink, or light on average
+  const light = !whiteBg && ink > 0 && (pale / ink > 0.35 || lum / ink > 0.8);
+  // how much of its box the logo fills: a solid badge near 1, thin lettering far less
+  const density = x1 < 0 ? 1 : ink / (box.w * box.h);
+  return { box, light, density };
 }
+
+// Where a logo sits on its piece, so every logo looks about the same size whatever its shape: each gets the
+// same box area (a little more for thin, airy logos, a little less for solid badges), centred in the part of
+// the piece no cut-in reaches, and only shrunk when that part is too small for it.
+const LOGO_AREA = 0.26; // the logo's box, as a share of the piece body
+function logoRect(img, e, size) {
+  const box = img._box || { x: 0, y: 0, w: img.naturalWidth, h: img.naturalHeight };
+  const room = fitInto(box, safeRect(e, size));
+  const weight = Math.min(1.35, Math.max(0.75, Math.sqrt(0.45 / (img._density || 0.45))));
+  const k = Math.min(1, (size * Math.sqrt(LOGO_AREA * weight / (box.w / box.h))) / room.h);
+  return { x: room.x + (room.w * (1 - k)) / 2, y: room.y + (room.h * (1 - k)) / 2, w: room.w * k, h: room.h * k };
+}
+
+const PIECE_FACE = '#ffffff';
+const PIECE_FACE_DARK = '#141416'; // under a light logo
+const faceOf = (img) => (img && img._light ? PIECE_FACE_DARK : PIECE_FACE);
 
 function paintLogo(img, size, e) {
   return (g) => {
-    g.fillStyle = '#ffffff';
+    g.fillStyle = faceOf(img);
     g.fill();
     if (!img) { g.lineWidth = 1; g.strokeStyle = 'rgba(0,0,0,.22)'; g.stroke(); return; } // a slot with no logo yet
     const box = img._box || { x: 0, y: 0, w: img.naturalWidth, h: img.naturalHeight };
-    const f = fitInto(box, safeRect(e, size));
+    const f = logoRect(img, e, size);
     g.save();
     g.clip();
     g.drawImage(img, box.x, box.y, box.w, box.h, f.x, f.y, f.w, f.h);
@@ -359,7 +389,7 @@ function logoSvg(data) {
   const img = data.img;
   if (!img) return '';
   const box = img._box || { x: 0, y: 0, w: img.naturalWidth, h: img.naturalHeight };
-  const f = fitInto(box, safeRect(data.e, POP_UNIT));
+  const f = logoRect(img, data.e, POP_UNIT);
   const n = (v) => v.toFixed(2);
   return `<svg x="${n(f.x)}" y="${n(f.y)}" width="${n(f.w)}" height="${n(f.h)}" viewBox="${box.x} ${box.y} ${box.w} ${box.h}">
     <image href="${img.src}" width="${img.naturalWidth}" height="${img.naturalHeight}"/></svg>`;
@@ -374,7 +404,7 @@ function buildPopPiece(data, unit) {
   const mirrored = `<g transform="matrix(-1 0 0 1 ${POP_UNIT} 0)">`; // the back is seen through a 180° turn
 
   // edge: tightly stacked silhouettes, blending from the front colour to the back colour, a touch darker mid-way
-  const [frontEdge, backEdge] = data.isKey ? ['#c4e800', '#a9cc00'] : ['#e4e4dc', '#bcdc10'];
+  const [frontEdge, backEdge] = data.isKey ? ['#c4e800', '#a9cc00'] : [data.img && data.img._light ? '#2a2a2e' : '#e4e4dc', '#bcdc10'];
   const layers = Math.max(12, Math.min(22, Math.ceil(depthPx / 1.1)));
   for (let i = layers - 1; i >= 1; i--) {
     const k = i / layers; // 0 front … 1 back
@@ -408,7 +438,7 @@ function buildPopPiece(data, unit) {
     ? `<path d="${d}" fill="#d7ff00"/>
        <text x="50" y="44" text-anchor="middle" direction="rtl" font-family="Alexandria" font-weight="800" font-size="18" fill="#0a0a0b">${T('مكانك', 'YOUR')}</text>
        <text x="50" y="70" text-anchor="middle" direction="rtl" font-family="Alexandria" font-weight="800" font-size="18" fill="#0a0a0b">${T('هنا', 'SPOT')}</text>`
-    : `<path d="${d}" fill="#fff"/>
+    : `<path d="${d}" fill="${faceOf(data.img)}"/>
        ${logoSvg(data)}`;
   const front = popSvg('front', pad, `
     <defs>
@@ -588,7 +618,17 @@ async function initSections() {
   partnerImgs = (await Promise.all(PARTNERS.map((p) => loadImage(assetUrl(p.src)).then((img) => Object.assign(img, { _name: p.name || '' }), () => null)))).filter(Boolean);
   GRID = 3;
   while (GRID * GRID - 1 < partnerImgs.length) GRID += 2;
-  for (const img of partnerImgs) img._box = trimBox(img); // so logos can be fitted to the safe area of each piece
+  // so logos can be sized alike on their pieces (logoRect), and light ones get a dark piece
+  for (const img of partnerImgs) {
+    try {
+      const look = logoLook(img);
+      img._box = look.box;
+      img._light = look.light;
+      img._density = look.density;
+    } catch {
+      img._box = { x: 0, y: 0, w: img.naturalWidth, h: img.naturalHeight }; // unreadable pixels: use the whole image
+    }
+  }
   buildPartners();
   initPiecePop();
   ScrollTrigger.refresh();

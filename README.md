@@ -82,11 +82,31 @@ At `/admin/` the team edits the site without touching code:
   name in the photo / images columns. Every row is checked before anything is added (errors, warnings, duplicates of
   reviews already there), and nothing is saved until «حفظ التغييرات». «تصدير إلى Excel» downloads the current reviews in
   the same format, so they can be edited in bulk and imported back with «استبدال كل الآراء الحالية». Up to 500 reviews.
+  **Order**: «⇅ ترتيب بالسحب» opens every review in a compact list: drag one by its ⋮⋮ handle (mouse or finger), press ⤒
+  to send it to the top, or use Alt + ↑ / ↓. Rows that show on the home page carry a «في الرئيسية» badge. The feedback page
+  and the home page follow this order once it's saved. Reviews are never shown with their date.
+  **English**: reviews imported in Arabic only get their English from `content/reviews-en.json` when the server starts
+  (matched by the Arabic name + text, so it works whatever ids the import gave them). Only empty English fields are
+  filled; anything typed in the panel wins.
+- **Blog** («المدونة»): articles in Arabic and/or English, each with a title, a short description (Google's snippet, with a
+  preview of the result and a character count), the text (blank-line paragraphs, `##` / `###` headings, `-` / `1.` lists,
+  `**bold**`, `[text](https://…)` links; a toolbar adds them and «معاينة» shows the result), an optional cover, a date and
+  published / draft. An article shows in a language once it has a title and a text in it. The blog page (`/blog.html`)
+  lists them newest first, the home page shows the latest three ("From the blog", left out with none), and each article
+  has its own page (`/article.html?id=…`) drawn in full on the server, with BlogPosting schema, its own canonical,
+  hreflang only for the languages it exists in, and a place in the sitemap. Three launch articles come with a fresh install
+  (`content/articles-seed.json`, copied once into `articles.json`).
 - **Contact & links**: phone, WhatsApp, email, website and social links (empty = left off the site: no "coming soon", no dead icon).
 - **Messages**: the contact-form inbox, with read / unread and delete.
 
+On every page: a round WhatsApp button bottom-left (once a number is set) that says hello in a bubble once per visit, and
+a back-to-top jigsaw piece bottom-right whose outline draws itself as you read and turns lime at the end of the page.
+On phones both step aside while the home page's service-request bar is on screen. The home page also has «اطلب خدمتك»
+(right after the client feedback): pick services on four cards, and the button opens the contact form with them chosen
+(`contact.html?services=…`).
+
 Edits are saved in `/data` (the Docker volume) and show on the site immediately: `texts.json`, `projects.json`,
-`partners.json`, `settings.json`, `testimonials.json`, `uploads/`. On first start these are created from the files in the repo, so a fresh
+`partners.json`, `settings.json`, `testimonials.json`, `articles.json`, `invoices.json`, `uploads/`. On first start these are created from the files in the repo, so a fresh
 install looks exactly like the code. Images are resized and converted to WebP in the browser before they're uploaded.
 
 **Users** are kept in `/data/users.json` with hashed passwords only. Manage them with the included tool:
@@ -107,6 +127,24 @@ production (the cookie is `Secure`); for plain-HTTP testing on another machine s
 
 **Backups**: everything the team edits is in the volume. Back it up with
 `docker run --rm -v puzzlex-data:/data -v "$PWD":/backup alpine tar czf /backup/puzzlex-data.tgz -C /data .`
+
+## Invoices & receipts (`/admin/#/invoices`)
+
+«الفواتير والإيصالات» in the panel makes invoices (`INV-2026-0001`), payment receipts (`RCT-…`) and quotations (`QUO-…`),
+in Arabic or English. The server gives the numbers (per type, per year) and works out every total in whole cents (fils for
+KWD/BHD/OMR/JOD), so the stored and printed amounts never drift. A receipt «عن الفاتورة» pays that invoice: its paid amount,
+balance and status (partial / paid) follow; «✓ مدفوعة» marks the rest as paid. A quotation becomes an invoice with one click.
+
+- **PDF**: «تنزيل PDF» prints the A4 sheet (choose *Save as PDF*), so Arabic comes out exactly as on screen. The editor
+  shows the sheet live as you type.
+- **Sending**: every document has a private link, `/doc/<token>`, which the client opens read-only with its own
+  «Download PDF» button (noindex, not in the sitemap). Send it with «واتساب» (the client's number, message in the
+  document's language), «بريد من جهازي», or «إرسال من الموقع» when SMTP is set. «↻ رابط جديد» stops the old link.
+- **بيانات الشركة**: name, address, tax number, bank details, default currency / tax / notes, logo and an optional stamp,
+  printed on every document.
+
+Stored in `DATA_DIR/invoices.json` (`lib/invoices.js`); the sheet is drawn by `invoice-doc.js` / `invoice-doc.css`,
+shared by the panel (`admin/invoices.js`) and the client's page (`doc.html`, `doc-page.js`).
 
 ## User guide (PDF)
 
@@ -133,6 +171,7 @@ Needs only Node and Chrome. `--preview` writes a PNG per page plus `overview.png
 | `CSP_ENFORCE` | `0` to only report Content-Security-Policy violations instead of blocking them (enforced by default) |
 | `HSTS_PRELOAD` | `1` adds `includeSubDomains; preload` to HSTS — only when every subdomain works on HTTPS |
 | `AUTOREPLY_PER_HOUR` | Most contact-form confirmations sent per hour, site-wide (default 30; one per address per day) |
+| `GOOGLE_SITE_VERIFICATION` | The code from Google Search Console's "HTML tag" method: adds its meta tag to every page |
 | `CONTACT_TO` | Where contact messages are emailed |
 | `SMTP_HOST`, `SMTP_PORT`, `SMTP_SECURE`, `SMTP_USER`, `SMTP_PASS`, `SMTP_FROM` | Your mail provider's SMTP details |
 
@@ -164,9 +203,11 @@ Most crawlers, and nearly all AI crawlers, don't run JavaScript, so the server p
   images (the scripts then redraw them as before)
 - schema.org data on every page: Organization (contact details and social links from the admin panel, when filled in),
   WebSite, the page itself with breadcrumbs, the service catalogue on the services page (read from the page, so
-  admin edits are included), the project list on the work page and a CreativeWork per project
+  admin edits are included), the project list on the work page, a CreativeWork per project and a BlogPosting per article
 - `hreflang` ar / en / x-default (Arabic), `og:locale:alternate`, `max-image-preview:large`; `project.html` without a
   known `?id` is `noindex`
+- `sitemap.xml`: every page in both languages, every project, and every published article in the languages it's written in
+  (with its date); `robots.txt` points to it and keeps `/admin/` and `/api/` out
 - `/llms.txt`: the company, services, projects and contact details as plain text for AI assistants, built from the
   live content (so it updates with the admin panel)
 
@@ -175,6 +216,10 @@ Most crawlers, and nearly all AI crawlers, don't run JavaScript, so the server p
   kept in `DATA_DIR/indexnow.json`, and served at `/<key>.txt`; submissions are logged as `[indexnow] …` lines
 
 Titles and descriptions are ordinary texts: edit them in the admin panel (Texts → «عناوين الصفحات ووصف المشاركة»).
+
+**Google Search Console** (once, on the live site): add `https://www.puzzlexmedia.com/` as a URL-prefix property, choose the
+"HTML tag" method, put its code in `GOOGLE_SITE_VERIFICATION` and restart, press Verify, then submit `sitemap.xml` under
+Sitemaps and use URL Inspection on the home page and a blog article. Indexing and rankings themselves can't be promised.
 
 ## Run locally
 
@@ -193,6 +238,8 @@ styles.css            all styles (dark only)
 main.js               shared helpers + the home-page puzzle hero
 sections.js           home: values, partners puzzle, 3D piece pop-up
 pages.js              inner pages, contact form, 404
+extras.js             every page: back-to-top piece, WhatsApp greeting; home: service request, feedback slider, logo strip
+blog.html, article.html   the blog (filled in by the server, lib/articles.js)
 projects.js           project data (Arabic + English); also read by the server
 loader.js, cursor.js
 privacy.html          privacy policy (linked from the form and every footer)

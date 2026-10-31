@@ -1,0 +1,119 @@
+/* PuzzleX admin — «الفواتير والإيصالات» (admin/invoices.js); the sheet itself is styled by /invoice-doc.css */
+.ivx-form .two, .editor .two { display: grid; gap: 12px; }
+.three { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+input[type="date"] {
+  width: 100%; background: var(--ink); border: 1px solid var(--line-2); border-radius: 12px; padding: 10px 14px;
+  font-size: 16px; color-scheme: dark; text-align: start;
+}
+input[type="date"]:focus { outline: none; border-color: var(--lime); box-shadow: 0 0 0 3px rgba(215, 255, 0, .15); }
+input[readonly] { color: var(--muted); }
+
+/* the list */
+.ivx-new { flex-wrap: wrap; }
+.ivx-summary { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 12px; margin-bottom: 18px; }
+.ivx-summary:empty { display: none; }
+.ivx-sum { display: grid; grid-template-columns: auto repeat(3, minmax(0, 1fr)); align-items: center; gap: 12px; padding: 14px 16px; }
+.ivx-sum div { display: grid; gap: 2px; min-width: 0; }
+.ivx-sum small { color: var(--muted); font-size: 12px; }
+.ivx-sum b { font-size: 14.5px; font-variant-numeric: tabular-nums; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ivx-sum b.ok { color: var(--ok); }
+.ivx-sum b.warn { color: #ffd166; }
+.ivx-tools { gap: 10px; }
+.ivx-chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.ivx-chips .chip {
+  display: inline-flex; align-items: center; gap: 8px; min-height: 38px; padding: 0 14px; border-radius: 999px; cursor: pointer;
+  border: 1px solid var(--line-2); background: none; font-size: 13.5px; font-weight: 600;
+}
+.ivx-chips .chip .n { font-size: 11.5px; color: var(--muted); }
+.ivx-chips .chip.on { background: var(--lime); border-color: var(--lime); color: #0a0a0b; }
+.ivx-chips .chip.on .n { color: rgba(10, 10, 11, .6); }
+.ivx-status-sel { width: auto; min-width: 150px; padding-block: 8px; }
+
+.ivx-list { display: grid; gap: 8px; }
+.ivx-row {
+  display: grid; grid-template-columns: minmax(0, 1fr) auto 118px auto; align-items: center; gap: 14px;
+  padding: 12px 14px; border: 1px solid var(--line); border-radius: var(--radius); background: var(--ink-2);
+  border-inline-start: 3px solid var(--lime); transition: border-color .2s;
+}
+.ivx-row:hover { border-color: var(--line-2); border-inline-start-color: var(--lime); }
+.ivx-row.ivx-receipt { border-inline-start-color: var(--ok); }
+.ivx-row.ivx-quote { border-inline-start-color: #8ab4ff; }
+.ivx-main { display: grid; grid-template-columns: 96px 128px minmax(0, 1fr) auto; align-items: center; gap: 12px; min-width: 0; }
+.ivx-type { font-size: 12px; color: var(--muted); }
+.ivx-no { font-size: 13.5px; letter-spacing: .02em; white-space: nowrap; }
+.ivx-client { font-weight: 700; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ivx-client small { color: var(--muted); font-weight: 400; }
+.ivx-amount { display: grid; text-align: end; font-variant-numeric: tabular-nums; }
+.ivx-amount small { font-size: 11.5px; color: #ffd166; }
+.ivx-st {
+  justify-self: center; padding: 4px 12px; border-radius: 999px; font-size: 12px; font-weight: 700; white-space: nowrap;
+  background: var(--ink-4); color: var(--muted);
+}
+.st-sent { background: rgba(138, 180, 255, .14); color: #8ab4ff; }
+.st-partial { background: rgba(255, 209, 102, .14); color: #ffd166; }
+.st-paid, .st-issued, .st-accepted { background: rgba(126, 231, 135, .14); color: var(--ok); }
+.st-cancelled, .st-rejected { background: rgba(255, 107, 107, .12); color: var(--danger); text-decoration: line-through; }
+.ivx-acts { display: flex; gap: 6px; justify-content: flex-end; }
+
+/* the editor: the form, and the A4 sheet beside it */
+.ivx-editor { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 22px; align-items: start; }
+.ivx-form { display: grid; gap: 16px; min-width: 0; }
+.ivx-form .card h2 { font-size: 16px; font-weight: 800; }
+.ivx-side { position: sticky; top: 18px; display: grid; gap: 8px; min-width: 0; }
+.ivx-preview { width: 100%; }
+.ivx-paper { position: relative; overflow: hidden; border-radius: 10px; box-shadow: 0 24px 60px rgba(0, 0, 0, .5); }
+.ivx-paper .ivd { position: absolute; top: 0; inset-inline-start: 0; transform-origin: top left; }
+[dir="rtl"] .ivx-paper .ivd { transform-origin: top right; }
+.ivx-total-line { color: var(--lime); }
+
+.ivx-items { display: grid; gap: 10px; }
+.ivx-item {
+  display: grid; grid-template-columns: auto minmax(0, 1fr) 84px 120px; grid-template-areas: "n desc qty price" ". end end end";
+  gap: 8px 10px; padding: 12px; border: 1px solid var(--line); border-radius: 14px; background: var(--ink);
+}
+.ivx-item > .tag { grid-area: n; align-self: start; margin-top: 30px; }
+.ivx-desc { grid-area: desc; }
+.ivx-item .ivx-n:nth-of-type(2) { grid-area: qty; }
+.ivx-item .ivx-n:nth-of-type(3) { grid-area: price; }
+.ivx-item textarea { min-height: 46px; field-sizing: content; }
+.ivx-item input { padding-inline: 10px; }
+.ivx-item-end { grid-area: end; display: flex; justify-content: space-between; align-items: center; gap: 10px; }
+.ivx-line { font-variant-numeric: tabular-nums; }
+.ivx-add { justify-self: start; }
+
+.ivx-share { display: grid; gap: 12px; border-color: rgba(215, 255, 0, .3); }
+.ivx-share.muted { font-size: 14px; }
+.ivx-share-head { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.ivx-link { display: flex; gap: 8px; }
+.ivx-link input { flex: 1; min-width: 0; font-size: 13px; padding: 8px 12px; }
+.ivx-send { flex-wrap: wrap; gap: 8px; }
+.ivx-wa { background: linear-gradient(135deg, #25D366, #128C7E); border-color: transparent; color: #fff; font-weight: 800; }
+.ivx-wa:hover { border-color: #fff; }
+
+@media (max-width: 1180px) {
+  .ivx-editor { grid-template-columns: minmax(0, 1fr); }
+  .ivx-side { position: static; }
+  .ivx-main { grid-template-columns: 80px minmax(0, 1fr); }
+  .ivx-main .ivx-client { grid-column: 1 / -1; grid-row: 2; }
+  .ivx-main .ivx-date { display: none; }
+}
+@media (max-width: 720px) {
+  .three { grid-template-columns: minmax(0, 1fr); }
+  .ivx-row { grid-template-columns: minmax(0, 1fr) auto; }
+  .ivx-st { justify-self: start; }
+  .ivx-acts { grid-column: 1 / -1; justify-content: flex-start; flex-wrap: wrap; }
+  .ivx-sum { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .ivx-sum .tag { grid-column: 1 / -1; justify-self: start; }
+  .ivx-sum b { font-size: 12.5px; white-space: normal; overflow-wrap: anywhere; }
+  .ivx-item { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); grid-template-areas: "desc desc" "qty price" "end end"; }
+  .ivx-item > .tag { display: none; }
+  .ivx-tools .tm-search { max-width: none; }
+}
+
+/* «تنزيل PDF» from the panel: only the sheet goes to the printer */
+#ivd-print { display: none; }
+@media print {
+  body.ivd-printing > *:not(#ivd-print) { display: none !important; }
+  body.ivd-printing #ivd-print { display: block; }
+  body.ivd-printing { background: #fff !important; }
+}

@@ -67,6 +67,56 @@ async function upload(file, maxSide) {
   const { src } = await api('POST', '/upload', blob, blob.type);
   return src;
 }
+// How the home page's puzzle reads a logo (sections.js logoLook; keep the two in step): its visible extent (a
+// transparent margin, or a solid white one round a JPG, doesn't count) and whether it is a white or pale logo
+// on a transparent background, which gets a dark piece there instead of a white one.
+function logoLook(src) {
+  const c = h('canvas');
+  c.width = src.naturalWidth || src.width;
+  c.height = src.naturalHeight || src.height;
+  const g = c.getContext('2d', { willReadFrequently: true });
+  g.drawImage(src, 0, 0);
+  const { data: d, width, height } = g.getImageData(0, 0, c.width, c.height);
+  const white = (i) => d[i + 3] > 200 && d[i] > 235 && d[i + 1] > 235 && d[i + 2] > 235;
+  const whiteBg = [0, width - 1, (height - 1) * width, height * width - 1].every((p) => white(p * 4));
+  let x0 = width, y0 = height, x1 = -1, y1 = -1, ink = 0, lum = 0, pale = 0;
+  for (let y = 0; y < height; y++) {
+    for (let x = 0; x < width; x++) {
+      const i = (y * width + x) * 4;
+      if (d[i + 3] <= 24 || (whiteBg && white(i))) continue;
+      if (x < x0) x0 = x;
+      if (x > x1) x1 = x;
+      if (y < y0) y0 = y;
+      if (y > y1) y1 = y;
+      const a = d[i + 3] / 255;
+      const l = (0.2126 * d[i] + 0.7152 * d[i + 1] + 0.0722 * d[i + 2]) / 255;
+      ink += a;
+      lum += l * a;
+      if (l > 0.86) pale += a;
+    }
+  }
+  const box = x1 < 0 ? { x: 0, y: 0, w: width, h: height } : { x: x0, y: y0, w: x1 - x0 + 1, h: y1 - y0 + 1 };
+  return { box, light: !whiteBg && ink > 0 && (pale / ink > 0.35 || lum / ink > 0.8) };
+}
+// a logo with its empty margin cut off (a little breathing room kept), so the stored file is just the logo
+async function trimLogo(file) {
+  try {
+    const bmp = await createImageBitmap(file);
+    const { box } = logoLook(bmp);
+    const pad = Math.round(Math.max(box.w, box.h) * 0.04);
+    const x = Math.max(0, box.x - pad), y = Math.max(0, box.y - pad);
+    const w = Math.min(bmp.width - x, box.w + pad * 2), hgt = Math.min(bmp.height - y, box.h + pad * 2);
+    if (w * hgt > bmp.width * bmp.height * 0.9) return file; // hardly any margin: leave it as it is
+    const cv = h('canvas');
+    cv.width = w;
+    cv.height = hgt;
+    cv.getContext('2d').drawImage(bmp, x, y, w, hgt, 0, 0, w, hgt);
+    const blob = await new Promise((r) => cv.toBlob(r, 'image/png'));
+    return blob ? new File([blob], file.name, { type: 'image/png' }) : file;
+  } catch {
+    return file; // the browser can't read it: upload it untouched
+  }
+}
 function pickFiles(multiple, onFiles) {
   const input = h('input', { type: 'file', accept: 'image/png,image/jpeg,image/webp', multiple });
   input.addEventListener('change', () => input.files.length && onFiles([...input.files]));
@@ -199,6 +249,7 @@ async function viewHome(view) {
       stat(stats.projects, noun(stats.projects, ['مشروع', 'مشروعان', 'مشاريع', 'مشروعاً']), '#/projects'),
       stat(stats.partners, noun(stats.partners, ['شعار شريك', 'شعارا شريكين', 'شعارات شركاء', 'شعار شريك']), '#/partners'),
       stat(stats.testimonials, noun(stats.testimonials, ['رأي عميل', 'رأيا عميلين', 'آراء عملاء', 'رأي عميل']), '#/testimonials'),
+      stats.articles != null ? stat(stats.articles, noun(stats.articles, ['مقال منشور', 'مقالان منشوران', 'مقالات منشورة', 'مقالاً منشوراً']), '#/articles') : null,
       stat(stats.editedTexts, noun(stats.editedTexts, ['نص معدّل', 'نصان معدّلان', 'نصوص معدّلة', 'نصاً معدّلاً']), '#/texts')),
     h('h2', { class: 'section-title' }, 'ماذا تريد أن تعدّل؟'),
     h('div', { class: 'stats' },
@@ -206,6 +257,7 @@ async function viewHome(view) {
       short('المشاريع', 'أضف مشروعاً، ارفع صوره، رتّب الأعمال', '#/projects'),
       short('شعارات الشركاء', 'الشعارات في أحجية «شركاء النجاح»', '#/partners'),
       short('آراء العملاء', 'الآراء والنجوم والصور، واستيراد من Excel', '#/testimonials'),
+      short('المدونة', 'اكتب مقالاً جديداً بالعربية والإنجليزية', '#/articles'),
       short('التواصل والروابط', 'الهاتف، واتساب، البريد، حسابات التواصل', '#/contact')),
     recent.length ? h('h2', { class: 'section-title' }, 'آخر الرسائل') : null,
     recent.length ? h('div', { class: 'msgs' }, recent.map((m) => h('a', { class: `msg card${m.read ? '' : ' unread'}`, href: '#/messages', style: 'display:grid;gap:4px' },
@@ -516,6 +568,7 @@ function projectEditor(view, id) {
 /* =========================================================
    Partner logos
    ========================================================= */
+const MAX_PARTNERS = 120; // lib/admin.js cleanPartners refuses more
 async function viewPartners(view) {
   const r = await api('GET', '/partners');
   let saved = r.data, rev = r.rev, list = clone(r.data);
@@ -533,24 +586,45 @@ async function viewPartners(view) {
     info.textContent = `${list.length} شعاراً → أحجية ${g}×${g}${g * g - 1 > list.length ? ` (${g * g - 1 - list.length} قطع بيضاء فارغة)` : ''}. الأحجية تكبر وتصغر تلقائياً: حتى 24 شعاراً 5×5، حتى 48 → 7×7، حتى 80 → 9×9.`;
     grid.replaceChildren(...list.map((pt, i) => h('div', { class: 'logo-tile' },
       h('span', { class: 'n' }, `#${i + 1}`),
-      h('div', { class: 'logo-box' }, h('img', { src: asset(pt.src), alt: pt.name || '', loading: 'lazy' })),
+      logoPreview(pt),
       h('input', { value: pt.name, placeholder: 'اسم الشريك (اختياري)', title: 'يظهر عند تمرير الماوس فوق الشعار في الأحجية', 'aria-label': 'اسم الشريك', oninput: (e) => { pt.name = e.target.value; refreshBar(); } }),
       h('div', { class: 'acts' },
         h('button', { type: 'button', class: 'btn btn-icon btn-small', title: 'تقديم', 'aria-label': 'تقديم', disabled: i === 0, onclick: () => { [list[i - 1], list[i]] = [list[i], list[i - 1]]; draw(); } }, '→'),
         h('button', { type: 'button', class: 'btn btn-icon btn-small btn-danger', title: 'حذف', 'aria-label': 'حذف', onclick: () => { list.splice(i, 1); draw(); } }, '✕'),
         h('button', { type: 'button', class: 'btn btn-icon btn-small', title: 'تأخير', 'aria-label': 'تأخير', disabled: i === list.length - 1, onclick: () => { [list[i + 1], list[i]] = [list[i], list[i + 1]]; draw(); } }, '←')))),
     dropZone('إضافة شعارات', true, async (files) => {
+      const room = MAX_PARTNERS - list.length;
+      if (room <= 0) { toast(`الحد الأقصى ${MAX_PARTNERS} شعاراً — احذف شعاراً قبل إضافة غيره`, 'err'); return; }
+      if (files.length > room) toast(`سيُرفع ${room} فقط من ${files.length}: الحد الأقصى ${MAX_PARTNERS} شعاراً`, 'err');
+      files = files.slice(0, room);
       for (const [k, f] of files.entries()) {
-        try { toast(`جارٍ رفع الشعار ${k + 1} من ${files.length}…`); list.push({ id: '', src: await upload(f, 600), name: f.name.replace(/\.\w+$/, '') }); draw(); } catch (err) { toast(err.message, 'err'); }
+        try {
+          toast(`جارٍ رفع الشعار ${k + 1} من ${files.length}…`);
+          list.push({ id: '', src: await upload(await trimLogo(f), 600), name: f.name.replace(/\.\w+$/, '').replace(/[_-]+/g, ' ').trim().slice(0, 200) });
+          draw();
+        } catch (err) { toast(err.message, 'err'); }
       }
     }));
     refreshBar();
+  }
+  // the logo on the piece colour it will get on the home page
+  const looks = new Map(); // src → light? (read once per logo)
+  function logoPreview(pt) {
+    const box = h('div', { class: 'logo-box' });
+    const note = h('span', { class: 'logo-note', hidden: true, title: 'شعار فاتح: يظهر في الأحجية على قطعة داكنة ليبقى واضحاً' }, 'قطعة داكنة');
+    const show = (light) => { box.classList.toggle('dark', light); note.hidden = !light; };
+    const img = h('img', { src: asset(pt.src), alt: pt.name || '', loading: 'lazy' });
+    if (looks.has(pt.src)) show(looks.get(pt.src));
+    else img.addEventListener('load', () => { let light = false; try { light = logoLook(img).light; } catch { /* unreadable: show it as is */ } looks.set(pt.src, light); show(light); }, { once: true });
+    img.addEventListener('error', () => { box.classList.add('broken'); box.replaceChildren(h('span', null, 'تعذّر تحميل الصورة')); }, { once: true });
+    box.append(img, note);
+    return box;
   }
   view.replaceChildren(
     h('div', { class: 'page-head' }, h('div', null,
       h('p', { class: 'kicker' }, 'PARTNERS'),
       h('h1', null, 'شعارات الشركاء'),
-      h('p', null, 'الشعارات التي تتجمّع في أحجية «شركاء النجاح» في الصفحة الرئيسية. الأفضل شعار بخلفية شفافة (PNG أو WebP)؛ يظهر على قطعة بيضاء.')),
+      h('p', null, 'الشعارات التي تتجمّع في أحجية «شركاء النجاح» في الصفحة الرئيسية. ارفع أي شعار (PNG أو WebP شفاف، أو JPG بخلفية بيضاء): الهوامش الفارغة تُقصّ تلقائياً، والشعار الأبيض أو الفاتح يظهر على قطعة داكنة. اضغط «حفظ» لتظهر التغييرات في الموقع.')),
       h('a', { class: 'btn btn-ghost', href: '/#partners', target: '_blank', rel: 'noopener' }, 'افتح الصفحة الرئيسية ↗')),
     info, h('div', { style: 'height:12px' }), grid);
   draw();
@@ -713,9 +787,147 @@ async function viewTestimonials(view) {
     h('div', { class: 'tm-tools' },
       h('button', { type: 'button', class: 'btn', onclick: importNow }, 'استيراد من Excel'),
       h('button', { type: 'button', class: 'btn btn-ghost', onclick: exportNow }, 'تصدير إلى Excel'),
+      h('button', {
+        type: 'button', class: 'btn btn-ghost', title: 'رتّب الآراء بالسحب والإفلات: الترتيب نفسه يظهر على الموقع',
+        onclick: () => sortFeedback(list, (order) => { list.splice(0, list.length, ...order); search.value = ''; draw(); toast('تم الترتيب — اضغط «حفظ التغييرات» ليظهر على الموقع'); }),
+      }, '⇅ ترتيب بالسحب'),
       h('span', { class: 'spacer' }), search),
     info, h('div', { style: 'height:12px' }), box);
   draw();
+}
+
+/* ---------- client feedback: the order, by drag and drop ----------
+   A compact list of every review in a window: drag a row by its handle (mouse or finger), or focus it and use
+   Alt + ↑ / ↓; ⤒ sends one to the top. The rows that show on the home page (the first visible ones marked for it)
+   carry a badge, so it's clear what moving one up or down changes there. Nothing is saved until «حفظ التغييرات». */
+function sortFeedback(list, onDone) {
+  const order = list.slice();
+  const ol = h('ol', { class: 'sorter', 'aria-label': 'ترتيب آراء العملاء' });
+  const status = h('p', { class: 'hint sorter-status', 'aria-live': 'polite' });
+  const nameOf = (t) => t.name.ar || t.name.en || 'بدون اسم';
+  const rows = new Map(); // entry → its row
+  const entryOf = (li) => [...rows].find(([, el]) => el === li)[0];
+
+  const row = (t) => {
+    const face = t.photo
+      ? h('img', { class: `sort-face${/^assets\/partners\//.test(t.photo) ? ' logo' : ''}`, src: asset(t.photo), alt: '', loading: 'lazy' })
+      : h('span', { class: 'sort-face' }, [...nameOf(t)][0]);
+    const quote = (t.quote.ar || t.quote.en).replace(/\s+/g, ' ');
+    const li = h('li', { class: `sort-row${t.visible ? '' : ' off'}`, tabindex: 0, 'aria-label': nameOf(t) },
+      h('span', { class: 'grip', title: 'اسحب لتغيير الترتيب', 'aria-hidden': 'true' }, '⋮⋮'),
+      h('span', { class: 'sort-n' }),
+      face,
+      h('span', { class: 'sort-who' },
+        h('b', null, nameOf(t), t.rating ? h('span', { class: 'sort-stars' }, ` ${'★'.repeat(t.rating)}`) : null),
+        h('span', { class: 'sort-q' }, quote.length > 110 ? `${quote.slice(0, 110)}…` : quote)),
+      h('span', { class: 'sort-tags' }),
+      h('button', { type: 'button', class: 'btn btn-icon btn-small', title: 'إلى الأعلى', 'aria-label': `نقل «${nameOf(t)}» إلى الأعلى`, onclick: () => moveTo(t, 0) }, '⤒'));
+    li.addEventListener('keydown', (e) => {
+      if (!e.altKey || (e.key !== 'ArrowUp' && e.key !== 'ArrowDown')) return;
+      e.preventDefault();
+      moveTo(t, order.indexOf(t) + (e.key === 'ArrowUp' ? -1 : 1));
+      li.focus();
+    });
+    rows.set(t, li);
+    return li;
+  };
+
+  // numbers and badges follow the order: which rows the home page shows, which are hidden
+  function renumber() {
+    let home = 0;
+    order.forEach((t, i) => {
+      const li = rows.get(t);
+      li.querySelector('.sort-n').textContent = i + 1;
+      const onHome = t.visible && t.featured && home < HOME_FEEDBACK;
+      if (onHome) home++;
+      li.querySelector('.sort-tags').replaceChildren(...[
+        onHome ? h('span', { class: 'tag on-home' }, 'في الرئيسية') : null,
+        t.visible ? null : h('span', { class: 'tag' }, 'مخفي'),
+      ].filter(Boolean));
+    });
+  }
+  const announce = (t) => { status.textContent = `«${nameOf(t)}» الآن في المكان ${order.indexOf(t) + 1}`; };
+  // move an entry to position `to`, and its row to just before the row that now follows it
+  function moveTo(t, to) {
+    const from = order.indexOf(t);
+    to = Math.max(0, Math.min(order.length - 1, to));
+    if (from === to) return;
+    order.splice(from, 1);
+    order.splice(to, 0, t);
+    const li = rows.get(t);
+    ol.insertBefore(li, order[to + 1] ? rows.get(order[to + 1]) : null);
+    renumber();
+    announce(t);
+    li.classList.remove('moved');
+    void li.offsetWidth; // restart the highlight
+    li.classList.add('moved');
+  }
+
+  // dragging: the row follows the pointer, the others make room as it passes their middle;
+  // near the list's top or bottom edge it scrolls by itself
+  let drag = null;
+  const place = () => {
+    const { li, t, y } = drag;
+    const others = [...ol.children].filter((el) => el !== li);
+    let to = others.findIndex((el) => { const r = el.getBoundingClientRect(); return y < r.top + r.height / 2; });
+    if (to === -1) to = others.length;
+    if (to !== order.indexOf(t)) {
+      order.splice(order.indexOf(t), 1);
+      order.splice(to, 0, t);
+      ol.insertBefore(li, others[to] || null);
+      renumber();
+    }
+  };
+  ol.addEventListener('pointerdown', (e) => {
+    const grip = e.target.closest('.grip');
+    if (!grip || e.button > 0) return;
+    const li = grip.closest('.sort-row');
+    e.preventDefault();
+    try { li.setPointerCapture(e.pointerId); } catch { /* a pen or touch that already ended */ }
+    drag = { li, t: entryOf(li), y: e.clientY, raf: 0 };
+    li.classList.add('dragging');
+  });
+  ol.addEventListener('pointermove', (e) => {
+    if (!drag) return;
+    drag.y = e.clientY;
+    place();
+    const box = scroller.getBoundingClientRect(), edge = 64;
+    const speed = e.clientY < box.top + edge ? -(box.top + edge - e.clientY) / 3
+      : e.clientY > box.bottom - edge ? (e.clientY - box.bottom + edge) / 3 : 0;
+    cancelAnimationFrame(drag.raf);
+    if (speed) {
+      const step = () => { if (!drag) return; scroller.scrollTop += speed; place(); drag.raf = requestAnimationFrame(step); };
+      drag.raf = requestAnimationFrame(step);
+    }
+  });
+  const drop = () => {
+    if (!drag) return;
+    cancelAnimationFrame(drag.raf);
+    drag.li.classList.remove('dragging');
+    drag.li.classList.add('moved');
+    announce(drag.t);
+    drag = null;
+  };
+  ol.addEventListener('pointerup', drop);
+  ol.addEventListener('pointercancel', drop);
+
+  const changed = () => order.some((t, i) => t !== list[i]);
+  const scroller = h('div', { class: 'sorter-scroll' }, ol);
+  const dlg = h('dialog', { class: 'sorter-dlg' },
+    h('div', { class: 'sorter-head' },
+      h('h2', null, 'ترتيب آراء العملاء'),
+      h('p', { class: 'hint' }, `اسحب أي رأي من المقبض ⋮⋮ إلى مكانه، أو اضغط ⤒ لنقله إلى الأعلى (من لوحة المفاتيح: Alt مع ↑ أو ↓). صفحة «آراء العملاء» تعرضها بهذا الترتيب، والصفحة الرئيسية تعرض أول ${HOME_FEEDBACK} ظاهرة ومعلَّمة «في الصفحة الرئيسية».`),
+      status),
+    scroller,
+    h('div', { class: 'row sorter-foot' },
+      h('button', { type: 'button', class: 'btn btn-primary', onclick: () => { if (changed()) onDone(order); dlg.close(); } }, 'تطبيق الترتيب'),
+      h('button', { type: 'button', class: 'btn btn-ghost', onclick: () => dlg.close() }, 'إلغاء')));
+  dlg.addEventListener('cancel', (e) => { if (changed() && !confirm('تجاهل الترتيب الجديد؟')) e.preventDefault(); });
+  dlg.addEventListener('close', () => dlg.remove());
+  ol.append(...order.map(row));
+  renumber();
+  document.body.append(dlg);
+  dlg.showModal();
 }
 
 /* ---------- client feedback ⇄ Excel: the columns, the template, reading a filled-in sheet ---------- */
