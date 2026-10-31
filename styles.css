@@ -1002,9 +1002,16 @@ button.my-puzzle-send { border: 0; cursor: pointer; font-family: var(--ar); } /*
 
 .work { padding: 10px clamp(16px, 6vw, 96px) 60px; }
 .work-filters { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 34px; }
-/* the second row, type of work (pages.js): tucked under the sectors, with a small label in front */
-.work-filters + .work-types { margin-top: -22px; align-items: center; }
-.work-types-label { font-size: 13px; color: var(--muted); margin-inline-end: 4px; }
+/* the work page's two rows, sector and type of work (pages.js): one panel, labels in a shared column */
+.work-filterbar { border: 1px solid var(--line); border-radius: 24px; padding: 6px 20px; margin-bottom: 34px; }
+.work-filterbar .work-filters { display: grid; grid-template-columns: 96px minmax(0, 1fr); align-items: center; gap: 16px; margin: 0; padding: 14px 0; }
+.work-filterbar .work-filters + .work-filters { border-top: 1px solid var(--line); }
+.work-filters-label { font-size: 13px; font-weight: 600; color: var(--muted); }
+.work-chips { display: flex; flex-wrap: wrap; gap: 10px; }
+@media (max-width: 640px) {
+  .work-filterbar { padding: 4px 16px; border-radius: 20px; }
+  .work-filterbar .work-filters { grid-template-columns: minmax(0, 1fr); gap: 10px; }
+}
 .work-empty { display: grid; justify-items: start; gap: 16px; padding: 34px; border: 1px dashed var(--line); border-radius: 22px; }
 .work-empty[hidden] { display: none; }
 .work-empty p { color: var(--muted); font-size: 16px; line-height: 1.8; max-width: 52ch; }

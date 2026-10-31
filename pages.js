@@ -664,10 +664,21 @@ function initWork() {
   typeRow.setAttribute('role', 'group');
   typeRow.setAttribute('aria-label', T('تصفية حسب نوع العمل', 'Filter by type of work'));
   const typeCount = (id) => PROJECTS.filter((p) => id === 'all' || typesOf(p).includes(id)).length;
-  typeRow.innerHTML = `<span class="work-types-label">${T('نوع العمل', 'Type of work')}</span>` + [{ id: 'all', name: T('الكل', 'All') }, ...WORK_TYPES]
+  typeRow.innerHTML = [{ id: 'all', name: T('الكل', 'All') }, ...WORK_TYPES]
     .map((t) => `<button class="chip" type="button" data-type="${t.id}" aria-pressed="false">${escHtml(t.name)} <span class="chip-count">${typeCount(t.id)}</span></button>`).join('');
-  sectorRow.after(typeRow);
   const typeChips = [...typeRow.querySelectorAll('.chip')];
+
+  // both rows sit in one panel, each with its label in a shared column so the chips line up
+  const bar = document.createElement('div');
+  bar.className = 'work-filterbar';
+  sectorRow.before(bar);
+  [[sectorRow, T('القطاع', 'Sector')], [typeRow, T('نوع العمل', 'Type of work')]].forEach(([row, name]) => {
+    const list = document.createElement('div');
+    list.className = 'work-chips';
+    list.append(...row.children);
+    row.replaceChildren(Object.assign(document.createElement('span'), { className: 'work-filters-label', textContent: name }), list);
+    bar.append(row);
+  });
 
   // nothing of a kind published yet: say so, and offer that service in the contact form instead of an empty grid
   const empty = document.createElement('div');
