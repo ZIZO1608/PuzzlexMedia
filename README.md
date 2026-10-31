@@ -130,7 +130,9 @@ Needs only Node and Chrome. `--preview` writes a PNG per page plus `overview.png
 | `SITE_URL` | Public address used in share previews and the sitemap (default `https://www.puzzlexmedia.com`) |
 | `TRUST_PROXY` | `1` behind a reverse proxy, so rate limits use the visitor's real IP and HTTPS is recognised (HSTS) |
 | `INDEXNOW` | `1` on the live site only: submit changed pages to Bing & co. (see "Search engines and AI assistants") |
-| `CSP_ENFORCE` | `1` to enforce the Content-Security-Policy instead of only reporting |
+| `CSP_ENFORCE` | `0` to only report Content-Security-Policy violations instead of blocking them (enforced by default) |
+| `HSTS_PRELOAD` | `1` adds `includeSubDomains; preload` to HSTS — only when every subdomain works on HTTPS |
+| `AUTOREPLY_PER_HOUR` | Most contact-form confirmations sent per hour, site-wide (default 30; one per address per day) |
 | `CONTACT_TO` | Where contact messages are emailed |
 | `SMTP_HOST`, `SMTP_PORT`, `SMTP_SECURE`, `SMTP_USER`, `SMTP_PASS`, `SMTP_FROM` | Your mail provider's SMTP details |
 
@@ -139,10 +141,16 @@ Needs only Node and Chrome. `--preview` writes a PNG per page plus `overview.png
 - Serves the pages with Brotli/gzip compression and long caching for versioned assets (`?v=NN`)
 - One address per page (each page also carries `<link rel="canonical">`): `puzzlexmedia.com` → `www.puzzlexmedia.com`
   (the host in `SITE_URL`), `/index.html` → `/`, `/about` → `/about.html`, all 301
-- Security headers on every response; `Strict-Transport-Security` (this host only, no preload) on HTTPS requests —
-  behind a proxy that needs `TRUST_PROXY=1` so the server can see `X-Forwarded-Proto: https`
-- `Content-Security-Policy-Report-Only`: inline scripts are allowed by hash, worked out per page. Violations are
-  logged as `[csp] …` lines. When the logs stay clean on every page, set `CSP_ENFORCE=1` to enforce it
+- Security headers on every response; `Strict-Transport-Security` on HTTPS requests (this host only unless
+  `HSTS_PRELOAD=1`) — behind a proxy that needs `TRUST_PROXY=1` so the server can see `X-Forwarded-Proto: https`
+- `Content-Security-Policy`, enforced: inline scripts are allowed by hash, worked out per page; stylesheets and
+  `<style>` only from the site's own files and Google Fonts (`style=""` attributes stay allowed for the CSS variables
+  the animations use). Anything blocked is logged as `[csp] …`; `CSP_ENFORCE=0` switches back to report-only
+- Admin sign-in: 5 wrong passwords per IP or username lock it for 15 minutes (doubling on repeat, 60 at most), each
+  failure slows the next answer; passwords need 12+ characters (a mix of kinds under 16). The session cookie is
+  `__Host-`, HttpOnly, Secure, SameSite=Strict
+- Uploads: only real JPG/PNG/WebP (checked by their first bytes), 8 MB at most, random names, kept in `DATA_DIR/uploads`
+  (outside the site folder) and served with `Content-Security-Policy: default-src 'none'; sandbox`
 - 404 page in the right language; server files (`server.js`, `package.json`, …) are never served
 - Fills in the share preview (title, description, canonical, and the cover as share image once uploaded) for each project: `project.html?id=…`
 - `POST /api/contact`, `POST /api/csp-report`, `GET /healthz`, `robots.txt`, `sitemap.xml`, `llms.txt`
@@ -181,12 +189,12 @@ Then open http://localhost:5173. Messages go to `./data/messages.jsonl`.
 
 ```
 *.html, en/*.html     pages (Arabic / English)
-styles.css            all styles, dark + light themes
+styles.css            all styles (dark only)
 main.js               shared helpers + the home-page puzzle hero
 sections.js           home: values, partners puzzle, 3D piece pop-up
 pages.js              inner pages, contact form, 404
 projects.js           project data (Arabic + English); also read by the server
-loader.js, cursor.js, theme.js
+loader.js, cursor.js
 privacy.html          privacy policy (linked from the form and every footer)
 assets/               icon, fonts, partner logos (WebP), share image, vendor/ (GSAP)
 server.js             the web server (lib/: content, SEO, IndexNow, admin API, sign-in, storage)

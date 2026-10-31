@@ -1,0 +1,9 @@
+/* PuzzleX admin — the click map's dots, added by admin.js into the site page shown in its frame */
+.px-consent,.loader{display:none!important}
+.pxm-layer{position:absolute;left:0;top:0;width:0;height:0;z-index:2147483647;pointer-events:none}
+.pxm-heat{position:absolute;width:44px;height:44px;margin:-22px 0 0 -22px;border-radius:50%;background:radial-gradient(circle,rgba(255,64,64,.55) 0,rgba(255,170,0,.25) 40%,rgba(255,170,0,0) 70%)}
+.pxm-heat::after{content:"";position:absolute;left:19px;top:19px;width:6px;height:6px;border-radius:50%;background:#ff3b3b;box-shadow:0 0 0 1.5px #fff}
+.pxm-num{position:absolute;min-width:28px;height:28px;margin:-14px 0 0 -14px;padding:0 6px;border-radius:14px;background:#D7FF00;color:#0a0a0b;
+  font:800 13px/28px system-ui,sans-serif;text-align:center;box-shadow:0 0 0 2px #0a0a0b,0 4px 14px rgba(0,0,0,.5)}
+.pxm-num.on{background:#ff3b3b;color:#fff;animation:pxm 1s ease-in-out infinite alternate}
+@keyframes pxm{to{box-shadow:0 0 0 2px #0a0a0b,0 0 0 12px rgba(255,59,59,.3)}}

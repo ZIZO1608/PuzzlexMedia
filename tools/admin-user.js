@@ -11,7 +11,7 @@
 const fs = require('node:fs');
 const path = require('node:path');
 const crypto = require('node:crypto');
-const { hashPassword, generatePassword } = require('../lib/auth');
+const { hashPassword, generatePassword, passwordProblem } = require('../lib/auth');
 
 const DATA_DIR = path.resolve((process.env.DATA_DIR || path.join(__dirname, '..', 'data')).replace(/^~(?=$|[\\/])/, require('node:os').homedir()));
 const FILE = path.join(DATA_DIR, 'users.json');
@@ -39,7 +39,7 @@ const fail = (msg) => { console.error(msg); process.exit(1); };
     const [name, given] = rest;
     if (list.some((u) => u.username === username)) fail(`${username} already exists — use passwd to reset the password`);
     const password = given || generatePassword();
-    if (password.length < 10) fail('password: at least 10 characters');
+    if (passwordProblem(password, username)) fail(`password: ${passwordProblem(password, username)}`);
     list.push({ username, name: name || username, ...(await hashPassword(password)), created: new Date().toISOString() });
     write(list);
     console.log(`added ${username}\npassword: ${password}`);
@@ -47,7 +47,7 @@ const fail = (msg) => { console.error(msg); process.exit(1); };
     const u = list.find((x) => x.username === username);
     if (!u) fail(`no user ${username}`);
     const password = rest[0] || generatePassword();
-    if (password.length < 10) fail('password: at least 10 characters');
+    if (passwordProblem(password, username)) fail(`password: ${passwordProblem(password, username)}`);
     Object.assign(u, await hashPassword(password), { changed: new Date().toISOString() });
     write(list);
     console.log(`new password for ${username}: ${password}\n(restart the server to sign out their open sessions)`);

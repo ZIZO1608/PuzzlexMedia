@@ -231,7 +231,7 @@
                       },
                       {
                         "key": "new",
-                        "label": "**كلمة المرور الجديدة** (New password) — at least 10 characters"
+                        "label": "**كلمة المرور الجديدة** (New password) — at least 12 characters"
                       },
                       {
                         "key": "again",

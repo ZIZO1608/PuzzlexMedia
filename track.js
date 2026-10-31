@@ -131,15 +131,10 @@
   clarity();
   if (answer) return;
   function banner() {
-    var css = document.createElement('style');
-    css.textContent = '.px-consent{position:fixed;z-index:80;inset-inline:16px;bottom:16px;max-width:520px;margin-inline-start:auto;'
-      + 'display:grid;gap:12px;padding:16px 18px;border:1px solid var(--line);border-radius:18px;background:rgba(var(--ink-rgb),.92);'
-      + 'backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);color:var(--text);font:400 13.5px/1.7 var(--ar);'
-      + 'box-shadow:0 18px 50px rgba(0,0,0,.35);opacity:0;translate:0 12px;transition:opacity .35s ease,translate .35s ease}'
-      + '.px-consent.in{opacity:1;translate:0 0}.px-consent p{margin:0;color:var(--muted)}.px-consent a{color:var(--accent-text);text-decoration:underline}'
-      + '.px-consent .row{display:flex;flex-wrap:wrap;gap:8px}.px-consent button{font:700 13px var(--ar);min-height:40px;padding:0 18px;border-radius:999px;cursor:pointer;'
-      + 'border:1px solid rgba(var(--fg-rgb),.25);background:none;color:var(--text)}.px-consent button.yes{background:var(--lime);border-color:var(--lime);color:#0a0a0b}'
-      + '@media (prefers-reduced-motion:reduce){.px-consent{transition:none}}';
+    // a stylesheet file, not a <style> tag: the Content-Security-Policy only allows our own stylesheets
+    var css = document.createElement('link');
+    css.rel = 'stylesheet';
+    css.href = '/consent.css?v=1';
     document.head.appendChild(css);
     var box = document.createElement('div');
     box.className = 'px-consent';
@@ -170,8 +165,11 @@
     };
     yes.onclick = function () { close('yes'); };
     no.onclick = function () { close('no'); };
-    document.body.appendChild(box);
-    requestAnimationFrame(function () { requestAnimationFrame(function () { box.classList.add('in'); }); });
+    // shown once its styles are in, so it never flashes unstyled
+    css.onload = css.onerror = function () {
+      document.body.appendChild(box);
+      requestAnimationFrame(function () { requestAnimationFrame(function () { box.classList.add('in'); }); });
+    };
   }
   // after the loading screen, so the first thing a visitor sees is still the site
   (function wait(n) {

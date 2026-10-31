@@ -74,15 +74,21 @@ const SECURITY_HEADERS = {
   'X-Frame-Options': 'SAMEORIGIN',
   'Permissions-Policy': 'camera=(), microphone=(), geolocation=()',
 };
-// HTTPS only from now on, for this host alone (no includeSubDomains / preload: those need every subdomain checked first)
-const HSTS = 'max-age=31536000';
-// Content-Security-Policy, sent as Report-Only until CSP_ENFORCE=1: browsers report what it would block
-// (to /api/csp-report, logged) without blocking it. Inline scripts are allowed by their hash, worked out per page.
-const CSP_HEADER = process.env.CSP_ENFORCE === '1' ? 'Content-Security-Policy' : 'Content-Security-Policy-Report-Only';
+// HTTPS only from now on. HSTS_PRELOAD=1 adds every subdomain and asks browsers to build it in (hstspreload.org):
+// only once every subdomain (mail., cpanel., …) answers on HTTPS, because leaving the preload list takes months.
+const HSTS = process.env.HSTS_PRELOAD === '1' ? 'max-age=63072000; includeSubDomains; preload' : 'max-age=31536000';
+// Content-Security-Policy, enforced: anything it doesn't allow is blocked, and reported to /api/csp-report (logged
+// as "[csp] …"). CSP_ENFORCE=0 turns it back into Report-Only (report, don't block) if a page ever breaks.
+// Inline scripts are allowed by their hash, worked out per page.
+const CSP_HEADER = process.env.CSP_ENFORCE === '0' ? 'Content-Security-Policy-Report-Only' : 'Content-Security-Policy';
 const cspFor = (hashes) => [
   "default-src 'self'",
   `script-src 'self'${hashes.map((h) => ` 'sha256-${h}'`).join('')}${CLARITY_ID ? ' https://*.clarity.ms' : ''}`,
-  "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com", // style="" attributes and the animations' inline styles
+  // stylesheets and <style> only from our own files (and Google Fonts); style="" attributes stay allowed, since the
+  // pages and animations set CSS variables in them (they can't run code; images they name still need img-src)
+  "style-src 'self' https://fonts.googleapis.com",
+  "style-src-elem 'self' https://fonts.googleapis.com",
+  "style-src-attr 'unsafe-inline'",
   "font-src 'self' https://fonts.gstatic.com",
   `img-src 'self' data: blob:${CLARITY_ID ? ' https://*.clarity.ms https://c.bing.com' : ''}`,
   `connect-src 'self'${CLARITY_ID ? ' https://*.clarity.ms https://c.bing.com' : ''}`,
@@ -303,9 +309,11 @@ setInterval(() => {
 const mail = createMail({ store, siteUrl: SITE_URL });
 mail.startReminders();
 
+// the last X-Forwarded-For entry is the one our proxy added; anything before it is whatever the visitor sent,
+// so trusting the first one would let anyone pick a new "IP" per request and walk past every rate limit
 function clientIp(req) {
   if (TRUST_PROXY) {
-    const fwd = String(req.headers['x-forwarded-for'] || '').split(',')[0].trim();
+    const fwd = String(req.headers['x-forwarded-for'] || '').split(',').map((s) => s.trim()).filter(Boolean).pop();
     if (fwd) return fwd;
   }
   return req.socket.remoteAddress || 'unknown';
@@ -368,7 +376,7 @@ async function handleTrack(req, res) {
   res.end();
 }
 
-/* ---------- CSP reports: what the policy would block, written to the log while it is Report-Only ---------- */
+/* ---------- CSP reports: what the policy blocked (or would block, when Report-Only), written to the log ---------- */
 let cspReports = 0;
 setInterval(() => { cspReports = 0; }, 60 * 60 * 1000).unref();
 async function handleCspReport(req, res) {
@@ -458,7 +466,11 @@ const server = http.createServer(async (req, res) => {
     if (up) {
       let entry;
       try { entry = await load(path.join(store.uploadsDir, up[1])); } catch { return await notFound(req, res, p); }
-      return send(req, res, 200, entry, '.' + up[2], { 'Cache-Control': 'public, max-age=31536000, immutable' });
+      // an image and nothing else: even a crafted file opened on its own can't run anything here
+      return send(req, res, 200, entry, '.' + up[2], {
+        'Cache-Control': 'public, max-age=31536000, immutable',
+        'Content-Security-Policy': "default-src 'none'; sandbox",
+      });
     }
 
     const file = resolve(p);

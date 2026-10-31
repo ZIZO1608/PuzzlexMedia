@@ -1406,14 +1406,10 @@ async function viewClickMap(view, query) {
     let win, doc;
     try { win = frame.contentWindow; doc = frame.contentDocument; } catch { status.textContent = 'تعذّر فتح الصفحة'; return; }
     doc.documentElement.classList.remove('is-loading');
-    const css = doc.createElement('style');
-    css.textContent = '.px-consent,.loader{display:none!important}'
-      + '.pxm-layer{position:absolute;left:0;top:0;width:0;height:0;z-index:2147483647;pointer-events:none}'
-      + '.pxm-heat{position:absolute;width:44px;height:44px;margin:-22px 0 0 -22px;border-radius:50%;background:radial-gradient(circle,rgba(255,64,64,.55) 0,rgba(255,170,0,.25) 40%,rgba(255,170,0,0) 70%)}'
-      + '.pxm-heat::after{content:"";position:absolute;left:19px;top:19px;width:6px;height:6px;border-radius:50%;background:#ff3b3b;box-shadow:0 0 0 1.5px #fff}'
-      + '.pxm-num{position:absolute;min-width:28px;height:28px;margin:-14px 0 0 -14px;padding:0 6px;border-radius:14px;background:#D7FF00;color:#0a0a0b;'
-      + 'font:800 13px/28px system-ui,sans-serif;text-align:center;box-shadow:0 0 0 2px #0a0a0b,0 4px 14px rgba(0,0,0,.5)}'
-      + '.pxm-num.on{background:#ff3b3b;color:#fff;animation:pxm 1s ease-in-out infinite alternate}@keyframes pxm{to{box-shadow:0 0 0 2px #0a0a0b,0 0 0 12px rgba(255,59,59,.3)}}';
+    // a stylesheet file, not a <style> tag: the site's Content-Security-Policy only allows its own stylesheets
+    const css = doc.createElement('link');
+    css.rel = 'stylesheet';
+    css.href = '/admin/clickmap.css?v=1';
     doc.head.append(css);
     // the page shouldn't navigate away from under the dots
     doc.addEventListener('click', (e) => { if (e.target.closest('a, button, form')) e.preventDefault(); }, true);
@@ -1470,8 +1466,8 @@ async function viewAccount(view) {
   const form = h('form', { class: 'card grid', style: 'max-width:520px' },
     h('h2', { class: 'section-title', style: 'margin:0' }, 'تغيير كلمة المرور'),
     h('label', { class: 'field' }, h('span', null, 'كلمة المرور الحالية'), h('input', { type: 'password', name: 'current', autocomplete: 'current-password', dir: 'ltr', required: true })),
-    h('label', { class: 'field' }, h('span', null, 'كلمة المرور الجديدة'), h('input', { type: 'password', name: 'next', autocomplete: 'new-password', dir: 'ltr', minlength: 10, required: true }),
-      h('span', { class: 'hint' }, '10 أحرف على الأقل. جملة طويلة تتذكرها أفضل من كلمة قصيرة معقدة.')),
+    h('label', { class: 'field' }, h('span', null, 'كلمة المرور الجديدة'), h('input', { type: 'password', name: 'next', autocomplete: 'new-password', dir: 'ltr', minlength: 12, required: true }),
+      h('span', { class: 'hint' }, '12 حرفاً على الأقل، ولا تحتوي اسم المستخدم. جملة طويلة تتذكرها (16 حرفاً فأكثر) أفضل من كلمة قصيرة معقدة.')),
     h('label', { class: 'field' }, h('span', null, 'تأكيد كلمة المرور الجديدة'), h('input', { type: 'password', name: 'again', autocomplete: 'new-password', dir: 'ltr', required: true })),
     h('p', { class: 'form-error', role: 'alert' }),
     h('button', { class: 'btn btn-primary', type: 'submit' }, 'تغيير كلمة المرور'));
