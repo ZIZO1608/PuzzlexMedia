@@ -222,6 +222,91 @@ const ivCurrencyDrop = (value, onChange, disabled) => ivDrop({
   custom: (s) => (/^[a-z]{3}$/i.test(s) ? { value: s.toUpperCase(), label: `استخدم ${s.toUpperCase()}`, short: s.toUpperCase(), hint: 'رمز عملة من 3 أحرف' } : null),
 });
 
+/* A date field with the panel's own calendar: Arabic months, weeks from Saturday, keyboard friendly.
+   Returns the field; field.setValue(iso) changes it from outside, field.focus() focuses its button. */
+const IV_MONTHS = ['يناير', 'فبراير', 'مارس', 'أبريل', 'مايو', 'يونيو', 'يوليو', 'أغسطس', 'سبتمبر', 'أكتوبر', 'نوفمبر', 'ديسمبر'];
+const IV_DAYS = ['سبت', 'أحد', 'إثنين', 'ثلاثاء', 'أربعاء', 'خميس', 'جمعة']; // Saturday first
+const ivIso = (y, m, day) => new Date(Date.UTC(y, m, day)).toISOString().slice(0, 10); // m from 0
+const ivParts = (iso) => { const [y, m, day] = iso.split('-').map(Number); return { y, m: m - 1, day }; };
+const ivMonthDays = (y, m) => new Date(Date.UTC(y, m + 1, 0)).getUTCDate();
+const ivShiftMonth = (iso, n) => {
+  const { y, m, day } = ivParts(iso);
+  const t = new Date(Date.UTC(y, m + n, 1));
+  return ivIso(t.getUTCFullYear(), t.getUTCMonth(), Math.min(day, ivMonthDays(t.getUTCFullYear(), t.getUTCMonth())));
+};
+const ivLongDate = (iso) => new Date(`${iso}T12:00:00Z`).toLocaleDateString('ar-EG-u-nu-latn', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric', timeZone: 'UTC' });
+
+function ivDate({ value, onChange, label, clearable }) {
+  const btn = h('button', { type: 'button', class: 'ivdd-btn ivdt-btn', 'aria-haspopup': 'dialog', 'aria-label': label });
+  // the weekday goes in the tooltip: the field is too narrow for it
+  const paint = () => { btn.title = value ? ivLongDate(value) : ''; btn.replaceChildren(h('span', { class: 'ivdt-ico', 'aria-hidden': 'true' }),
+    h('span', { class: `ivdd-label${value ? '' : ' muted'}` }, value ? InvoiceDoc.dateText(value, 'ar') : 'اختر تاريخاً'), h('span', { class: 'ivdd-chev', 'aria-hidden': 'true' })); };
+  paint();
+  ivPopover(btn, (close) => {
+    let at = value || ivToday(); // the day the keyboard is on, and the month shown
+    let mode = 'days';
+    const today = ivToday();
+    const head = h('div', { class: 'ivdt-head' });
+    const body = h('div', { class: 'ivdt-body' });
+    const pick = (iso) => { close(true); if (iso !== value) { value = iso; paint(); onChange(iso); } };
+    const nav = (text, aria, fn) => h('button', { type: 'button', class: 'ivdt-nav', 'aria-label': aria, title: aria, onclick: fn }, text);
+    function draw(focus) {
+      const { y, m } = ivParts(at);
+      if (mode === 'days') {
+        head.replaceChildren(
+          nav('‹', 'الشهر السابق', () => { at = ivShiftMonth(at, -1); draw(); }),
+          h('button', { type: 'button', class: 'ivdt-title', 'aria-label': 'اختر الشهر والسنة', onclick: () => { mode = 'months'; draw(true); } }, `${IV_MONTHS[m]} ${y}`, h('span', { class: 'ivdd-chev', 'aria-hidden': 'true' })),
+          nav('›', 'الشهر التالي', () => { at = ivShiftMonth(at, 1); draw(); }));
+        const offset = (new Date(Date.UTC(y, m, 1)).getUTCDay() + 1) % 7;
+        const cells = [];
+        for (let i = 0; i < 42; i++) {
+          const iso = ivIso(y, m, 1 - offset + i);
+          const p = ivParts(iso);
+          const cls = ['ivdt-day', p.m !== m && 'out', iso === today && 'today', iso === value && 'on'].filter(Boolean).join(' ');
+          cells.push(h('button', { type: 'button', class: cls, tabindex: iso === at ? '0' : '-1', 'data-iso': iso, 'aria-label': ivLongDate(iso), 'aria-pressed': String(iso === value), onclick: () => pick(iso) }, p.day));
+        }
+        body.replaceChildren(h('div', { class: 'ivdt-week', 'aria-hidden': 'true' }, IV_DAYS.map((n) => h('span', null, n))), h('div', { class: 'ivdt-grid' }, cells));
+      } else {
+        head.replaceChildren(
+          nav('‹', 'السنة السابقة', () => { at = ivShiftMonth(at, -12); draw(); }),
+          h('button', { type: 'button', class: 'ivdt-title', onclick: () => { mode = 'days'; draw(true); } }, String(y)),
+          nav('›', 'السنة التالية', () => { at = ivShiftMonth(at, 12); draw(); }));
+        const v = value && ivParts(value);
+        body.replaceChildren(h('div', { class: 'ivdt-months' }, IV_MONTHS.map((name, i) => h('button', {
+          type: 'button', class: `ivdt-month${v && v.y === y && v.m === i ? ' on' : ''}`, tabindex: i === m ? '0' : '-1',
+          onclick: () => { at = ivIso(y, i, Math.min(ivParts(at).day, ivMonthDays(y, i))); mode = 'days'; draw(true); },
+        }, name))));
+      }
+      if (focus) body.querySelector('[tabindex="0"]')?.focus({ preventScroll: true });
+    }
+    // arrows move a day (left is later: the panel reads right to left) or a week; PageUp / PageDown a month
+    body.addEventListener('keydown', (e) => {
+      if (e.key === 'Tab') { close(); return; }
+      if ((e.key === 'Enter' || e.key === ' ') && e.target.matches('.ivdt-day, .ivdt-month')) { e.preventDefault(); e.target.click(); return; }
+      const step = (mode === 'days' ? { ArrowLeft: 1, ArrowRight: -1, ArrowDown: 7, ArrowUp: -7 } : { ArrowLeft: 1, ArrowRight: -1, ArrowDown: 3, ArrowUp: -3 })[e.key];
+      if (step) {
+        e.preventDefault();
+        at = mode === 'days' ? ivPlusDays(at, step) : ivShiftMonth(at, step);
+        draw(true);
+      } else if (e.key === 'PageUp' || e.key === 'PageDown') {
+        e.preventDefault();
+        at = ivShiftMonth(at, (e.key === 'PageUp' ? -1 : 1) * (e.shiftKey || mode === 'months' ? 12 : 1));
+        draw(true);
+      }
+    });
+    const foot = h('div', { class: 'ivdt-foot' },
+      h('button', { type: 'button', class: 'chip', onclick: () => pick(today) }, 'اليوم'),
+      clearable && value ? h('button', { type: 'button', class: 'chip ivdt-clear', onclick: () => { close(true); value = ''; paint(); onChange(''); } }, 'مسح') : null);
+    draw();
+    const panel = h('div', { class: 'ivdd-pop ivdt-pop', role: 'dialog', 'aria-label': label }, head, body, foot);
+    return { el: panel, focus: body.querySelector('[tabindex="0"]') };
+  });
+  const el = h('div', { class: 'ivdd ivdt' }, btn);
+  el.setValue = (v) => { value = v; paint(); };
+  el.focus = (o) => btn.focus(o);
+  return el;
+}
+
 async function viewInvoices(view, arg) {
   if (!ivState || !arg) await ivLoad();
   if (!arg) return ivList(view);
@@ -543,15 +628,15 @@ function ivEditor(view, d, base, opts = {}) {
   drawStatus();
 
   // dates: moving the issue date moves the due date with it, keeping the same number of days
-  const dueInput = d.type === 'receipt' ? null : text(d, 'dueDate', { type: 'date', dir: 'ltr' });
-  let lastIssue = d.issueDate;
-  const issueInput = text(d, 'issueDate', { type: 'date', dir: 'ltr', after: (e) => {
-    const next = e.target.value;
-    if (dueInput && d.dueDate && lastIssue && next) { d.dueDate = ivPlusDays(d.dueDate, ivDaysBetween(lastIssue, next)); dueInput.value = d.dueDate; }
-    if (next) lastIssue = next;
+  const dueLabel = d.type === 'quote' ? 'صالح حتى' : 'تاريخ الاستحقاق';
+  const dueInput = d.type === 'receipt' ? null : ivDate({ value: d.dueDate, label: dueLabel, clearable: true, onChange: (v) => { d.dueDate = v; changed(); } });
+  const issueInput = ivDate({ value: d.issueDate, label: 'تاريخ الإصدار', onChange: (v) => {
+    if (dueInput && d.dueDate && d.issueDate) { d.dueDate = ivPlusDays(d.dueDate, ivDaysBetween(d.issueDate, v)); dueInput.setValue(d.dueDate); }
+    d.issueDate = v;
+    changed();
   } });
   const dueTerms = d.type === 'receipt' ? null : h('div', { class: 'row ivx-terms' }, ...(d.type === 'quote' ? [7, 15, 30] : [0, 7, 14, 30]).map((n) => h('button', {
-    type: 'button', class: 'chip', onclick: () => { d.dueDate = ivPlusDays(d.issueDate || ivToday(), n); dueInput.value = d.dueDate; changed(); },
+    type: 'button', class: 'chip', onclick: () => { d.dueDate = ivPlusDays(d.issueDate || ivToday(), n); dueInput.setValue(d.dueDate); changed(); },
   }, n ? `${n} يوم` : 'عند الاستلام')));
 
   const settingsCard = h('div', { class: 'card grid' }, h('h2', null, 'البيانات الأساسية'),
@@ -561,8 +646,8 @@ function ivEditor(view, d, base, opts = {}) {
         d.type === 'receipt' && d.invoiceId ? h('span', { class: 'hint' }, 'عملة الفاتورة المرتبطة.') : null),
       statusBox),
     h('div', { class: 'two' },
-      field('تاريخ الإصدار', issueInput),
-      d.type === 'receipt' ? null : h('div', { class: 'field' }, h('span', null, d.type === 'quote' ? 'صالح حتى' : 'تاريخ الاستحقاق'), dueInput, dueTerms,
+      box('تاريخ الإصدار', issueInput),
+      d.type === 'receipt' ? null : h('div', { class: 'field' }, h('span', null, dueLabel), dueInput, dueTerms,
         warning(() => (d.dueDate && d.issueDate && d.dueDate < d.issueDate ? 'التاريخ قبل تاريخ الإصدار.' : '')))));
 
   // a receipt: how much, how, and (optionally) which invoice it pays
