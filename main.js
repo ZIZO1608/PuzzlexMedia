@@ -29,8 +29,7 @@ const chipLinksEl = $('.chip-links');
 
 let images = {};
 let gctx = null;
-let heroTl = null; // the current hero timeline (rebuilt on resize / theme change)
-let heroPieceSize = 0; // on-screen size of one hero piece; the theme wipe uses the same
+let heroTl = null; // the current hero timeline (rebuilt on resize)
 let heroDone = Infinity; // timeline time at which the hero picture is complete
 let heroFx = {}; // last applied on/off state of the hero's costly layers
 const sheenEl = document.querySelector('.sheen');
@@ -78,42 +77,19 @@ function piecePath(ctx, x, y, w, h, e, size) {
   ctx.closePath();
 }
 
-/* ---------- theme palettes for everything drawn on canvas ---------- */
-const PALETTES = {
-  dark: {
-    bg: '#0c0c0d', glow: 'rgba(215,255,0,.20)', grid: 'rgba(255,255,255,.035)',
-    text: '#f4f4f1', muted: 'rgba(244,244,241,.7)', faint: 'rgba(255,255,255,.45)',
-    chip: 'rgba(255,255,255,.22)', chipText: 'rgba(244,244,241,.85)',
-    ring1: 'rgba(215,255,0,.28)', ring2: 'rgba(255,255,255,.16)', spark: '#fff', sparkAlt: LIME, iconGlow: 'rgba(215,255,0,.45)',
-    accentText: LIME, marker: null,
-    ghostFill: 'rgba(255,255,255,.025)', ghostLine: 'rgba(255,255,255,.16)', ghostEdge: 'rgba(215,255,0,.6)', ghostTick: LIME,
-    windA: '215,255,0', windB: '255,255,255',
-  },
-  light: {
-    bg: '#efefe9', glow: 'rgba(200,240,0,.38)', grid: 'rgba(13,13,14,.05)',
-    text: '#0d0d0e', muted: 'rgba(13,13,14,.68)', faint: 'rgba(13,13,14,.45)',
-    chip: 'rgba(13,13,14,.25)', chipText: 'rgba(13,13,14,.85)',
-    ring1: 'rgba(120,160,0,.45)', ring2: 'rgba(13,13,14,.18)', spark: '#0d0d0e', sparkAlt: '#9cc000', iconGlow: 'rgba(160,200,0,.5)',
-    accentText: '#0d0d0e', marker: LIME, // lime text doesn't read on off-white: dark text on a lime highlighter instead
-    ghostFill: 'rgba(13,13,14,.03)', ghostLine: 'rgba(13,13,14,.2)', ghostEdge: 'rgba(110,140,0,.75)', ghostTick: '#9cc000',
-    windA: '120,160,0', windB: '13,13,14',
-  },
+/* ---------- palette for everything drawn on canvas ---------- */
+const PAL = {
+  bg: '#0c0c0d', glow: 'rgba(215,255,0,.20)', grid: 'rgba(255,255,255,.035)',
+  text: '#f4f4f1', muted: 'rgba(244,244,241,.7)', faint: 'rgba(255,255,255,.45)',
+  chip: 'rgba(255,255,255,.22)', chipText: 'rgba(244,244,241,.85)',
+  ring1: 'rgba(215,255,0,.28)', ring2: 'rgba(255,255,255,.16)', spark: '#fff', sparkAlt: LIME, iconGlow: 'rgba(215,255,0,.45)',
+  accentText: LIME,
+  ghostFill: 'rgba(255,255,255,.025)', ghostLine: 'rgba(255,255,255,.16)', ghostEdge: 'rgba(215,255,0,.6)', ghostTick: LIME,
+  windA: '215,255,0', windB: '255,255,255',
 };
-const currentTheme = () => (document.documentElement.dataset.theme === 'light' ? 'light' : 'dark');
-let PAL = PALETTES[currentTheme()];
 
-// a headline line in the accent colour; on light it gets a lime highlighter under it
-function accentLine(ctx, text, x, y, hs, align) {
-  if (PAL.marker) {
-    const w = ctx.measureText(text).width;
-    const left = align === 'right' ? x - w : align === 'center' ? x - w / 2 : x;
-    ctx.save();
-    ctx.fillStyle = PAL.marker;
-    ctx.beginPath();
-    ctx.roundRect(left - hs * 0.08, y + hs * 0.52, w + hs * 0.16, hs * 0.42, hs * 0.08);
-    ctx.fill();
-    ctx.restore();
-  }
+// a headline line in the accent colour
+function accentLine(ctx, text, x, y) {
   ctx.fillStyle = PAL.accentText;
   ctx.fillText(text, x, y);
 }
@@ -199,7 +175,7 @@ function drawBrand(ctx, x, y, h, align) {
   ctx.fillStyle = PAL.text;
   ctx.fillText('PUZZLEX', left + h + gap, ty);
   ctx.font = `400 ${fs}px "Agera Gothic"`;
-  ctx.fillStyle = PAL.marker ? '#5d7400' : LIME;
+  ctx.fillStyle = LIME;
   ctx.fillText(' MEDIA', left + h + gap + w1, ty);
   ctx.restore();
 }
@@ -208,8 +184,6 @@ function drawBrand(ctx, x, y, h, align) {
 const inkBottom = (ctx, text, y) => y + ctx.measureText(text).actualBoundingBoxDescent;
 // the y for the next line (current font) so its highest mark (the hamza on أ, a lam's top) clears `bottom` by `gap`
 const clearOf = (ctx, text, bottom, gap) => bottom + gap + ctx.measureText(text).actualBoundingBoxAscent;
-// the headline's lowest point: its letters, and on the accent line the light theme's marker bar (accentLine)
-const headBottom = (ctx, line, y, hs, accent) => Math.max(inkBottom(ctx, line, y), accent && PAL.marker ? y + hs * 0.94 : 0);
 
 function drawArt(ctx, W, H, mobile) {
   const u = mobile ? W / 100 : H / 100;
@@ -266,9 +240,9 @@ function drawArt(ctx, W, H, mobile) {
     head.forEach((line, i) => {
       ctx.font = `900 ${hs}px Alexandria`;
       if (i) y = Math.max(y, clearOf(ctx, line, bottom, hs * 0.08));
-      if (i === 1) accentLine(ctx, line, tx, y, hs, align);
+      if (i === 1) accentLine(ctx, line, tx, y);
       else { ctx.fillStyle = PAL.text; ctx.fillText(line, tx, y); }
-      bottom = headBottom(ctx, line, y, hs, i === 1);
+      bottom = inkBottom(ctx, line, y);
       y += hs * 1.12;
     });
 
@@ -320,9 +294,9 @@ function drawArt(ctx, W, H, mobile) {
   head.forEach((line, i) => {
     ctx.font = `900 ${hs}px Alexandria`;
     if (i) y = Math.max(y, clearOf(ctx, line, bottom, hs * 0.08));
-    if (i === 1) accentLine(ctx, line, cx, y, hs, 'center');
+    if (i === 1) accentLine(ctx, line, cx, y);
     else { ctx.fillStyle = PAL.text; ctx.fillText(line, cx, y); }
-    bottom = headBottom(ctx, line, y, hs, i === 1);
+    bottom = inkBottom(ctx, line, y);
     y += hs * 1.1;
   });
   ctx.font = `600 ${u * 4.2}px Alexandria`;
@@ -343,7 +317,6 @@ function drawArt(ctx, W, H, mobile) {
 function build() {
   if (gctx) gctx.revert(); // also kills the hero's ScrollTrigger, leaving other sections alone
   if (heroPhysics) { heroPhysics.stop(); heroPhysics = null; }
-  PAL = PALETTES[currentTheme()];
   piecesEl.innerHTML = '';
 
   const vw = window.innerWidth;
@@ -352,7 +325,6 @@ function build() {
   const mobile = vw < 760 && vh > vw;
   // the board covers the whole screen: square pieces, enough of them to overhang every edge a little
   const pw = Math.ceil(mobile ? Math.max(vw / 8, vh / 14) : Math.max(vw / 16, vh / 10));
-  heroPieceSize = pw;
   const ph = pw;
   const cols = Math.ceil(vw / pw);
   const rows = Math.ceil(vh / ph);
@@ -1024,13 +996,5 @@ function playClick() {
     }, 200);
   });
 }
-
-// theme switch: redraw the hero in the new palette and land it straight on the current scroll position
-document.addEventListener('themechange', () => {
-  if (!stage || !images.icon) return;
-  build();
-  ScrollTrigger.refresh();
-  if (heroTl && heroTl.scrollTrigger) heroTl.progress(heroTl.scrollTrigger.progress);
-});
 
 if (stage) init(); // the hero exists on the home page only; other pages use the shared helpers above

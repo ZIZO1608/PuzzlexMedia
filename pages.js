@@ -11,7 +11,7 @@
     onScroll();
     window.addEventListener('scroll', onScroll, { passive: true });
   }
-  // phones: the links, language, theme and contact button fold into a full-screen menu (styles.css, "Phones")
+  // phones: the links, language, music and contact button fold into a full-screen menu (styles.css, "Phones")
   document.querySelectorAll('.topbar').forEach((top) => {
     const nav = top.querySelector('.nav');
     if (!nav) return;
@@ -281,17 +281,33 @@ function initServiceHero() {
   if (!wrap) return;
   const U = 100, TAB = 90, PAD = Math.ceil(TAB * TAB_DEPTH + 4);
   const pieces = [...wrap.querySelectorAll('.svc-hero-piece')];
-  const last = pieces.length - 1;
-  const vE = pieces.slice(1).map((_, c) => (c % 2 ? -1 : 1)); // edge between columns c|c+1, tabs alternating
   wrap.style.setProperty('--pad', (PAD / U).toFixed(3));
-  wrap.style.setProperty('--n', pieces.length);
-  pieces.forEach((a, i) => {
-    const c = EN ? i : last - i; // follow the reading order
-    const e = { t: 0, b: 0, l: c === 0 ? 0 : -vE[c - 1], r: c === last ? 0 : vE[c] };
-    a.style.setProperty('--c', c);
-    a.insertAdjacentHTML('afterbegin',
-      `<svg class="svc-hero-shape" viewBox="${-PAD} ${-PAD} ${U + 2 * PAD} ${U + 2 * PAD}" aria-hidden="true"><path d="${jigsawD(e, U, TAB)}"/></svg>`);
-  });
+  // one row; on narrow phones four pieces lock into a 2×2 square so their labels fit
+  const narrow = matchMedia('(max-width: 420px)');
+  const tabRight = (row, c) => ((row + c) % 2 ? -1 : 1); // edge between columns c|c+1, tabs alternating
+  const tabDown = (row, c) => ((row + c) % 2 ? 1 : -1);  // edge between rows row|row+1
+  const layout = () => {
+    const cols = narrow.matches && pieces.length === 4 ? 2 : pieces.length;
+    wrap.style.setProperty('--n', cols);
+    wrap.style.setProperty('--rows', Math.ceil(pieces.length / cols));
+    pieces.forEach((a, i) => {
+      const row = Math.floor(i / cols), inRow = Math.min(cols, pieces.length - row * cols), last = inRow - 1;
+      const c = EN ? i % cols : last - (i % cols); // follow the reading order
+      const e = {
+        t: row === 0 ? 0 : -tabDown(row - 1, c),
+        b: i + cols < pieces.length ? tabDown(row, c) : 0,
+        l: c === 0 ? 0 : -tabRight(row, c - 1),
+        r: c === last ? 0 : tabRight(row, c),
+      };
+      a.style.setProperty('--c', c);
+      a.style.setProperty('--r', row);
+      a.querySelector('.svc-hero-shape')?.remove();
+      a.insertAdjacentHTML('afterbegin',
+        `<svg class="svc-hero-shape" viewBox="${-PAD} ${-PAD} ${U + 2 * PAD} ${U + 2 * PAD}" aria-hidden="true"><path d="${jigsawD(e, U, TAB)}"/></svg>`);
+    });
+  };
+  layout();
+  narrow.addEventListener('change', layout);
 }
 
 /* ---------- the bottom tray (services page and contact form): picked pieces fly into it ---------- */
