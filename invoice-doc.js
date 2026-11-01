@@ -187,17 +187,16 @@
       const tbody = () => {
         if (!table) {
           table = el('table', 'ivd-items',
-            el('thead', null, el('tr', null, el('th', 'ivd-n', '#'), el('th', null, t.desc), el('th', 'ivd-num', t.qty), el('th', 'ivd-num', t.price), el('th', 'ivd-num', t.amount))),
+            el('thead', null, el('tr', null, el('th', null, t.desc), el('th', 'ivd-num', t.qty), el('th', 'ivd-num', t.price), el('th', 'ivd-num', t.amount))),
             el('tbody'));
           sheet.append(table);
         }
         return table.tBodies[0];
       };
       const breakPage = () => { if (table && !table.tBodies[0].rows.length) table.remove(); nextPage(); };
-      (doc.items || []).forEach((it, i) => {
+      (doc.items || []).forEach((it) => {
         // a row carried over from the page before shows only the rest of its description
         const row = (desc, continued) => el('tr', null,
-          el('td', 'ivd-n', continued ? '' : String(i + 1)),
           el('td', 'ivd-desc', desc),
           el('td', 'ivd-num', continued ? '' : qtyText(Number(it.qty) || 0)),
           el('td', 'ivd-num', continued ? '' : m(it.price)),

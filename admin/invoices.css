@@ -93,10 +93,9 @@ input[readonly] { color: var(--muted); }
 
 .ivx-items { display: grid; gap: 10px; }
 .ivx-item {
-  display: grid; align-items: end; grid-template-columns: auto minmax(0, 1fr) minmax(0, 1fr); grid-template-areas: "n desc desc" ". qty price" ". end end";
+  display: grid; align-items: end; grid-template-columns: repeat(2, minmax(0, 1fr)); grid-template-areas: "desc desc" "qty price" "end end";
   gap: 8px 10px; padding: 12px; border: 1px solid var(--line); border-radius: 14px; background: var(--ink);
 }
-.ivx-item > .tag { grid-area: n; align-self: start; margin-top: 30px; }
 .ivx-desc { grid-area: desc; }
 .ivx-item .ivx-qty { grid-area: qty; }
 .ivx-item .ivx-price { grid-area: price; }
@@ -137,8 +136,6 @@ input[readonly] { color: var(--muted); }
   .ivx-sum { grid-template-columns: repeat(3, minmax(0, 1fr)); }
   .ivx-sum .tag { grid-column: 1 / -1; justify-self: start; }
   .ivx-sum b { font-size: 12.5px; white-space: normal; overflow-wrap: anywhere; }
-  .ivx-item { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); grid-template-areas: "desc desc" "qty price" "end end"; }
-  .ivx-item > .tag { display: none; }
   .ivx-tools .tm-search { max-width: none; }
   .ivx-filter { width: calc(50% - 5px); }
   .ivx-sts { justify-items: start; }

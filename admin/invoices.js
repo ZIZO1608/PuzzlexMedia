@@ -631,7 +631,6 @@ function ivEditor(view, d, base, opts = {}) {
       const num = (key, label) => h('label', { class: `field ivx-n ivx-${key}` }, h('span', null, label), money(it, key, showLine));
       const move = (to) => { [d.items[to], d.items[i]] = [d.items[i], d.items[to]]; drawItems(); changed(); };
       return h('div', { class: 'ivx-item' },
-        h('span', { class: 'tag' }, i + 1),
         h('label', { class: 'field ivx-desc' }, h('span', null, 'الوصف'), ivGrow(h('textarea', { dir: 'auto', value: it.desc, maxlength: IV.limits.desc, placeholder: 'مثال: تصميم هوية بصرية كاملة، ويمكنك كتابة التفاصيل هنا بقدر ما تريد', oninput: (e) => { it.desc = e.target.value; changed(); } }))),
         num('qty', 'الكمية'), num('price', `سعر الوحدة (${d.currency})`),
         h('div', { class: 'ivx-item-end' }, line, h('span', { class: 'row' },
