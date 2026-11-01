@@ -2,12 +2,28 @@
    White paper that prints well; the brand's ink and lime as accents. 794px = 210mm at 96dpi. */
 .ivd {
   --ink: #0a0a0b; --lime: #D8FF06; --paper: #fff; --text: #17171a; --muted: #6b6b72; --line: #e6e6e1; --soft: #f6f6f1;
-  position: relative; overflow: hidden; width: 794px; min-height: 1123px; padding: 50px 56px 88px;
+  position: relative; overflow: hidden; box-sizing: border-box; width: 794px; height: 1123px; padding: 50px 56px 88px;
   display: flex; flex-direction: column; gap: 22px;
   background: var(--paper); color: var(--text); font: 400 13px/1.65 "Alexandria", system-ui, sans-serif;
   -webkit-print-color-adjust: exact; print-color-adjust: exact; text-align: start;
 }
 .ivd * { box-sizing: border-box; margin: 0; padding: 0; }
+.ivd > * { flex: none; } /* a full page overflows to the next one (invoice-doc.js), it never squeezes */
+.ivd-pages { display: grid; gap: 18px; width: 794px; }
+
+/* the slim heading from the second page on */
+.ivd-cont { display: flex; justify-content: space-between; align-items: center; gap: 20px; padding: 6px 0 14px; border-bottom: 2px solid var(--ink); }
+.ivd-cont-brand { display: flex; align-items: center; gap: 10px; min-width: 0; }
+.ivd-cont-logo { flex: none; width: 36px; height: 36px; object-fit: contain; border-radius: 9px; }
+.ivd-cont-company { font-size: 14px; font-weight: 800; color: var(--ink); }
+.ivd-cont-title { display: flex; align-items: center; gap: 12px; flex: none; }
+.ivd-cont-kind { font-size: 18px; font-weight: 900; color: var(--ink); }
+.ivd-cont .ivd-number { margin-top: 0; font-size: 12px; padding: 4px 12px; }
+.ivd-page-title { font-size: 24px; font-weight: 900; line-height: 1.3; color: var(--ink); overflow-wrap: anywhere; }
+.ivd-page-text { font-size: 13.5px; line-height: 1.85; }
+.ivd-page-text .ivd-label { margin-bottom: 8px; }
+.ivd-extra-full { grid-template-columns: minmax(0, 1fr); }
+.ivd-page-no { flex: none; color: var(--ink); font-weight: 700; white-space: nowrap; }
 .ivd p { white-space: pre-line; overflow-wrap: anywhere; }
 .ivd-ltr { direction: ltr; unicode-bidi: isolate; display: inline-block; }
 .ivd-ltr-val b { direction: ltr; unicode-bidi: isolate; }
@@ -85,6 +101,7 @@
 .ivd-extra > div { padding-top: 12px; border-top: 1px solid var(--line); }
 
 .ivd-sign { display: flex; justify-content: flex-end; margin-top: auto; break-inside: avoid; }
+.ivd-sign.has-stamp .ivd-sign-box { min-height: 126px; } /* room for the stamp before its image has loaded */
 .ivd-sign-box { position: relative; width: 210px; min-height: 76px; display: grid; align-content: end; justify-items: center; border-bottom: 1.5px solid var(--ink); }
 .ivd-sign-box span { position: absolute; bottom: -22px; font-size: 11px; color: var(--muted); }
 .ivd-stamp-img { max-width: 180px; max-height: 110px; object-fit: contain; opacity: .9; margin-bottom: 4px; }
@@ -107,10 +124,11 @@
   font-size: 120px; font-weight: 900; color: rgba(10, 10, 11, .05); rotate: -30deg;
 }
 
-/* printing / Save as PDF: one sheet per page, nothing else */
+/* printing / Save as PDF: each sheet exactly one page, nothing else */
 @page { size: A4; margin: 0; }
 @media print {
   html, body { background: #fff !important; margin: 0 !important; padding: 0 !important; }
-  .ivd { width: 210mm; min-height: 297mm; box-shadow: none !important; border-radius: 0 !important; }
-  .ivd-items thead { display: table-header-group; }
+  .ivd-pages { display: block; width: auto; transform: none !important; position: static !important; }
+  .ivd { width: 210mm; height: 296.9mm; break-after: page; break-inside: avoid; box-shadow: none !important; border-radius: 0 !important; }
+  .ivd:last-child { break-after: auto; }
 }

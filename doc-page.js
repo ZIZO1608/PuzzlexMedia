@@ -27,10 +27,9 @@
   printBtn.hidden = false;
   printBtn.addEventListener('click', () => window.print());
 
-  const sheet = InvoiceDoc.render(doc, profile);
-  paper.append(sheet);
   paper.hidden = false;
   msg.remove();
+  let sheet = null;
 
   // the A4 sheet keeps its size; on a phone it is shown smaller
   const fit = () => {
@@ -39,7 +38,10 @@
     paper.style.height = scale < 1 ? `${sheet.offsetHeight * scale}px` : '';
     paper.style.width = scale < 1 ? `${794 * scale}px` : '';
   };
-  fit();
+  const draw = () => { sheet = InvoiceDoc.render(doc, profile); paper.replaceChildren(sheet); fit(); };
+  draw();
+  // where the pages break depends on the font's real size, so lay them out again once it has arrived
+  if (document.fonts) document.fonts.ready.then(draw);
   window.addEventListener('resize', fit);
   window.addEventListener('beforeprint', () => { sheet.style.transform = ''; paper.style.height = ''; paper.style.width = ''; });
   window.addEventListener('afterprint', fit);

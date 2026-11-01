@@ -20,12 +20,12 @@ html, body { background: #0a0a0b; color: #f4f4f1; font-family: "Alexandria", sys
 .dp-main { display: grid; justify-items: center; padding: 28px 12px 60px; }
 .dp-msg { padding: 80px 16px; color: rgba(244, 244, 241, .7); text-align: center; line-height: 1.9; }
 .dp-paper { position: relative; }
-.dp-paper .ivd { transform-origin: top left; border-radius: 6px; box-shadow: 0 30px 80px rgba(0, 0, 0, .55); }
-html[dir="rtl"] .dp-paper .ivd { transform-origin: top right; }
+.dp-paper .ivd-pages { transform-origin: top left; }
+.dp-paper .ivd { border-radius: 6px; box-shadow: 0 30px 80px rgba(0, 0, 0, .55); }
+html[dir="rtl"] .dp-paper .ivd-pages { transform-origin: top right; }
 html[dir="rtl"] .dp-paper { direction: rtl; }
 @media print {
   .dp-bar { display: none !important; }
   .dp-main { padding: 0; display: block; }
   .dp-paper { width: auto !important; height: auto !important; }
-  .dp-paper .ivd { transform: none !important; }
 }

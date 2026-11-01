@@ -17,6 +17,7 @@ const IV = {
   },
   statusOf: { invoice: ['draft', 'sent', 'partial', 'paid', 'cancelled'], quote: ['draft', 'sent', 'accepted', 'rejected'], receipt: ['issued', 'cancelled'] },
   methods: { cash: 'نقداً', bank: 'تحويل بنكي', card: 'بطاقة', transfer: 'حوالة مالية', other: 'أخرى' },
+  limits: { desc: 5000, notes: 20000, terms: 20000, pageTitle: 200, pageBody: 30000, pages: 20, total: 300000 }, // the same as lib/invoices.js
   currencies: {
     USD: 'دولار أمريكي', EUR: 'يورو', SAR: 'ريال سعودي', AED: 'درهم إماراتي', KWD: 'دينار كويتي', QAR: 'ريال قطري',
     BHD: 'دينار بحريني', OMR: 'ريال عماني', JOD: 'دينار أردني', EGP: 'جنيه مصري', IQD: 'دينار عراقي', LBP: 'ليرة لبنانية',
@@ -32,6 +33,14 @@ const ivDaysBetween = (a, b) => Math.round((Date.parse(`${b}T12:00:00Z`) - Date.
 const ivMoney = (v, cur) => InvoiceDoc.money(v, cur, 'ar');
 const ivNum = (v) => { const n = Number(String(v ?? '').replace(/[٠-٩]/g, (d) => String(d.charCodeAt(0) & 0xf)).replace(/,/g, '')); return Number.isFinite(n) && n >= 0 ? n : 0; };
 const ivEmail = /^[^\s@]{1,64}@[^\s@]{1,190}\.[^\s@]{2,}$/; // the same rule as lib/invoices.js
+// tall enough for what's typed in it (browsers without field-sizing get it from here)
+const ivGrow = (box) => {
+  if (window.CSS && CSS.supports('field-sizing', 'content')) return box;
+  const go = () => { box.style.height = 'auto'; box.style.height = `${box.scrollHeight + 2}px`; };
+  box.addEventListener('input', go);
+  requestAnimationFrame(go);
+  return box;
+};
 const ivOverdue = (d) => d.type === 'invoice' && (d.status === 'sent' || d.status === 'partial') && d.dueDate && d.dueDate < ivToday();
 
 // the same arithmetic as lib/invoices.js (whole minor units), for the preview
@@ -75,7 +84,7 @@ function ivBlank(type) {
     items: type === 'receipt' ? [] : [{ desc: '', qty: 1, price: 0 }],
     discountType: 'amount', discount: 0, taxRate: type === 'receipt' ? 0 : p.taxRate || 0,
     notes: type === 'receipt' ? '' : p.notesAr || '', terms: type === 'receipt' ? '' : p.termsAr || '',
-    amount: 0, method: 'cash', reference: '', invoiceId: '', paidManual: 0,
+    amount: 0, method: 'cash', reference: '', invoiceId: '', paidManual: 0, extraPages: [],
   };
 }
 // the share link the client opens
@@ -457,6 +466,7 @@ function ivList(view) {
 /* ---------- the editor, with the sheet beside it ---------- */
 function ivEditor(view, d, base, opts = {}) {
   const isNew = !d.id;
+  if (!d.extraPages) d.extraPages = []; // saved before pages could be added
   let saved = base ? clone(base) : clone(d); // a redraw keeps what was last saved
   const T = IV.types[d.type];
   const p = ivState.profile;
@@ -466,10 +476,12 @@ function ivEditor(view, d, base, opts = {}) {
   // drawn again (currency, linked invoice): same place on the page
   const redraw = () => { const y = window.scrollY; ivEditor(view, d, saved, opts); window.scrollTo(0, y); };
 
+  const taken = () => ivState.docs.map((x) => x.number);
+  const autoNumber = () => InvoiceNumber.build(d, taken());
   const computed = () => {
     const t = ivTotals(d, ivState.docs);
     const inv = d.invoiceId && ivState.docs.find((x) => x.id === d.invoiceId);
-    return { ...d, ...t, status: ivStatus(d, t), number: d.number || `${T.prefix}-${d.issueDate.slice(0, 4)}-····`, invoiceNumber: inv ? inv.number : d.invoiceNumber || '' };
+    return { ...d, ...t, status: ivStatus(d, t), number: d.number || autoNumber(), invoiceNumber: inv ? inv.number : d.invoiceNumber || '' };
   };
   const fit = () => {
     if (!sheet) return;
@@ -478,14 +490,28 @@ function ivEditor(view, d, base, opts = {}) {
     paper.style.height = `${sheet.offsetHeight * scale}px`;
   };
   const totalsLine = h('b', { class: 'ivx-total-line' });
-  function preview() {
-    const c = computed();
-    sheet = InvoiceDoc.render(c, p, { watermark: d.id ? '' : (d.lang === 'en' ? 'DRAFT' : 'مسودة') });
+  const pageCount = h('b', { class: 'ivx-pages-n' });
+  const watermark = () => (d.id ? '' : (d.lang === 'en' ? 'DRAFT' : 'مسودة'));
+  let sheetTime = 0;
+  const drawSheet = () => {
+    const started = performance.now();
+    sheet = InvoiceDoc.render(computed(), p, { watermark: watermark(), blanks: true });
+    sheetTime = performance.now() - started;
     paper.replaceChildren(sheet);
     fit();
+    const n = sheet.childElementCount;
+    pageCount.textContent = n === 1 ? 'صفحة واحدة' : n === 2 ? 'صفحتان' : `${n} صفحات`;
+  };
+  // the pages are laid out a moment after the typing, longer for a long document, so it stays quick to type in
+  let sheetTimer = 0;
+  function preview() {
+    const c = computed();
+    clearTimeout(sheetTimer);
+    if (sheet) sheetTimer = setTimeout(drawSheet, Math.max(70, sheetTime * 2)); else drawSheet();
     totalsLine.textContent = `الإجمالي: ${ivMoney(c.total, d.currency)}`;
     return c;
   }
+  if (document.fonts) document.fonts.ready.then(() => { if (paper.isConnected) drawSheet(); });
   if (ivRO) ivRO.disconnect();
   ivRO = new ResizeObserver(fit);
   ivRO.observe(previewBox);
@@ -495,16 +521,23 @@ function ivEditor(view, d, base, opts = {}) {
     const c = preview();
     for (const f of checks) f(c);
     if (d.type === 'invoice' && c.status !== shownStatus) drawStatus();
+    if (!manualNumber) drawNumber();
     refreshBar();
   };
 
   // what the server would refuse, caught here with the field in front of the user
   const problem = () => {
     const ask = (msg, el) => { if (el) { el.focus({ preventScroll: true }); el.scrollIntoView({ block: 'center', behavior: 'smooth' }); } return msg; };
+    if (isNew && d.number) {
+      if (!InvoiceNumber.valid(d.number)) return ask('رقم المستند: حروف إنجليزية وأرقام وشرطات فقط', numberBox.querySelector('input'));
+      if (InvoiceNumber.isTaken(d.number, taken())) return ask(`الرقم ${d.number} مستخدم في مستند آخر`, numberBox.querySelector('input'));
+    }
     if (!d.client.name.trim() && !d.client.company.trim()) return ask(d.type === 'receipt' ? 'اكتب اسم من استلمنا منه المبلغ' : 'اكتب اسم العميل أو شركته', nameInput);
     if (d.client.email.trim() && !ivEmail.test(d.client.email.trim())) return ask('بريد العميل غير صالح', emailInput);
     if (d.type === 'receipt' && !ivNum(d.amount)) return ask('اكتب المبلغ المستلم', amountInput);
     if (d.type !== 'receipt' && !d.items.some((it) => it.desc.trim() || ivNum(it.price))) return ask('أضف بنداً واحداً على الأقل (وصف أو سعر)', itemsBox.querySelector('textarea'));
+    const length = d.notes.length + d.terms.length + d.items.reduce((n, it) => n + it.desc.length, 0) + d.extraPages.reduce((n, x) => n + x.title.length + x.body.length, 0);
+    if (length > IV.limits.total) return `المستند طويل جداً: ${length.toLocaleString('en-US')} حرفاً، والحد ${IV.limits.total.toLocaleString('en-US')}`;
     if (d.type !== 'receipt' && d.dueDate && d.dueDate < d.issueDate) return ask(`${d.type === 'quote' ? '«صالح حتى»' : 'تاريخ الاستحقاق'} قبل تاريخ الإصدار`, dueInput);
     return '';
   };
@@ -545,6 +578,18 @@ function ivEditor(view, d, base, opts = {}) {
     oninput: (e) => { obj[key] = ivNum(e.target.value); if (after) after(e); changed(); },
     onblur: (e) => { if (String(ivNum(e.target.value)) !== e.target.value.trim()) e.target.value = obj[key]; },
   });
+  // a big box: grows with the text, with a count once it gets near its limit
+  const longText = (obj, key, label, max, props = {}) => {
+    const count = h('span', { class: 'hint ivx-count' });
+    const show = () => { const n = String(obj[key] ?? '').length; count.textContent = n > max * 0.7 ? `${n.toLocaleString('en-US')} / ${max.toLocaleString('en-US')}` : ''; };
+    show();
+    return h('label', { class: 'field' }, h('span', null, label),
+      ivGrow(h('textarea', {
+        class: `ivx-long${props.tall ? ' tall' : ''}`, value: obj[key] ?? '', dir: 'auto', maxlength: max, placeholder: props.placeholder,
+        oninput: (e) => { obj[key] = e.target.value; show(); changed(); },
+      })),
+      props.hint ? h('span', { class: 'hint' }, props.hint) : null, count);
+  };
   const warning = (test) => { const w = h('span', { class: 'hint warn', role: 'status' }); const f = (c) => { w.textContent = test(c) || ''; }; checks.push(f); return w; };
 
   // the client, or pick one from earlier documents (newest details first)
@@ -587,7 +632,7 @@ function ivEditor(view, d, base, opts = {}) {
       const move = (to) => { [d.items[to], d.items[i]] = [d.items[i], d.items[to]]; drawItems(); changed(); };
       return h('div', { class: 'ivx-item' },
         h('span', { class: 'tag' }, i + 1),
-        h('label', { class: 'field ivx-desc' }, h('span', null, 'الوصف'), h('textarea', { rows: 1, dir: 'auto', value: it.desc, placeholder: 'مثال: تصميم هوية بصرية كاملة', oninput: (e) => { it.desc = e.target.value; changed(); } })),
+        h('label', { class: 'field ivx-desc' }, h('span', null, 'الوصف'), ivGrow(h('textarea', { dir: 'auto', value: it.desc, maxlength: IV.limits.desc, placeholder: 'مثال: تصميم هوية بصرية كاملة، ويمكنك كتابة التفاصيل هنا بقدر ما تريد', oninput: (e) => { it.desc = e.target.value; changed(); } }))),
         num('qty', 'الكمية'), num('price', `سعر الوحدة (${d.currency})`),
         h('div', { class: 'ivx-item-end' }, line, h('span', { class: 'row' },
           h('button', { type: 'button', class: 'btn btn-icon btn-small', title: 'تقديم', 'aria-label': 'تقديم', disabled: i === 0, onclick: () => move(i - 1) }, '↑'),
@@ -606,9 +651,76 @@ function ivEditor(view, d, base, opts = {}) {
     notesCard.replaceWith(notesCard = drawNotes());
   };
   const drawNotes = () => h('div', { class: 'card grid' }, h('h2', null, d.type === 'receipt' ? 'الوصف' : 'ملاحظات وشروط'),
-    field(d.type === 'receipt' ? 'وذلك عن' : 'ملاحظات تظهر في المستند', text(d, 'notes', { rows: 3, placeholder: d.type === 'receipt' ? 'مثال: الدفعة الأولى من مشروع الهوية البصرية' : '' })),
-    d.type === 'receipt' ? null : field('الشروط / طريقة الدفع', text(d, 'terms', { rows: 3 }), 'بيانات البنك تُضاف تلقائياً من «بيانات الشركة».'));
+    longText(d, 'notes', d.type === 'receipt' ? 'وذلك عن' : 'ملاحظات تظهر في المستند', IV.limits.notes, { placeholder: d.type === 'receipt' ? 'مثال: الدفعة الأولى من مشروع الهوية البصرية' : '' }),
+    d.type === 'receipt' ? null : longText(d, 'terms', 'الشروط / طريقة الدفع', IV.limits.terms, { hint: 'بيانات البنك تُضاف تلقائياً من «بيانات الشركة». النص الطويل ينتقل إلى صفحة A4 جديدة وحده.' }));
   let notesCard = drawNotes();
+
+  // pages added by hand: each starts a new A4 page and runs on to more if it's long
+  const pagesBox = h('div', { class: 'grid' });
+  const drawPages = () => pagesBox.replaceChildren(
+    ...d.extraPages.map((x, i) => {
+      const move = (to) => { [d.extraPages[to], d.extraPages[i]] = [d.extraPages[i], d.extraPages[to]]; drawPages(); changed(); };
+      return h('div', { class: 'ivx-page' },
+        h('div', { class: 'ivx-page-head' }, h('b', null, `صفحة إضافية ${i + 1}`), h('span', { class: 'row' },
+          h('button', { type: 'button', class: 'btn btn-icon btn-small', title: 'تقديم', 'aria-label': 'تقديم', disabled: i === 0, onclick: () => move(i - 1) }, '↑'),
+          h('button', { type: 'button', class: 'btn btn-icon btn-small', title: 'تأخير', 'aria-label': 'تأخير', disabled: i === d.extraPages.length - 1, onclick: () => move(i + 1) }, '↓'),
+          h('button', { type: 'button', class: 'btn btn-icon btn-small btn-danger', title: 'حذف الصفحة', 'aria-label': 'حذف الصفحة', onclick: () => {
+            if ((x.title || x.body) && !confirm(`حذف الصفحة الإضافية ${i + 1} وما كُتب فيها؟`)) return;
+            d.extraPages.splice(i, 1); drawPages(); changed();
+          } }, '✕'))),
+        field('العنوان (اختياري)', h('input', { value: x.title, dir: 'auto', maxlength: IV.limits.pageTitle, placeholder: 'مثال: نطاق العمل', oninput: (e) => { x.title = e.target.value; changed(); } })),
+        longText(x, 'body', 'النص', IV.limits.pageBody, { tall: true, placeholder: 'اكتب هنا بقدر ما تريد — إذا امتلأت الصفحة تُفتح صفحة A4 جديدة تلقائياً.' }));
+    }),
+    h('button', { type: 'button', class: 'btn btn-ghost ivx-add ivx-add-page', disabled: d.extraPages.length >= IV.limits.pages, onclick: () => {
+      d.extraPages.push({ title: '', body: '' });
+      drawPages();
+      changed();
+      clearTimeout(sheetTimer); // a new page shows at once, not after the wait meant for typing
+      drawSheet();
+      [...pagesBox.querySelectorAll('.ivx-page textarea')].pop()?.focus();
+    } }, '+ إضافة صفحة'));
+  drawPages();
+
+  // the number: built from the client's details as they're typed, each piece labelled; fixed once saved
+  const numberBox = h('div', { class: 'field ivx-numb' });
+  let manualNumber = isNew && Boolean(d.number);
+  function drawNumber() {
+    const head = (extra) => h('div', { class: 'ivx-numb-head' }, h('span', null, 'رقم المستند'), extra);
+    if (!isNew) {
+      numberBox.replaceChildren(head(), h('b', { class: 'ivx-numb-fixed ltr' }, d.number), h('span', { class: 'hint' }, 'ثابت بعد الحفظ، حتى لا يختلف عمّا وصل إلى العميل.'));
+      return;
+    }
+    if (manualNumber) {
+      numberBox.replaceChildren(
+        head(h('button', { type: 'button', class: 'chip', onclick: () => { manualNumber = false; d.number = ''; changed(); } }, '↺ تلقائي')),
+        h('input', {
+          value: d.number, dir: 'ltr', maxlength: 60, autocomplete: 'off', 'aria-label': 'رقم المستند', placeholder: autoNumber(),
+          oninput: (e) => { const v = InvoiceNumber.clean(e.target.value); if (v !== e.target.value) e.target.value = v; d.number = v; changed(); },
+        }),
+        h('span', { class: 'hint' }, 'حروف إنجليزية وأرقام وشرطات. إن تركته فارغاً يُعطى الرقم التلقائي.'));
+      return;
+    }
+    const pieces = InvoiceNumber.parts(d);
+    const names = { type: 'النوع', first: 'الاسم', last: 'الكنية', company: 'الشركة', phone: 'الهاتف', date: 'شهر - سنة - يوم' };
+    const number = autoNumber();
+    const base = pieces.map((x) => x.value).filter(Boolean).join('-');
+    const repeat = number.slice(base.length + 1);
+    const asks = ['first', 'last', 'company', 'phone'].filter((k) => !pieces.find((x) => x.key === k).value).map((k) => names[k]);
+    numberBox.replaceChildren(
+      head(h('button', { type: 'button', class: 'chip', onclick: () => {
+        manualNumber = true;
+        d.number = number;
+        changed();
+        drawNumber();
+        numberBox.querySelector('input').focus();
+      } }, '✎ تعديل')),
+      h('div', { class: 'ivx-numb-parts', dir: 'ltr' }, [
+        ...pieces.filter((x) => x.value).map((x) => h('span', { class: `ivx-numb-part is-${x.key}` }, h('b', null, x.value), h('small', { dir: 'rtl' }, names[x.key]))),
+        repeat ? h('span', { class: 'ivx-numb-part' }, h('b', null, repeat), h('small', { dir: 'rtl' }, 'تكرار')) : null,
+      ]),
+      asks.length ? h('span', { class: 'hint' }, `يكتمل الرقم عند إضافة: ${asks.join('، ')}.`) : '');
+  }
+  drawNumber();
 
   // the status: an invoice's «paid» comes from its payments, so it is shown, not picked
   const statusBox = h('div', { class: 'field' });
@@ -640,6 +752,7 @@ function ivEditor(view, d, base, opts = {}) {
   }, n ? `${n} يوم` : 'عند الاستلام')));
 
   const settingsCard = h('div', { class: 'card grid' }, h('h2', null, 'البيانات الأساسية'),
+    numberBox,
     h('div', { class: 'three' },
       box('لغة المستند', ivDrop({ value: d.lang, label: 'لغة المستند', options: [{ value: 'ar', label: 'العربية' }, { value: 'en', label: 'English' }], onChange: (v) => { d.lang = v; swapDefaults(); changed(); } })),
       box('العملة', ivCurrencyDrop(d.currency, (v) => { d.currency = v; redraw(); }, Boolean(d.type === 'receipt' && d.invoiceId)),
@@ -696,7 +809,7 @@ function ivEditor(view, d, base, opts = {}) {
   const printNow = () => {
     const bad = d.id ? '' : problem();
     if (bad) { toast(bad, 'err'); return; }
-    const box2 = h('div', { id: 'ivd-print' }, InvoiceDoc.render(computed(), p, { watermark: d.id ? '' : (d.lang === 'en' ? 'DRAFT' : 'مسودة') }));
+    const box2 = h('div', { id: 'ivd-print' }, InvoiceDoc.render(computed(), p, { watermark: watermark() }));
     document.body.append(box2);
     document.body.classList.add('ivd-printing');
     const title = document.title;
@@ -740,8 +853,10 @@ function ivEditor(view, d, base, opts = {}) {
         receiptCard,
         d.type === 'receipt' ? null : h('div', { class: 'card grid' }, h('h2', null, 'البنود'), itemsBox),
         moneyCard,
-        notesCard),
-      h('div', { class: 'ivx-side' }, h('p', { class: 'hint' }, 'معاينة مباشرة — هكذا يظهر PDF للعميل'), previewBox)));
+        notesCard,
+        h('div', { class: 'card grid' }, h('h2', null, 'صفحات إضافية'),
+          h('p', { class: 'hint' }, 'لنطاق العمل أو العقد أو أي تفاصيل طويلة: كل صفحة تبدأ على ورقة A4 مستقلة بعد الفاتورة.'), pagesBox)),
+      h('div', { class: 'ivx-side' }, h('p', { class: 'hint' }, 'معاينة مباشرة — هكذا يظهر PDF للعميل · ', pageCount), previewBox)));
   changed();
 }
 

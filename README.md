@@ -130,10 +130,18 @@ production (the cookie is `Secure`); for plain-HTTP testing on another machine s
 
 ## Invoices & receipts (`/admin/#/invoices`)
 
-«الفواتير والإيصالات» in the panel makes invoices (`INV-2026-0001`), payment receipts (`RCT-…`) and quotations (`QUO-…`),
-in Arabic or English. The server gives the numbers (per type, per year) and works out every total in whole cents (fils for
+«الفواتير والإيصالات» in the panel makes invoices, payment receipts and quotations,
+in Arabic or English. A number is built from the client and the issue date: first name's initial, surname's initial, company,
+the phone's last 3 digits, then month-year-day, as in `S-A-ALNWR-567-11-2026-01` (receipts start `RCT-`, quotations `QUO-`; a
+second document for the same client on the same day gets `-2`). Arabic is spelled in Latin letters and an empty part is left
+out; «✎ تعديل» lets you type your own before saving. It never changes after that, and older numbers stay as they were
+(`invoice-number.js`). The server works out every total in whole cents (fils for
 KWD/BHD/OMR/JOD), so the stored and printed amounts never drift. A receipt «عن الفاتورة» pays that invoice: its paid amount,
 balance and status (partial / paid) follow; «✓ مدفوعة» marks the rest as paid. A quotation becomes an invoice with one click.
+
+The sheet is real A4 pages (`invoice-doc.js`): whatever passes the bottom of a page goes to the next, table rows move whole
+with the heading row repeated, long text is cut between words, and from page 2 each page has a slim heading and «صفحة 2 من 3».
+«+ إضافة صفحة» adds up to 20 pages of your own (scope of work, a contract…), each starting on a new sheet.
 
 - **PDF**: «تنزيل PDF» prints the A4 sheet (choose *Save as PDF*), so Arabic comes out exactly as on screen. The editor
   shows the sheet live as you type.
