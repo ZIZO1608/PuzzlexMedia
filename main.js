@@ -323,8 +323,11 @@ function build() {
   const vh = stage.clientHeight;
   if (vw < 50 || vh < 50) return false; // no real viewport yet (hidden tab): the resize handler builds once there is one
   const mobile = vw < 760 && vh > vw;
+  // a weak device or a visitor saving data gets roughly half the pieces: larger ones, on the same animation
+  const net = navigator.connection;
+  const weak = navigator.hardwareConcurrency <= 4 || navigator.deviceMemory <= 4 || (net && net.saveData);
   // the board covers the whole screen: square pieces, enough of them to overhang every edge a little
-  const pw = Math.ceil(mobile ? Math.max(vw / 8, vh / 14) : Math.max(vw / 16, vh / 10));
+  const pw = Math.ceil((mobile ? Math.max(vw / 8, vh / 14) : Math.max(vw / 16, vh / 10)) * (weak ? 1.4 : 1));
   const ph = pw;
   const cols = Math.ceil(vw / pw);
   const rows = Math.ceil(vh / ph);

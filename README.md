@@ -61,7 +61,11 @@ To also get each message by email, fill in `CONTACT_TO` and the `SMTP_*` setting
 `docker compose up -d`. If email fails, the message is still saved and the error is in `docker compose logs`.
 
 Built in: required-field checks on both sides, a hidden spam-trap field, 5 messages per visitor per
-10 minutes, 16 KB size limit.
+10 minutes, 16 KB size limit. The WhatsApp number is required and stored as `+9639XXXXXXXX` (`phone-number.js`, used by
+both the form and the server); the email is optional and only checked when given, so a message may have no email and then
+gets no confirmation. Pressing the WhatsApp button saves the request and opens the chat, but the page never says it was
+sent: only the visitor's own «إرسال» in WhatsApp does that. The picked services are kept in `sessionStorage` under
+`puzzlex-services` across the home page, the services page and the form.
 
 ## Admin panel (`/admin`)
 
@@ -69,7 +73,7 @@ At `/admin/` the team edits the site without touching code:
 
 - **Texts**: every text on every page, Arabic and English side by side (including page titles, share
   descriptions and the texts drawn by the animations). Shared texts, such as the menu links, change everywhere at once.
-- **Projects**: add, edit, delete and reorder projects; upload the cover and gallery images.
+- **Projects**: add, edit, delete and reorder projects; upload the cover, and gallery images, videos, GIFs (kept as a short silent looping video), sound and PDFs, each with an optional caption, image description, video poster and voice-over (✎ on the file). Every new gallery file gets the PuzzleX watermark automatically (`assets/watermark.png`): images in the browser, videos and PDFs on the server (`lib/media.js`).
 - **Partner logos**: the logos in the partners puzzle. The puzzle resizes itself (5×5 for up to 24, 7×7 for up to 48, 9×9 for up to 80).
 - **Client feedback**: the feedback page (`/feedback.html`, «آراء العملاء» in the menu). Each review has a name, role /
   company, the quote in Arabic and English, an optional photo or partner logo, 1–5 stars, a date and up to 6 attached
@@ -197,6 +201,7 @@ Needs only Node and Chrome. `--preview` writes a PNG per page plus `overview.png
   failure slows the next answer; passwords need 12+ characters (a mix of kinds under 16). The session cookie is
   `__Host-`, HttpOnly, Secure, SameSite=Strict
 - Uploads: only real JPG/PNG/WebP (checked by their first bytes), 8 MB at most, random names, kept in `DATA_DIR/uploads`
+- Gallery videos (MP4/MOV/WebM, 500 MB at most) and PDFs (50 MB at most): checked the same way, stamped one at a time by `lib/media.js` and only then copied to `DATA_DIR/uploads` (videos as 1080p H.264 MP4 without metadata, with a `.jpg` poster). ffmpeg comes from the `ffmpeg-static` package; `FFMPEG_PATH` points at another copy. A proxy in front must allow bodies this large (nginx: `client_max_body_size 500m;`), and Cloudflare's free plan stops at 100 MB
   (outside the site folder) and served with `Content-Security-Policy: default-src 'none'; sandbox`
 - 404 page in the right language; server files (`server.js`, `package.json`, …) are never served
 - Fills in the share preview (title, description, canonical, and the cover as share image once uploaded) for each project: `project.html?id=…`

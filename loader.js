@@ -31,9 +31,9 @@
 
   let shown = 0, placed = 0, finished = false;
   const frame = (now) => {
-    const elapsed = now - t0;
+    const elapsed = Math.max(0, now - t0); // a first frame can be stamped just before t0
     const real = elapsed > MAX_MS ? 1 : done / total;
-    const pace = Math.min(1, elapsed / MIN_MS);
+    const pace = MIN_MS ? Math.min(1, elapsed / MIN_MS) : 1;
     const target = Math.min(real, pace);
     shown += (target - shown) * 0.2;
     if (target === 1 && 1 - shown < 0.004) shown = 1;

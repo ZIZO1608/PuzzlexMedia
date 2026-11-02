@@ -88,7 +88,12 @@ document.addEventListener('DOMContentLoaded', function initWhatsAppHello() {
   const go = section.querySelector('.rq-go');
   const count = section.querySelector('.rq-count');
   const empty = count.textContent;
-  const picked = new Set();
+  const KEY = 'puzzlex-services'; // shared with the services page and the contact form (pages.js)
+  const buttons = [...box.querySelectorAll('.rq-opt')];
+  const remembered = () => {
+    try { return JSON.parse(sessionStorage.getItem(KEY) || '[]').filter((id) => typeof id === 'string'); } catch (e) { return []; }
+  };
+  const picked = new Set(remembered());
   // the noun after a number in Arabic: 1 and 2 have their own forms, 3–10 plural, 11+ singular
   const pieces = (n) => (EN ? `${n} ${n === 1 ? 'service' : 'services'} picked`
     : n === 1 ? 'اخترت خدمة واحدة' : n === 2 ? 'اخترت خدمتين' : `اخترت ${n} ${n <= 10 ? 'خدمات' : 'خدمة'}`);
@@ -97,6 +102,10 @@ document.addEventListener('DOMContentLoaded', function initWhatsAppHello() {
     go.href = ids.length ? `contact.html?services=${ids.map(encodeURIComponent).join(',')}` : 'contact.html';
     count.textContent = ids.length ? pieces(ids.length) : empty;
     section.classList.toggle('has-picks', ids.length > 0);
+    buttons.forEach((b) => b.setAttribute('aria-pressed', String(picked.has(b.dataset.id))));
+    box.querySelectorAll('.rq-card').forEach((c) => c.classList.toggle('is-on', !!c.querySelector('[aria-pressed="true"]')));
+    // saved on every change, so the picks reach the contact form however the visitor gets there (button, menu, footer)
+    try { sessionStorage.setItem(KEY, JSON.stringify(ids)); } catch (e) { /* the button's link still carries them */ }
     go.querySelector('.rq-n')?.remove();
     if (ids.length) {
       const n = document.createElement('span');
@@ -108,16 +117,17 @@ document.addEventListener('DOMContentLoaded', function initWhatsAppHello() {
   box.addEventListener('click', (ev) => {
     const opt = ev.target.closest('.rq-opt');
     if (!opt) return;
-    const on = opt.getAttribute('aria-pressed') !== 'true';
-    opt.setAttribute('aria-pressed', String(on));
-    if (on) picked.add(opt.dataset.id); else picked.delete(opt.dataset.id);
-    opt.closest('.rq-card').classList.toggle('is-on', !!opt.closest('.rq-card').querySelector('[aria-pressed="true"]'));
+    if (opt.getAttribute('aria-pressed') !== 'true') picked.add(opt.dataset.id); else picked.delete(opt.dataset.id);
     if (typeof playClick === 'function') { try { playClick(); } catch (e) { /* sound is a bonus */ } }
     draw();
   });
-  // the picks also go to the contact form if the visitor gets there another way (menu, footer)
-  go.addEventListener('click', () => {
-    try { sessionStorage.setItem('puzzlex-services', JSON.stringify([...picked])); } catch (e) { /* the link carries them */ }
+  draw();
+  // back from the contact form with the page restored as it was: show what was changed there
+  addEventListener('pageshow', (ev) => {
+    if (!ev.persisted) return;
+    picked.clear();
+    remembered().forEach((id) => picked.add(id));
+    draw();
   });
   // on phones the WhatsApp and back-to-top buttons would sit on the request bar: they step aside meanwhile
   if ('IntersectionObserver' in window) {

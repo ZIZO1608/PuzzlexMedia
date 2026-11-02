@@ -30,7 +30,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Alexandria:wght@300;400;600;800;900&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="../styles.css?v=82">
+  <link rel="stylesheet" href="../styles.css?v=86">
 </head>
 <body class="page">
   <div class="loader" role="status" aria-live="polite" aria-label="Loading">
@@ -44,13 +44,13 @@
       <p class="loader-count"><span class="loader-num">0</span>%</p>
     </div>
   </div>
-  <script src="../loader.js?v=55"></script>
+  <script src="../loader.js?v=56"></script>
 
 
   <header class="topbar topbar--page">
     <a class="brand" href="./" aria-label="PuzzleX Media — Home">
       <img src="../assets/icon.svg" alt="" width="34" height="34">
-      <span class="brand-name">PUZZLEX<span>MEDIA</span></span>
+      <span class="brand-name">PUZZLEX <span>MEDIA</span></span>
     </a>
     <nav class="nav" aria-label="Menu">
       <a href="about.html">About</a>
@@ -94,20 +94,24 @@
         </div>
         <div class="form-row two">
           <div class="field">
-            <label for="f-email">Email <span class="req" aria-hidden="true">*</span></label>
-            <input id="f-email" name="email" type="email" autocomplete="email" dir="ltr" required aria-describedby="e-email">
-            <p class="field-error" id="e-email"></p>
+            <label for="f-phone">WhatsApp number <span class="req" aria-hidden="true">*</span></label>
+            <!-- the code and the number read left to right in both languages; pages.js fills in the countries -->
+            <div class="phone-input" dir="ltr">
+              <select id="f-dial" name="dial" autocomplete="tel-country-code" aria-label="Country code"></select>
+              <input id="f-phone" name="phone" type="tel" inputmode="tel" autocomplete="tel-national" dir="ltr" required aria-describedby="e-phone">
+            </div>
+            <p class="field-error" id="e-phone"></p>
           </div>
           <div class="field">
-            <label for="f-phone">Phone or WhatsApp <span class="opt">(optional)</span></label>
-            <input id="f-phone" name="phone" type="tel" autocomplete="tel" dir="ltr" aria-describedby="e-phone">
-            <p class="field-error" id="e-phone"></p>
+            <label for="f-email">Email <span class="opt">(optional)</span></label>
+            <input id="f-email" name="email" type="email" inputmode="email" autocomplete="email" dir="ltr" aria-describedby="e-email">
+            <p class="field-error" id="e-email"></p>
           </div>
         </div>
 
         <fieldset class="field pieces-field" aria-describedby="e-services">
           <legend>The pieces you need <span class="req" aria-hidden="true">*</span></legend>
-          <p class="pieces-hint" hidden>You picked these on the services page — you can change them here.</p>
+          <p class="pieces-hint" hidden>These are the pieces you picked. You can add or remove them here.</p>
           <div class="pieces-groups"></div>
           <p class="field-error" id="e-services"></p>
         </fieldset>
@@ -124,7 +128,7 @@
         <div class="form-foot">
           <!-- one form, two ways to send it; the WhatsApp button gets our number from the admin panel (lib/content.js) and is left out without one -->
           <div class="send-ways" role="group" aria-label="How to send">
-            <button class="btn btn-primary form-submit" type="submit" data-via="email">Send by email <span aria-hidden="true">→</span></button>
+            <button class="btn btn-primary form-submit" type="submit" data-via="email">Send request <span aria-hidden="true">→</span></button>
             <button class="btn btn-wa form-submit" type="submit" data-via="whatsapp" data-wa=""><svg class="wa-icon" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2a10 10 0 0 0-8.6 15.1L2 22l5-1.3A10 10 0 1 0 12 2zm0 18.2a8.2 8.2 0 0 1-4.2-1.2l-.3-.2-3 .8.8-2.9-.2-.3A8.2 8.2 0 1 1 12 20.2zm4.5-6.1c-.2-.1-1.5-.7-1.7-.8-.2-.1-.4-.1-.6.1l-.8 1c-.1.2-.3.2-.5.1a6.7 6.7 0 0 1-3.3-2.9c-.3-.4.2-.4.7-1.3.1-.2 0-.3 0-.4l-.8-1.8c-.2-.5-.4-.4-.6-.4h-.5c-.2 0-.4.1-.6.3-.2.2-.8.8-.8 2s.8 2.3.9 2.5c.1.2 1.6 2.5 4 3.5 1.5.6 2 .7 2.8.6.5-.1 1.5-.6 1.7-1.2.2-.6.2-1.1.1-1.2l-.4-.2z"/></svg><span>Send on WhatsApp</span></button>
           </div>
           <p class="form-note">We only use your details to reply to your request. <a href="privacy.html">Privacy policy</a></p>
@@ -135,11 +139,26 @@
         <div class="form-done" role="status" aria-live="polite" hidden>
           <div class="done-burst" aria-hidden="true"></div>
           <svg class="done-piece" viewBox="-34 -34 168 168" aria-hidden="true"></svg>
-          <h2>Your piece arrived!</h2>
+          <h2 class="done-title-saved">Your piece arrived!</h2>
+          <h2 class="done-title-whatsapp" hidden>Your request is ready in WhatsApp</h2>
           <p class="done-via-email">Thank you <b class="done-name"></b> — we’ve received your request, and our team will contact you within 48 hours.</p>
-          <p class="done-via-whatsapp" hidden>Thank you <b class="done-name"></b> — we’ve opened WhatsApp with your details ready; press “Send” there so they reach us. Our team will contact you within 48 hours.</p>
+          <!-- opening WhatsApp isn't sending: only the visitor's "Send" there does that, and the site can't see it -->
+          <p class="done-via-whatsapp" hidden>Thank you <b class="done-name"></b> — we’ve opened WhatsApp with your details ready. Your message won’t reach us there until you press “Send”.</p>
+          <p class="done-wa-saved" hidden>We’ve also kept a copy of your request, and our team will contact you within 48 hours.</p>
+          <p class="done-wa-unsaved" hidden>We couldn’t save a copy of your request, so it will only reach us if you press “Send” in WhatsApp.</p>
           <p class="done-confirmed" hidden>We’ve sent a confirmation to your email.</p>
           <button class="btn btn-ghost done-again" type="button">Send another message</button>
+        </div>
+
+        <!-- when WhatsApp doesn't open or the form can't be sent: the message itself, to copy and send any other way -->
+        <div class="send-fallback" hidden>
+          <p class="send-fallback-note">Didn’t WhatsApp open, or didn’t it send? Copy your message and send it to us directly.</p>
+          <textarea class="send-fallback-text" rows="6" readonly aria-label="Your message text" dir="auto"></textarea>
+          <div class="send-fallback-acts">
+            <button class="btn btn-small send-fallback-copy" type="button">Copy message</button>
+            <a class="btn btn-small send-fallback-open" href="#" target="_blank" rel="noopener" hidden>Open WhatsApp</a>
+          </div>
+          <p class="send-fallback-status" role="status" aria-live="polite"></p>
         </div>
       </form>
 
@@ -216,7 +235,7 @@
             <path class="fm-piece" fill="#fff" d="M215.23,166.14c-2.47,1.37-5.84,3.29-9.41,6.12-1.83,1.37-4.2,3.47-7.58,6.85-.18.18-.27.27-.46.46-5.94,6.03-11.05,12.6-15.43,19.82-2.28-4.02-5.66-9.04-10.23-14.34-1.46-1.74-3.11-3.47-4.93-5.21-.18-.27-.46-.46-.73-.73-6.39-5.94-12.69-10.05-17.72-12.88,2.65-1.28,6.21-3.38,10.05-6.3,1.64-1.28,4.2-3.38,7.67-6.94.27-.27.55-.55.73-.82,1.55-1.64,3.01-3.29,4.38-5.02,4.38-5.21,7.94-10.41,10.5-14.43,3.1,5.11,7.49,11.23,13.42,17.44.73.73,1.37,1.46,2.1,2.1l.55.55c6.12,5.94,12.15,10.32,17.08,13.33Z"/>
           </svg>
         </span>
-        <span class="brand-name">PUZZLEX<span>MEDIA</span></span>
+        <span class="brand-name">PUZZLEX <span>MEDIA</span></span>
       </a>
     </div>
   </footer>
@@ -225,11 +244,12 @@
   <script src="../assets/vendor/ScrollTrigger.min.js?v=3125"></script>
   <script src="../assets/vendor/lenis.min.js?v=1327"></script>
   <script src="../scroll.js?v=2"></script>
-  <script src="../main.js?v=66"></script>
+  <script src="../main.js?v=67"></script>
   <script src="../sections.js?v=58"></script>
   <script src="../cursor.js?v=55"></script>
   <script src="../music.js?v=2"></script>
-  <script src="../pages.js?v=69"></script>
-  <script src="../extras.js?v=2"></script>
+  <script src="../phone-number.js?v=1"></script>
+  <script src="../pages.js?v=73"></script>
+  <script src="../extras.js?v=3"></script>
 </body>
 </html>

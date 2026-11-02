@@ -91,8 +91,12 @@ html.lenis, html.lenis body { height: auto; }
 .topbar--home.is-scrolled::before { opacity: 0; }
 .brand img { width: 34px; height: 34px; border-radius: 8px; }
 .brand-name { font-family: var(--lat); font-weight: 900; font-size: 15px; letter-spacing: .06em; direction: ltr; }
-.brand-name span { font-weight: 400; color: var(--accent-text); margin-inline-start: 6px; }
-.nav { display: flex; gap: 28px; font-size: 14px; color: var(--muted); }
+.brand-name span { font-weight: 400; color: var(--accent-text); margin-inline-start: 2px; } /* plus the space between the words, which screen readers and voice control need */
+/* the same header in both languages: the logo on the left; the links, then language, music and contact, on the right.
+   The bar itself always runs left to right, and the links keep their page's reading order inside it. */
+.topbar { direction: ltr; }
+.nav { display: flex; gap: 28px; font-size: 14px; color: var(--muted); margin-left: auto; }
+[dir="rtl"] .nav { direction: rtl; }
 .nav a { transition: color .2s; white-space: nowrap; }
 /* just above the phone menu the bar is tight: closer links keep each one on one line */
 @media (max-width: 1000px) { .topbar { gap: 16px; } .nav { gap: 18px; } }
@@ -1126,6 +1130,12 @@ img.cover { object-fit: cover; } /* uploaded project images fill their frame lik
 .gallery-item.wide { grid-column: 1 / -1; }
 .gallery-item .cover { display: block; width: 100%; height: auto; }
 .gallery-item .gallery-video { max-height: 85vh; background: #000; }
+.gallery-audio { display: grid; gap: 14px; padding: 22px 20px; }
+.gallery-audio-mark { font-weight: 800; color: var(--accent-text); }
+.gallery-item audio { display: block; width: 100%; min-height: 44px; }
+.gallery-voice { display: grid; gap: 8px; padding: 14px 16px; font-size: 13px; color: var(--muted); border-top: 1px solid var(--line); }
+.gallery-caption { padding: 12px 16px; font-size: 14px; color: var(--muted); border-top: 1px solid var(--line); }
+.gallery-error { padding: 22px 20px; font-size: 14px; color: var(--muted); }
 .gallery-pdf iframe { display: block; width: 100%; height: clamp(420px, 78vh, 860px); border: 0; background: #fff; }
 .gallery-pdf-bar { display: flex; align-items: center; justify-content: space-between; gap: 14px; padding: 16px 20px; }
 .gallery-pdf-mark { font-family: var(--lat); font-weight: 900; letter-spacing: .08em; color: var(--accent-text); direction: ltr; }
@@ -1174,6 +1184,18 @@ img.cover { object-fit: cover; } /* uploaded project images fill their frame lik
 .field input[dir="ltr"] { text-align: right; }
 .field input[dir="ltr"]:not(:placeholder-shown) { text-align: left; }
 .field textarea { resize: vertical; min-height: 140px; line-height: 1.8; }
+/* the WhatsApp number: country code, then the number; a tap target and a font size that won't zoom an iPhone */
+.phone-input { display: flex; gap: 8px; min-width: 0; }
+.phone-input input { flex: 1 1 0; min-width: 0; }
+.phone-input select {
+  flex: 0 0 clamp(104px, 38%, 150px); min-width: 0; min-height: 52px; font: 500 16px var(--ar); color: var(--text); cursor: pointer;
+  background: rgba(var(--fg-rgb), .04); border: 1px solid var(--line); border-radius: 14px; padding: 0 10px;
+  transition: border-color .2s ease, background-color .2s ease, box-shadow .2s ease;
+}
+.phone-input select option { color: var(--text); background: var(--ink); }
+.phone-input select:hover { border-color: rgba(var(--fg-rgb), .3); }
+.phone-input select:focus-visible { outline: 2px solid var(--lime); outline-offset: 2px; }
+.field.has-error .phone-input select { border-color: #ff6b6b; }
 .field input::placeholder, .field textarea::placeholder { color: var(--muted); opacity: .7; }
 .field input:hover, .field textarea:hover { border-color: rgba(var(--fg-rgb), .3); }
 .field input:focus, .field textarea:focus {
@@ -1224,7 +1246,19 @@ img.cover { object-fit: cover; } /* uploaded project images fill their frame lik
   padding: 50px 24px; border: 1px solid var(--line); border-radius: 28px;
   background: radial-gradient(circle at 50% 30%, rgba(215, 255, 0, .1), transparent 60%);
 }
-.form-done[hidden], .contact-form > [hidden], .form-done p[hidden] { display: none; }
+.form-done[hidden], .contact-form > [hidden], .form-done p[hidden], .form-done h2[hidden] { display: none; }
+.send-fallback { display: grid; gap: 10px; padding: 18px; border: 1px solid var(--line); border-radius: 18px; }
+.send-fallback-note { font-size: 14px; color: var(--muted); }
+.send-fallback-text {
+  width: 100%; font: 500 14px/1.7 var(--ar); color: var(--text); resize: vertical;
+  background: rgba(var(--fg-rgb), .04); border: 1px solid var(--line); border-radius: 12px; padding: 12px 14px;
+  user-select: text; -webkit-user-select: text;
+}
+.send-fallback-acts { display: flex; flex-wrap: wrap; gap: 10px; }
+.send-fallback-acts .btn { min-height: 44px; cursor: pointer; background: none; color: var(--text); font-family: var(--ar); }
+.send-fallback-acts a[hidden] { display: none; }
+.send-fallback-status { font-size: 13px; color: var(--accent-text); }
+.send-fallback-status:empty { display: none; }
 .done-burst { position: absolute; left: 50%; top: 110px; width: 0; height: 0; pointer-events: none; }
 .done-burst .opt-piece { position: absolute; left: -11px; top: -11px; width: 22px; height: 22px; }
 .done-burst .opt-piece path { fill: var(--lime); stroke: none; }
@@ -1525,6 +1559,7 @@ html .loader.is-leaving { display: grid; position: fixed; inset: 0; z-index: 900
   .footer-col { gap: 0; }
   .footer-col h3 { margin-bottom: 6px; }
   .footer-col a, .footer-col .placeholder { padding-block: 11px; }
+  .footer-col a { min-width: 44px; }
   .footer-links { gap: 0 40px; }
   .footer-legal a { display: inline-block; padding-block: 12px; }
   .footer-col .socials { flex-wrap: wrap; }
@@ -1864,4 +1899,20 @@ html.menu-lock .wa-hello { display: none; }
   .ls-track { animation: none; flex-wrap: wrap; width: auto; justify-content: center; }
   .ls-track li[aria-hidden="true"] { display: none; }
   .to-top, .to-top.is-done.is-shown, .rq-n { animation: none; transition: opacity .2s; }
+}
+@media (pointer: coarse) and (min-width: 761px) {
+  .topbar .brand, .topbar .nav a { display: inline-flex; align-items: center; min-height: 44px; }
+  .topbar .brand { min-width: 44px; }
+  .topbar .nav a { min-width: 44px; justify-content: center; }
+  .topbar .lang-switch, .topbar .sound { min-width: 44px; min-height: 44px; }
+  .topbar .btn-small { min-height: 44px; }
+  .tm-more { padding-block: 13px; margin-block: -13px; }
+  .footer-col { gap: 0; }
+}
+/* a finger needs 44px, on a phone or a tablet */
+@media (pointer: coarse) {
+  .btn, .piece-opt, .seg-btn, .chip, .rq-opt { min-height: 44px; }
+  a.tag, .back-link, .chip-links a, .footer-col a, .footer-legal a, .form-note a, .contact-lines a, .project-summary a {
+    display: inline-flex; align-items: center; min-height: 44px; min-width: 44px;
+  }
 }

@@ -162,7 +162,7 @@
       kv(t.issued, dateText(doc.issueDate, lang)),
       doc.type === 'invoice' ? kv(t.due, dateText(doc.dueDate, lang)) : null,
       doc.type === 'quote' ? kv(t.valid, dateText(doc.dueDate, lang)) : null,
-      kv(t.number, doc.number, 'ivd-ltr-val'));
+      kv(t.number, doc.number, 'ivd-ltr-val ivd-kv-id'));
     const c = doc.client || {};
     const who = el('div', 'ivd-client',
       el('p', 'ivd-label', doc.type === 'receipt' ? t.from : doc.type === 'quote' ? t.quoteTo : t.billTo),

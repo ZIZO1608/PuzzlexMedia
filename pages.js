@@ -383,6 +383,7 @@ function initServicePicker() {
   if (!panel) return;
   const KEY = 'puzzlex-services';
   const buttons = [...document.querySelectorAll('.svc')];
+  if (!buttons.length) return; // the contact form has the same tray and runs it itself (saving from here would wipe the picks)
   const known = new Set(buttons.map((b) => b.dataset.id));
   const send = panel.querySelector('.my-puzzle-send');
   const tray = createTray(panel);
@@ -429,6 +430,13 @@ function initServicePicker() {
 
   render();
   tray.setOpen(picked.length > 0, false);
+  // back from the contact form with the page restored as it was: show what was changed there
+  addEventListener('pageshow', (ev) => {
+    if (!ev.persisted) return;
+    try { picked = JSON.parse(sessionStorage.getItem(KEY) || '[]').filter((id) => known.has(id)); } catch (e) { picked = []; }
+    render();
+    tray.setOpen(picked.length > 0, false);
+  });
 }
 
 /* ---------- segmented control (LinkedIn: people / companies) ---------- */
@@ -574,19 +582,39 @@ const projectImage = (p, src, variant, w, h) => (src
   ? `<img class="cover" src="${escHtml(assetUrl(src))}" alt="${escHtml(p.title)} — ${escHtml(p.client)}" width="${w}" height="${h}" loading="lazy" decoding="async">`
   : coverSVG(p, variant, w, h));
 
-// a gallery file: a video and a PDF are shown as what they are. Phones can't show a PDF inside a page (some would just
-// download it), so the embedded viewer is only added where it works and the button to open it is always there.
-const galleryFile = (p, src, variant, w, h) => {
+// a gallery entry is a file's address, or the same with what was added in the panel (caption, alt, poster, voice-over)
+const galleryEntry = (g) => (typeof g === 'string' ? { src: g } : g || {});
+const entryText = (v) => (v ? T(v.ar || v.en || '', v.en || v.ar || '') : '');
+const audioPlayer = (src, label) => `<audio src="${escHtml(assetUrl(src))}" controls preload="none" aria-label="${escHtml(label)}"></audio>`;
+
+// a gallery file: a video, a sound and a PDF are shown as what they are. A clip that was a GIF loops silently, but only
+// for visitors who haven't asked for less motion. Nothing here plays with sound until the visitor presses play.
+// Phones can't show a PDF inside a page (some would just download it), so the embedded viewer is only added where it
+// works and the button to open it is always there.
+const galleryFile = (p, entry, variant, w, h) => {
+  const src = entry.src;
   const url = src ? escHtml(assetUrl(src)) : '';
   const label = `${escHtml(p.title)} — ${escHtml(p.client)}`;
   if (/\.mp4$/.test(url)) {
-    return `<video class="cover gallery-video" src="${url}" poster="${url.replace(/\.mp4$/, '.jpg')}" width="${w}" height="${h}" controls playsinline preload="metadata" aria-label="${label}"></video>`;
+    const poster = entry.poster ? escHtml(assetUrl(entry.poster)) : url.replace(/\.mp4$/, '.jpg');
+    const loop = entry.loop && !REDUCED ? ' autoplay muted loop' : '';
+    return `<video class="cover gallery-video" src="${url}" poster="${poster}" width="${w}" height="${h}" controls${loop} playsinline preload="metadata" aria-label="${label}"></video>`;
+  }
+  if (/\.m4a$/.test(url)) {
+    return `<div class="gallery-audio"><span class="gallery-audio-mark" aria-hidden="true">${T('صوت', 'Audio')}</span>${audioPlayer(src, `${T('تسجيل صوتي', 'Audio recording')} — ${p.title}`)}</div>`;
   }
   if (/\.pdf$/.test(url)) {
-    const viewer = matchMedia('(hover: hover) and (min-width: 721px)').matches ? `<iframe src="${url}#view=FitH" title="${label}" loading="lazy"></iframe>` : '';
+    const viewer = matchMedia('(hover: hover) and (min-width: 721px)').matches ? `<iframe src="${url}#view=FitH&navpanes=0" title="${label}" loading="lazy"></iframe>` : '';
     return `<div class="gallery-pdf">${viewer}<div class="gallery-pdf-bar"><span class="gallery-pdf-mark" aria-hidden="true">PDF</span><a class="btn btn-small" href="${url}" target="_blank" rel="noopener">${T('فتح ملف PDF', 'Open the PDF')}</a></div></div>`;
   }
+  const alt = entryText(entry.alt);
+  if (alt) return `<img class="cover" src="${url}" alt="${escHtml(alt)}" width="${w}" height="${h}" loading="lazy" decoding="async">`;
   return projectImage(p, src, variant, w, h);
+};
+const galleryFigure = (p, entry, variant, w, h, cls) => {
+  const caption = entryText(entry.caption);
+  const voice = entry.audio ? `<div class="gallery-voice"><span>${T('تعليق صوتي', 'Voice-over')}</span>${audioPlayer(entry.audio, `${T('تعليق صوتي', 'Voice-over')} — ${p.title}`)}</div>` : '';
+  return `<figure class="gallery-item ${cls}">${galleryFile(p, entry, variant, w, h)}${voice}${caption ? `<figcaption class="gallery-caption" dir="auto">${escHtml(caption)}</figcaption>` : ''}</figure>`;
 };
 
 function coverSVG(p, variant = 0, w = 400, h = 300) {
@@ -781,13 +809,34 @@ function initProject() {
   if (p.year) page.querySelector('.project-year').textContent = p.year;
   else page.querySelector('.project-year-row')?.remove();
 
-  // gallery: one wide frame, two side by side, one wide again (repeating for more uploaded images)
-  const shape = (k) => (k % 3 === 0 ? [800, 450, 'wide'] : [400, 300, '']);
-  const frames = p.gallery.length
-    ? p.gallery.map((src, k) => [k, ...shape(k), src])
+  // gallery, in the panel's order: one wide frame, two side by side, one wide again (repeating for more uploaded
+  // images). A video, sound or PDF always gets a whole row: beside anything else its height would leave a gap. The
+  // image count restarts after one, and an image that would wait beside one for its partner takes the whole row too.
+  const entries = p.gallery.map(galleryEntry);
+  const isFile = (entry) => /\.(mp4|pdf|m4a)$/.test((entry && entry.src) || '');
+  let run = 0;
+  const shape = (entry, k) => {
+    if (isFile(entry)) { run = 0; return [800, 450, 'wide']; }
+    const n = run++;
+    return n % 3 === 0 || (n % 3 === 1 && isFile(entries[k + 1])) ? [800, 450, 'wide'] : [400, 300, ''];
+  };
+  const frames = entries.length
+    ? entries.map((entry, k) => [k, ...shape(entry, k), entry])
     : [[0, 800, 400, 'wide'], [1, 400, 300, ''], [2, 400, 300, ''], [3, 800, 340, 'wide']];
-  page.querySelector('.project-gallery').innerHTML = frames
-    .map(([v, w, h, cls, src]) => `<figure class="gallery-item ${cls}">${galleryFile(p, src, v, w, h)}</figure>`).join('');
+  const gallery = page.querySelector('.project-gallery');
+  gallery.innerHTML = frames.map(([v, w, h, cls, entry]) => galleryFigure(p, entry || {}, v, w, h, cls)).join('');
+  // one thing with sound at a time (the silent loops carry on), and a file that won't load says so instead of sitting broken
+  gallery.addEventListener('play', (ev) => {
+    if (ev.target.muted) return;
+    gallery.querySelectorAll('video, audio').forEach((m) => { if (m !== ev.target && !m.muted) m.pause(); });
+  }, true);
+  gallery.addEventListener('error', (ev) => {
+    if (!ev.target.matches('video, audio')) return;
+    const note = document.createElement('p');
+    note.className = 'gallery-error';
+    note.textContent = T('تعذّر تشغيل هذا الملف الآن.', 'This file can’t be played right now.');
+    ev.target.replaceWith(note);
+  }, true);
   // the "these are placeholders" note is only true while there are no real files
   if (p.gallery.length) page.querySelector('.work-note')?.remove();
 
@@ -828,6 +877,13 @@ function initContact() {
   let stored = [];
   try { stored = JSON.parse(sessionStorage.getItem(KEY) || '[]').filter((id) => known.has(id)); } catch (e) { stored = []; }
   const picked = new Set(fromUrl.length ? fromUrl : stored);
+  // from here on the form holds the picks: a reload must not bring back one removed since the link was opened
+  if (fromUrl.length) {
+    try { sessionStorage.setItem(KEY, JSON.stringify(fromUrl.filter((id) => id !== 'other'))); } catch (e) { /* just not remembered */ }
+    const url = new URL(location.href);
+    url.searchParams.delete('services');
+    history.replaceState(history.state, '', url);
+  }
 
   const groupsEl = form.querySelector('.pieces-groups');
   groupsEl.innerHTML = SERVICE_GROUPS.map((g) => `
@@ -844,14 +900,17 @@ function initContact() {
     try { sessionStorage.setItem(KEY, JSON.stringify([...picked].filter((id) => id !== 'other'))); } catch (e) { /* just not remembered */ }
   };
 
-  // Arabic-Indic (٠–٩) and Persian (۰–۹) digits are ordinary on Arabic keyboards: read them as 0–9
-  const latinDigits = (v) => v.replace(/[٠-٩۰-۹]/g, (d) => String(d.charCodeAt(0) & 0xf));
+  const dial = form.querySelector('#f-dial');
+  dial.innerHTML = PhoneNumber.COUNTRIES.map(([code, ar, en], k) => `<option value="${code}"${k ? '' : ' selected'}>\u200E+${code}\u200E ${T(ar, en)}</option>`).join('')
+    + `<option value="">${T('دولة أخرى: اكتب الرمز مع الرقم', 'Other: type the code with the number')}</option>`;
+  const whatsappNumber = () => PhoneNumber.normalize(fields.phone.el.value, dial.value);
   const fields = {
     name: { el: form.querySelector('#f-name'), err: form.querySelector('#e-name'), check: (v) => (v.trim().length < 2 ? T('اكتب اسمك من فضلك.', 'Please enter your name.') : '') },
-    email: { el: form.querySelector('#f-email'), err: form.querySelector('#e-email'), check: (v) => (!v.trim() ? T('نحتاج بريدك لنعود إليك.', 'We need your email to get back to you.') : !/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(v.trim()) ? T('يبدو أن البريد غير مكتمل.', 'That email looks incomplete.') : '') },
-    phone: { el: form.querySelector('#f-phone'), err: form.querySelector('#e-phone'), check: (v) => (v.trim() && !/^\+?[\d\s()-]{7,20}$/.test(latinDigits(v.trim())) ? T('اكتب الرقم بالأرقام فقط، مع رمز الدولة إن أمكن.', 'Digits only, with the country code if you can.') : '') },
+    phone: { el: form.querySelector('#f-phone'), err: form.querySelector('#e-phone'), check: (v) => (!v.trim() ? T('نحتاج رقم واتساب لنتابع طلبك معك.', 'We need your WhatsApp number to follow up on your request.') : !whatsappNumber() ? T('رقم واتساب غير صحيح. تأكد من رمز الدولة ومن عدد الأرقام.', 'That WhatsApp number isn’t valid. Check the country code and the number of digits.') : '') },
+    email: { el: form.querySelector('#f-email'), err: form.querySelector('#e-email'), check: (v) => (v.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(v.trim()) ? T('يبدو أن البريد غير مكتمل. صحّحه أو اتركه فارغاً.', 'That email looks incomplete. Fix it or leave it empty.') : '') },
     message: { el: form.querySelector('#f-message'), err: form.querySelector('#e-message'), check: (v) => (v.trim().length < 10 ? T('أخبرنا بجملة أو جملتين عن مشروعك.', 'Tell us a sentence or two about your project.') : '') },
   };
+  dial.addEventListener('change', () => { if (fields.phone.touched) show(fields.phone, fields.phone.check(fields.phone.el.value)); });
   const servicesErr = form.querySelector('#e-services');
   const piecesField = form.querySelector('.pieces-field');
 
@@ -876,12 +935,18 @@ function initContact() {
   // send button is on screen (it would only cover it) and once the message is sent
   const panel = document.querySelector('.my-puzzle');
   const tray = panel && createTray(panel);
-  let footInView = false, sent = false;
+  let footInView = false, sent = false, typing = false;
   const syncTray = (animate) => {
     if (!tray) return;
     tray.render(picked.size);
-    tray.setOpen(picked.size > 0 && !footInView && !sent, animate);
+    tray.setOpen(picked.size > 0 && !footInView && !sent && !typing, animate);
   };
+  // on a phone the tray would sit on the field being filled in, above the keyboard
+  form.addEventListener('focusin', (ev) => {
+    typing = ev.target.matches('input, select, textarea') && matchMedia('(max-width: 760px)').matches;
+    syncTray(true);
+  });
+  form.addEventListener('focusout', () => { if (typing) { typing = false; syncTray(true); } });
   if (tray) {
     new IntersectionObserver(([e]) => { footInView = e.isIntersecting; syncTray(true); }).observe(form.querySelector('.form-foot'));
     panel.querySelector('.my-puzzle-send').addEventListener('click', () => {
@@ -914,7 +979,8 @@ function initContact() {
   });
 
   const done = form.querySelector('.form-done');
-  const body = [...form.children].filter((el) => el !== done);
+  const fallback = form.querySelector('.send-fallback');
+  const body = [...form.children].filter((el) => el !== done && el !== fallback);
   done.querySelector('.done-piece').innerHTML = `<path d="${jigsawD({ t: 1, r: -1, b: 1, l: -1 }, 100, 100)}"/><path class="tick" d="M28 52l15 15 30-32"/>`;
 
   const celebrate = () => {
@@ -943,25 +1009,46 @@ function initContact() {
 
   // everything they filled in, as a WhatsApp message to our number (data-wa, set by the server from the admin panel)
   const serviceNames = new Map(SERVICE_GROUPS.flatMap((g) => g.items));
-  const whatsappUrl = (number) => {
+  const messageText = () => {
     const val = (id) => form.querySelector(id).value.trim();
-    const lines = [
+    return [
       T('مرحباً PuzzleX Media 👋 طلب جديد من الموقع:', 'Hi PuzzleX Media 👋 A new request from the website:'), '',
       `${T('الاسم', 'Name')}: ${val('#f-name')}`,
       val('#f-company') ? `${T('الشركة', 'Company')}: ${val('#f-company')}` : null,
-      `${T('البريد', 'Email')}: ${val('#f-email')}`,
-      val('#f-phone') ? `${T('الهاتف', 'Phone')}: ${latinDigits(val('#f-phone'))}` : null, '',
+      `${T('واتساب', 'WhatsApp')}: ${whatsappNumber()}`,
+      val('#f-email') ? `${T('البريد', 'Email')}: ${val('#f-email')}` : null, '',
       `${T('القطع المطلوبة', 'Pieces needed')}:`, ...[...picked].map((id) => `• ${serviceNames.get(id)}`), '',
       `${T('الرسالة', 'Message')}:`, val('#f-message'),
-    ].filter((l) => l !== null);
-    return `https://wa.me/${number}?text=${encodeURIComponent(lines.join('\n'))}`;
+    ].filter((l) => l !== null).join('\n');
   };
+  const whatsappUrl = (number) => `https://wa.me/${number}?text=${encodeURIComponent(messageText())}`;
+
+  // the message itself, to copy, for when WhatsApp doesn't open or the form can't be sent
+  const fallbackText = fallback.querySelector('.send-fallback-text');
+  const fallbackOpen = fallback.querySelector('.send-fallback-open');
+  const fallbackStatus = fallback.querySelector('.send-fallback-status');
+  const showFallback = () => {
+    fallbackText.value = messageText();
+    const number = form.querySelector('[data-via="whatsapp"]')?.dataset.wa;
+    fallbackOpen.hidden = !number;
+    if (number) fallbackOpen.href = whatsappUrl(number);
+    fallbackStatus.textContent = '';
+    fallback.hidden = false;
+  };
+  fallback.querySelector('.send-fallback-copy').addEventListener('click', async () => {
+    fallbackText.focus();
+    fallbackText.select();
+    let copied = false;
+    try { await navigator.clipboard.writeText(fallbackText.value); copied = true; } catch (e) { try { copied = document.execCommand('copy'); } catch (e2) { /* selected: they can copy it by hand */ } }
+    fallbackStatus.textContent = copied ? T('نُسخت الرسالة.', 'Message copied.') : T('حدّد النص وانسخه يدوياً.', 'Select the text and copy it by hand.');
+  });
 
   form.addEventListener('submit', async (ev) => {
     ev.preventDefault();
     if (sending) return;
     const waBtn = ev.submitter && ev.submitter.dataset.via === 'whatsapp' ? ev.submitter : null;
     formError.textContent = '';
+    fallback.hidden = true;
     let firstBad = null;
     Object.values(fields).forEach((f) => {
       f.touched = true;
@@ -987,19 +1074,20 @@ function initContact() {
     const busyBtn = waBtn || ev.submitter || sendBtns[0];
     sendBtns.forEach((b) => { b.disabled = true; });
     busyBtn.setAttribute('aria-busy', 'true');
-    let data = {};
+    let data = {}, saved = false;
     try {
       const res = await fetch('/api/contact', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           name: fields.name.el.value, company: form.querySelector('#f-company').value, email: fields.email.el.value,
-          phone: latinDigits(fields.phone.el.value), message: fields.message.el.value, services: [...picked],
+          phone: whatsappNumber(), message: fields.message.el.value, services: [...picked],
           website: form.querySelector('[name="website"]').value, lang: EN ? 'en' : 'ar', channel: waBtn ? 'whatsapp' : 'email',
         }),
       });
       data = await res.json().catch(() => ({}));
       if (!res.ok || !data.ok) throw new Error(data.error || String(res.status));
+      saved = true;
     } catch (err) {
       // on WhatsApp the message itself goes through the chat, so a failed save doesn't stop it
       if (!waBtn) {
@@ -1007,6 +1095,7 @@ function initContact() {
           ? T('أرسلت عدة رسائل خلال وقت قصير. حاول مرة أخرى بعد بضع دقائق.', 'You’ve sent several messages in a short time. Please try again in a few minutes.')
           : T('تعذّر إرسال رسالتك الآن. حاول مرة أخرى بعد قليل.', 'We couldn’t send your message just now. Please try again shortly.');
         data = null;
+        showFallback();
       }
     } finally {
       sending = false;
@@ -1019,9 +1108,14 @@ function initContact() {
       else window.location.href = waUrl; // pop-ups blocked: go to the chat in this tab
     }
     done.querySelectorAll('.done-name').forEach((b) => { b.textContent = fields.name.el.value.trim().split(/\s+/)[0]; });
+    done.querySelector('.done-title-saved').hidden = !!waBtn;
+    done.querySelector('.done-title-whatsapp').hidden = !waBtn;
     done.querySelector('.done-via-email').hidden = !!waBtn;
     done.querySelector('.done-via-whatsapp').hidden = !waBtn;
+    done.querySelector('.done-wa-saved').hidden = !(waBtn && saved);
+    done.querySelector('.done-wa-unsaved').hidden = !(waBtn && !saved);
     done.querySelector('.done-confirmed').hidden = !data.confirmed;
+    if (waBtn) showFallback();
     try { sessionStorage.removeItem(KEY); } catch (e) { /* nothing to forget */ }
     sent = true;
     syncTray(true);
@@ -1031,6 +1125,7 @@ function initContact() {
   done.querySelector('.done-again').addEventListener('click', () => {
     form.reset();
     formError.textContent = '';
+    fallback.hidden = true;
     Object.values(fields).forEach((f) => { f.touched = false; show(f, ''); });
     done.hidden = true;
     body.forEach((el) => { el.hidden = false; });

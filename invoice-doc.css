@@ -48,7 +48,7 @@
 .ivd-kind { font-size: 38px; font-weight: 900; line-height: 1.1; color: var(--ink); letter-spacing: -.01em; }
 .ivd-kind-en { font-size: 11px; font-weight: 700; letter-spacing: .32em; color: var(--muted); margin-top: 4px; }
 .ivd-number {
-  display: inline-block; margin-top: 12px; padding: 6px 14px; border-radius: 999px; direction: ltr;
+  display: inline-block; white-space: nowrap; margin-top: 12px; padding: 6px 14px; border-radius: 999px; direction: ltr;
   background: var(--ink); color: var(--lime); font-weight: 700; font-size: 13px; letter-spacing: .04em;
 }
 .ivd-rule { height: 2px; background: linear-gradient(to var(--ivd-rule-dir, left), var(--ink) 0 72%, var(--lime) 72% 100%); border-radius: 2px; }
@@ -56,13 +56,18 @@
 
 .ivd-parties { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 24px; } /* two boxes, always the same size */
 .ivd-client { padding: 18px 20px; border-radius: 16px; background: var(--soft); border-inline-start: 4px solid var(--lime); }
-.ivd-client-name { font-size: 16px; font-weight: 800; color: var(--ink); }
-.ivd-meta { display: grid; align-content: center; gap: 8px; padding: 18px 20px; border-radius: 16px; background: var(--soft); border-inline-end: 4px solid var(--lime); }
+.ivd-client-name { font-size: 16px; font-weight: 800; color: var(--ink); overflow-wrap: anywhere; }
+.ivd-client p { overflow-wrap: anywhere; }
+.ivd-meta { display: grid; align-content: start; gap: 8px; padding: 18px 20px; border-radius: 16px; background: var(--soft); border-inline-end: 4px solid var(--lime); }
 .ivd-meta .ivd-kv:last-child { border-bottom: 0; padding-bottom: 0; }
 .ivd-kv { display: flex; justify-content: space-between; align-items: baseline; gap: 16px; padding-bottom: 8px; border-bottom: 1px dashed var(--line); }
 .ivd-kv span { color: var(--muted); }
 .ivd-kv span { flex: none; }
 .ivd-kv b { min-width: 0; color: var(--ink); font-weight: 700; text-align: end; overflow-wrap: anywhere; }
+/* the document's number can be long: it gets a whole line under its label, read left to right, in a font where 0 and O
+   differ. Past the card's width it can only wrap after a dash, and is never cut. */
+.ivd-kv-id { display: grid; gap: 4px; }
+.ivd-kv-id b { justify-self: end; max-width: 100%; text-align: left; overflow-wrap: normal; font: 700 12.5px/1.5 ui-monospace, "SF Mono", Menlo, Consolas, "Roboto Mono", monospace; }
 
 .ivd-items { width: 100%; border-collapse: separate; border-spacing: 0; }
 .ivd-items th {

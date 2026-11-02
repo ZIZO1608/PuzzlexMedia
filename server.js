@@ -14,6 +14,7 @@ const path = require('node:path');
 const zlib = require('node:zlib');
 const crypto = require('node:crypto');
 const { pipeline } = require('node:stream/promises');
+const PhoneNumber = require('./phone-number');
 const { createStore } = require('./lib/store');
 const { createAuth } = require('./lib/auth');
 const { createContent, projectsScript, PAGES } = require('./lib/content');
@@ -315,18 +316,15 @@ function projectPage(html, id, en) {
 const SERVICES = serviceNames('ar'); // id → the Arabic name the admin panel shows (lib/services.js)
 const LIMITS = { name: 120, company: 160, email: 200, phone: 40, message: 5000 };
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
-const PHONE_RE = /^\+?[\d\s()-]{7,20}$/;
-
-// Arabic-Indic (٠–٩) and Persian (۰–۹) digits → 0–9, so a number typed on an Arabic keyboard passes and is saved readable
-const latinDigits = (s) => s.replace(/[٠-٩۰-۹]/g, (d) => String(d.charCodeAt(0) & 0xf));
 
 function validate(b) {
   const str = (k) => (typeof b[k] === 'string' ? b[k].trim().slice(0, LIMITS[k]) : '');
-  const m = { name: str('name'), company: str('company'), email: str('email'), phone: latinDigits(str('phone')), message: str('message') };
+  const m = { name: str('name'), company: str('company'), email: str('email'), phone: PhoneNumber.normalize(str('phone')), message: str('message') };
   m.services = Array.isArray(b.services) ? [...new Set(b.services.filter((s) => typeof s === 'string' && SERVICES[s]))] : [];
   m.lang = b.lang === 'en' ? 'en' : 'ar';
   m.channel = b.channel === 'whatsapp' ? 'whatsapp' : 'email'; // the button they pressed
-  const ok = m.name.length >= 2 && EMAIL_RE.test(m.email) && (!m.phone || PHONE_RE.test(m.phone))
+  // the WhatsApp number is how we reach them; an email is a bonus, checked only if they gave one
+  const ok = m.name.length >= 2 && m.phone && (!m.email || EMAIL_RE.test(m.email))
     && m.message.length >= 10 && m.services.length > 0;
   return ok ? m : null;
 }
@@ -396,7 +394,7 @@ async function handleContact(req, res) {
     return json(res, 500, { ok: false, error: 'save' });
   }
   const { emailed, confirmed } = await mail.notify(m);
-  console.log(`[contact] ${m.id} from ${m.email} via ${m.channel}${emailed ? ' (emailed)' : ''}${confirmed ? ' (auto-reply sent)' : ''}`);
+  console.log(`[contact] ${m.id} from ${m.phone} via ${m.channel}${emailed ? ' (emailed)' : ''}${confirmed ? ' (auto-reply sent)' : ''}`);
   json(res, 200, { ok: true, confirmed });
 }
 
@@ -516,15 +514,15 @@ const server = http.createServer(async (req, res) => {
     if (p === '/llms.txt') return send(req, res, 200, await llmsEntry(), '.txt', { 'Cache-Control': 'no-cache' });
     if (indexNow.enabled && p === indexNow.keyPath) return send(req, res, 200, makeEntry(Buffer.from(indexNow.key), '.txt'), '.txt', { 'Cache-Control': 'no-cache' });
 
-    // watermarked videos and PDFs from the admin panel (lib/media.js)
-    const large = p.match(/^\/uploads\/([a-f0-9]{24}\.(mp4|pdf))$/);
+    // watermarked videos and PDFs, and sound, from the admin panel (lib/media.js)
+    const large = p.match(/^\/uploads\/([a-f0-9]{24}\.(mp4|pdf|m4a))$/);
     if (large) {
       const cached = { 'Cache-Control': 'public, max-age=31536000, immutable' };
       try {
         // browsers won't open a PDF in their viewer under a sandboxing policy, so a PDF only gets the default headers
         return await (large[2] === 'pdf'
           ? sendLarge(req, res, path.join(store.uploadsDir, large[1]), 'application/pdf', cached)
-          : sendLarge(req, res, path.join(store.uploadsDir, large[1]), 'video/mp4', { ...cached, 'Content-Security-Policy': "default-src 'none'; media-src 'self'; sandbox" }));
+          : sendLarge(req, res, path.join(store.uploadsDir, large[1]), large[2] === 'm4a' ? 'audio/mp4' : 'video/mp4', { ...cached, 'Content-Security-Policy': "default-src 'none'; media-src 'self'; sandbox" }));
       } catch (err) {
         if (err.code === 'ENOENT') return await notFound(req, res, p);
         throw err;
