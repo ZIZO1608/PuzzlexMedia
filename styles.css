@@ -80,7 +80,7 @@ html.lenis, html.lenis body { height: auto; }
   display: flex; align-items: center; justify-content: space-between; gap: 24px;
   padding: 18px clamp(16px, 4vw, 48px);
 }
-.brand { display: flex; align-items: center; gap: 10px; }
+.brand { display: flex; align-items: center; gap: 10px; direction: ltr; } /* icon on the left of the name, in both languages */
 /* the flying pieces stay out from behind the logo and the menu: the bar sits on a band of the page's own black */
 .stage .topbar::before {
   content: ""; position: absolute; inset: 0 0 -46px 0; z-index: -1; pointer-events: none;
