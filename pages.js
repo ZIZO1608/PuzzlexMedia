@@ -16,6 +16,10 @@
     const nav = top.querySelector('.nav');
     if (!nav) return;
     nav.id ||= 'site-menu';
+    // the brand mark already goes home on a computer; the full-screen menu lists it with the other pages
+    const home = Object.assign(document.createElement('a'), { className: 'nav-home', href: './', textContent: T('الرئيسية', 'Home') });
+    if (top.classList.contains('topbar--home')) home.setAttribute('aria-current', 'page');
+    nav.prepend(home);
     const btn = document.createElement('button');
     btn.type = 'button';
     btn.className = 'menu-toggle';
@@ -697,7 +701,6 @@ function initWork() {
     const f = chip.dataset.filter;
     const label = chip.querySelector('.chip-label'); // the sector names are edited with the projects
     if (label && SECTORS[f]) label.textContent = SECTORS[f];
-    chip.querySelector('.chip-count').textContent = f === 'all' ? PROJECTS.length : PROJECTS.filter((p) => p.sector === f).length;
   });
 
   // the second row: type of work, opened from the home page's chips with ?type=…
@@ -706,9 +709,8 @@ function initWork() {
   typeRow.className = 'work-filters work-types';
   typeRow.setAttribute('role', 'group');
   typeRow.setAttribute('aria-label', T('تصفية حسب نوع العمل', 'Filter by type of work'));
-  const typeCount = (id) => PROJECTS.filter((p) => id === 'all' || typesOf(p).includes(id)).length;
   typeRow.innerHTML = [{ id: 'all', name: T('الكل', 'All') }, ...WORK_TYPES]
-    .map((t) => `<button class="chip" type="button" data-type="${t.id}" aria-pressed="false">${escHtml(t.name)} <span class="chip-count">${typeCount(t.id)}</span></button>`).join('');
+    .map((t) => `<button class="chip" type="button" data-type="${t.id}" aria-pressed="false">${escHtml(t.name)} <span class="chip-count"></span></button>`).join('');
   const typeChips = [...typeRow.querySelectorAll('.chip')];
 
   // both rows sit in one panel, each with its label in a shared column so the chips line up
@@ -733,11 +735,36 @@ function initWork() {
   let type = new URLSearchParams(location.search).get('type');
   if (!WORK_TYPES.some((t) => t.id === type)) type = 'all';
   const show = (it) => (sector === 'all' || it.dataset.sector === sector) && (type === 'all' || it.dataset.types.split(' ').includes(type));
+  const countOf = (s, t) => PROJECTS.filter((p) => (s === 'all' || p.sector === s) && (t === 'all' || typesOf(p).includes(t))).length;
+
+  // each row counts what it would show alongside the other row's choice; a chip that would come up empty is switched off.
+  // A type with no work published at all stays on: pressing it opens the "we do this too" message below.
+  const drawCounts = () => {
+    chips.forEach((c) => {
+      const n = countOf(c.dataset.filter, type);
+      c.querySelector('.chip-count').textContent = n;
+      c.disabled = !n && c.dataset.filter !== sector;
+    });
+    typeChips.forEach((c) => {
+      const n = countOf(sector, c.dataset.type);
+      c.querySelector('.chip-count').textContent = n;
+      c.disabled = !n && c.dataset.type !== type && countOf('all', c.dataset.type) > 0;
+    });
+  };
+  // on a phone each row of chips scrolls sideways: keep the picked one in sight
+  const reveal = (chip, smooth) => {
+    const row = chip.parentElement;
+    if (row.scrollWidth <= row.clientWidth) return;
+    const c = chip.getBoundingClientRect(), r = row.getBoundingClientRect();
+    row.scrollBy({ left: c.left + c.width / 2 - (r.left + r.width / 2), behavior: smooth && !REDUCED ? 'smooth' : 'auto' });
+  };
 
   // filtering: the grid dips out, the cards are swapped, and the ones that stay come back in turn
   const apply = (animate) => {
     chips.forEach((c) => c.setAttribute('aria-pressed', String(c.dataset.filter === sector)));
     typeChips.forEach((c) => c.setAttribute('aria-pressed', String(c.dataset.type === type)));
+    drawCounts();
+    [...chips, ...typeChips].filter((c) => c.getAttribute('aria-pressed') === 'true').forEach((c) => reveal(c, animate));
     const swap = () => {
       items.forEach((it) => it.classList.toggle('is-hidden', !show(it)));
       const t = WORK_TYPES.find((x) => x.id === type);
@@ -756,7 +783,7 @@ function initWork() {
         swap();
         const visible = items.filter(show);
         gsap.set(grid, { autoAlpha: 1, y: 0 });
-        gsap.fromTo(visible, { y: 26, autoAlpha: 0 }, { y: 0, autoAlpha: 1, duration: 0.5, stagger: 0.05, ease: 'power3.out', overwrite: true });
+        if (visible.length) gsap.fromTo(visible, { y: 26, autoAlpha: 0 }, { y: 0, autoAlpha: 1, duration: 0.5, stagger: 0.05, ease: 'power3.out', overwrite: true });
       },
     });
   };
@@ -772,11 +799,14 @@ function initWork() {
   apply(false);
 
   if (!REDUCED) {
-    gsap.set(items, { y: 40, autoAlpha: 0 });
+    // a phone shows one card at a time, so each one comes in as soon as its edge does, and quickly
+    const phone = matchMedia('(max-width: 760px)').matches;
+    gsap.set(items, { y: phone ? 20 : 40, autoAlpha: 0 });
     ScrollTrigger.batch(items, {
-      start: 'top 92%',
-      onEnter: (batch) => gsap.to(batch, { y: 0, autoAlpha: 1, duration: 0.7, stagger: 0.08, ease: 'power3.out', overwrite: true }),
+      start: phone ? 'top bottom' : 'top 92%',
+      onEnter: (batch) => gsap.to(batch, { y: 0, autoAlpha: 1, duration: phone ? 0.4 : 0.7, stagger: phone ? 0.04 : 0.08, ease: 'power3.out', overwrite: true }),
     });
+    ScrollTrigger.refresh();
   }
 }
 
@@ -789,8 +819,9 @@ function initProject() {
   if (i < 0) {
     page.querySelector('.project-title').textContent = T('لم نجد هذا المشروع', 'Project not found');
     page.querySelector('.project-summary').innerHTML = T('ربما تغيّر الرابط.', 'The link may have changed.') + ` <a href="work.html">${T('تصفّح كل الأعمال', 'Browse all work')}</a>.`;
-    page.querySelector('.project-facts').hidden = true;
-    page.querySelector('.project-gallery').hidden = true;
+    document.title = `${T('لم نجد هذا المشروع', 'Project not found')} | PuzzleX Media`;
+    // only the message, the way back and the call to action are left (the server marks the page noindex)
+    page.querySelectorAll('.project-logo, .project-client, .project-facts, .project-gallery, .work-note, .project-nav').forEach((el) => el.remove());
     return;
   }
   const p = PROJECTS[i];
@@ -1209,7 +1240,7 @@ function initFeedback() {
 
   // long quotes fold after nine lines, with "read more" (here and in the home page's section)
   const readMore = T('اقرأ المزيد', 'Read more'), readLess = T('عرض أقل', 'Show less');
-  document.querySelectorAll('.fb-wall .tm-card, .tm-list .tm-card').forEach((card) => {
+  const fold = (card) => {
     const quote = card.querySelector('.tm-quote');
     quote.classList.add('is-clamped');
     if (quote.scrollHeight - quote.clientHeight < 4) { quote.classList.remove('is-clamped'); return; }
@@ -1225,55 +1256,115 @@ function initFeedback() {
       ScrollTrigger.refresh();
     });
     quote.after(more);
-  });
+  };
+  document.querySelectorAll('.fb-wall .tm-card, .tm-list .tm-card').forEach(fold);
 
   const wall = document.querySelector('.fb-wall');
   if (!wall) return;
-  const cards = [...wall.querySelectorAll('.tm-card')];
 
   // a card falls in tilted, straightens, and its edge flashes as it clicks into place
   const revealed = new WeakSet();
   const drop = (batch) => {
+    if (!batch.length) return;
     batch.forEach((c) => revealed.add(c));
     gsap.fromTo(batch, { y: 70, rotation: () => gsap.utils.random(-7, 7), scale: 0.94, autoAlpha: 0 }, {
       y: 0, rotation: 0, scale: 1, autoAlpha: 1, duration: 0.85, ease: 'back.out(1.5)', overwrite: true,
       stagger: { each: 0.07, onComplete() { const c = this.targets()[0]; c.classList.remove('snap'); void c.offsetWidth; c.classList.add('snap'); } },
     });
   };
-  cards.forEach((c) => c.addEventListener('animationend', () => c.classList.remove('snap')));
-  if (!REDUCED) {
+  const unsnap = (cards) => cards.forEach((c) => c.addEventListener('animationend', () => c.classList.remove('snap')));
+  let watching = []; // the scroll triggers of the cards now on the wall
+  const watch = (cards) => {
+    if (REDUCED) return;
     gsap.set(cards, { autoAlpha: 0 });
-    ScrollTrigger.batch(cards, { start: 'top 94%', onEnter: (batch) => drop(batch.filter((c) => !revealed.has(c))) });
-  }
+    watching.push(...ScrollTrigger.batch(cards, { start: 'top 94%', onEnter: (batch) => drop(batch.filter((c) => !revealed.has(c))) }));
+  };
+  const first = [...wall.children];
+  unsnap(first);
+  watch(first);
+
+  // the server draws the first reviews; "show more" and the filters fetch the rest, already filtered (/api/feedback)
+  let filter = 'all', total = Number(wall.dataset.total) || 0, request = 0;
+  const more = Object.assign(document.createElement('button'), { type: 'button', className: 'btn btn-ghost fb-more' });
+  const note = Object.assign(document.createElement('p'), { className: 'fb-more-note' });
+  note.setAttribute('role', 'status');
+  const moreRow = Object.assign(document.createElement('div'), { className: 'fb-more-row' });
+  moreRow.append(more, note);
+  wall.after(moreRow);
+  const drawMore = () => {
+    const left = total - wall.children.length;
+    more.hidden = left <= 0;
+    more.textContent = `${T('عرض المزيد', 'Show more')} (${left})`;
+  };
+  drawMore();
+  const fetchCards = async (f, offset) => {
+    const res = await fetch(`/api/feedback?lang=${EN ? 'en' : 'ar'}&filter=${f}&offset=${offset}`);
+    if (!res.ok) throw new Error(res.status);
+    const page = await res.json();
+    const box = document.createElement('template');
+    box.innerHTML = page.cards;
+    return { total: page.total, cards: [...box.content.children] };
+  };
+  const failed = () => { note.textContent = T('تعذّر تحميل الآراء. حاول مرة أخرى.', 'Couldn’t load the reviews. Please try again.'); };
+  // new cards fold their long quotes once they're on the page, where their height can be measured
+  const placed = (cards) => { cards.forEach(fold); unsnap(cards); };
+
+  more.addEventListener('click', async () => {
+    const mine = ++request;
+    more.disabled = true;
+    note.textContent = '';
+    try {
+      const page = await fetchCards(filter, wall.children.length);
+      if (mine !== request) return;
+      total = page.total;
+      wall.append(...page.cards);
+      placed(page.cards);
+      watch(page.cards);
+      ScrollTrigger.refresh();
+    } catch (e) { if (mine === request) failed(); }
+    if (mine !== request) return;
+    more.disabled = false;
+    drawMore();
+  });
 
   const chips = [...document.querySelectorAll('.fb-filters .chip')];
-  const matches = (card, filter) => filter === 'all' || (filter === 'media' ? card.hasAttribute('data-media') : card.dataset.rating === filter);
-  const apply = (filter) => {
-    chips.forEach((c) => c.setAttribute('aria-pressed', String(c.dataset.filter === filter)));
-    const swap = () => {
-      cards.forEach((c) => c.classList.toggle('is-hidden', !matches(c, filter)));
-      ScrollTrigger.refresh();
-    };
-    if (REDUCED) { swap(); return; }
-    gsap.to(wall, {
-      autoAlpha: 0, y: 12, duration: 0.2, ease: 'power1.in', overwrite: true,
-      onComplete: () => {
-        swap();
-        gsap.set(wall, { autoAlpha: 1, y: 0 });
-        // the first screenful drops in again; the rest are simply there
-        const shown = cards.filter((c) => matches(c, filter));
-        gsap.set(shown.slice(9), { autoAlpha: 1, y: 0, rotation: 0, scale: 1 });
-        shown.slice(9).forEach((c) => revealed.add(c));
-        drop(shown.slice(0, 9));
-      },
-    });
+  const press = (f) => chips.forEach((c) => c.setAttribute('aria-pressed', String(c.dataset.filter === f)));
+  const apply = async (next) => {
+    const mine = ++request;
+    press(next);
+    more.disabled = false;
+    note.textContent = '';
+    const dip = REDUCED ? null : gsap.to(wall, { autoAlpha: 0, y: 12, duration: 0.2, ease: 'power1.in', overwrite: true });
+    let page;
+    try { [page] = await Promise.all([fetchCards(next, 0), dip]); } catch (e) {
+      if (mine !== request) return;
+      press(filter); // the wall still shows the last filter
+      if (!REDUCED) gsap.set(wall, { autoAlpha: 1, y: 0 });
+      failed();
+      return;
+    }
+    if (mine !== request) return;
+    filter = next;
+    total = page.total;
+    watching.forEach((t) => t.kill());
+    watching = [];
+    wall.replaceChildren(...page.cards);
+    placed(page.cards);
+    drawMore();
+    ScrollTrigger.refresh();
+    if (REDUCED) return;
+    gsap.set(wall, { autoAlpha: 1, y: 0 });
+    // the first screenful drops in again; the rest are simply there
+    gsap.set(page.cards, { autoAlpha: 1 });
+    page.cards.slice(9).forEach((c) => revealed.add(c));
+    drop(page.cards.slice(0, 9));
   };
   chips.forEach((chip) => chip.addEventListener('click', () => apply(chip.dataset.filter)));
 }
 
 /* ---------- Feedback · the images clients shared, full screen (home page and feedback page) ---------- */
 function initFeedbackViewer() {
-  if (!document.querySelector('.tm-shot')) return;
+  if (!document.querySelector('.tm-shot, .fb-wall')) return; // the wall's later pages may bring the first images
   let box = null, img, count, caption, prev, next, shots = [], at = 0, opener = null;
   const root = document.documentElement;
 

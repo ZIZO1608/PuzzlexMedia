@@ -30,6 +30,23 @@ function toast(text, kind = 'ok') {
   setTimeout(() => t.remove(), kind === 'err' ? 6000 : 3000);
 }
 
+// a question in the panel's own window: in-app browsers (Instagram, WhatsApp) can silently block confirm(),
+// which leaves the button looking dead. Answers true or false; Esc is "no", and a risky question starts on «إلغاء».
+function ask(message, { yes = 'متابعة', danger = false } = {}) {
+  return new Promise((resolve) => {
+    let answer = false;
+    const answerWith = (value) => { answer = value; dlg.close(); };
+    const dlg = h('dialog', { class: 'ask' }, h('p', { class: 'ask-text' }, message),
+      h('div', { class: 'row' },
+        h('button', { type: 'button', class: `btn ${danger ? 'btn-danger' : 'btn-primary'}`, onclick: () => answerWith(true) }, yes),
+        h('button', { type: 'button', class: 'btn btn-ghost', autofocus: danger, onclick: () => answerWith(false) }, 'إلغاء')));
+    dlg.addEventListener('close', () => { dlg.remove(); resolve(answer); });
+    document.body.append(dlg);
+    dlg.showModal();
+  });
+}
+const LEAVE_QUESTION = 'لديك تغييرات غير محفوظة. المغادرة بدون حفظ؟';
+
 async function api(method, path, body, rawType) {
   const headers = { 'X-PX-Admin': '1' };
   if (rawType) headers['Content-Type'] = rawType;
@@ -212,7 +229,9 @@ function refreshBar() {
 }
 const dirty = () => Boolean(pending && pending.count());
 $('#savebar-save').addEventListener('click', (e) => saveNow(e.currentTarget));
-$('#savebar-undo').addEventListener('click', () => { if (pending && confirm('تجاهل كل التغييرات غير المحفوظة؟')) { pending.discard(); refreshBar(); } });
+$('#savebar-undo').addEventListener('click', async () => {
+  if (pending && await ask('تجاهل كل التغييرات غير المحفوظة؟', { yes: 'تجاهل', danger: true })) { pending.discard(); refreshBar(); }
+});
 async function saveNow(btn) {
   if (!dirty()) return;
   try { await busy(btn || $('#savebar-save'), () => pending.save()); refreshBar(); toast('تم الحفظ — التغييرات ظاهرة الآن على الموقع'); } catch (err) { toast(err.message, 'err'); }
@@ -260,10 +279,19 @@ function route() {
   const [name, ...rest] = location.hash.replace(/^#\/?/, '').split('/');
   return { name: VIEWS[name] ? name : 'home', arg: decodeURIComponent(rest.join('/')) };
 }
+// on phones the menu is a strip that scrolls sideways: the open section sits in its middle (a no-op when it all fits)
+function showActiveTab() {
+  const nav = $('#nav'), tab = nav.querySelector('a[aria-current]');
+  if (!tab) return;
+  const t = tab.getBoundingClientRect(), n = nav.getBoundingClientRect();
+  const motion = matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth';
+  nav.scrollBy({ left: t.left + t.width / 2 - (n.left + n.width / 2), behavior: motion });
+}
 async function render() {
   const { name, arg } = route();
   document.querySelectorAll('#nav a').forEach((a) => a.toggleAttribute('aria-current', a.dataset.route === name));
   document.querySelectorAll('#nav a[aria-current]').forEach((a) => a.setAttribute('aria-current', 'page'));
+  showActiveTab();
   const view = $('#view');
   view.replaceChildren(h('p', { class: 'loading' }, 'جارٍ التحميل…'));
   try { await VIEWS[name](view, arg); } catch (err) {
@@ -274,8 +302,15 @@ async function render() {
 window.addEventListener('hashchange', () => {
   // leaving a section with unsaved changes asks first (moving inside the projects section keeps them)
   const leavingSection = shownHash !== null && shownHash.split('/')[1] !== location.hash.split('/')[1];
-  if (leavingSection && dirty() && !confirm('لديك تغييرات غير محفوظة. المغادرة بدون حفظ؟')) {
+  if (leavingSection && dirty()) {
+    // back where we were while they answer; a yes drops the changes and goes on
+    const target = location.hash;
     history.replaceState(null, '', shownHash);
+    ask(LEAVE_QUESTION, { yes: 'المغادرة', danger: true }).then((leave) => {
+      if (!leave) return;
+      setPending(null);
+      location.hash = target;
+    });
     return;
   }
   if (leavingSection) { setPending(null); proj = null; } // unsaved project edits are dropped with the section
@@ -321,8 +356,8 @@ async function viewHome(view) {
       short('التواصل والروابط', 'الهاتف، واتساب، البريد، حسابات التواصل', '#/contact')),
     recent.length ? h('h2', { class: 'section-title' }, 'آخر الرسائل') : null,
     recent.length ? h('div', { class: 'msgs' }, recent.map((m) => h('a', { class: `msg card${m.read ? '' : ' unread'}`, href: '#/messages', style: 'display:grid;gap:4px' },
-      h('strong', null, m.name, m.company ? ` — ${m.company}` : ''), h('span', { class: 'muted small' }, fmtDate(m.date)),
-      h('span', { class: 'muted' }, m.message.length > 140 ? `${m.message.slice(0, 140)}…` : m.message)))) : null,
+      h('strong', { dir: 'auto' }, m.name, m.company ? ` — ${m.company}` : ''), h('span', { class: 'muted small' }, fmtDate(m.date)),
+      h('span', { class: 'muted', dir: 'auto' }, m.message.length > 140 ? `${m.message.slice(0, 140)}…` : m.message)))) : null,
   ].filter(Boolean));
 }
 
@@ -499,8 +534,8 @@ async function viewProjects(view, arg) {
     h('div', { class: 'proj-list' }, data.projects.map((p, i) => h('div', { class: 'proj-row' },
       p.cover ? h('div', { class: 'thumb' }, h('img', { src: asset(p.cover), alt: '' })) : h('div', { class: 'thumb logo' }, h('img', { src: asset(p.logo), alt: '' })),
       h('div', null,
-        h('div', { class: 't' }, p.title.ar || '(بدون عنوان)'),
-        h('div', { class: 'c' }, p.client.ar, ' · ', sectorName(p.sector), p.year ? ` · ${p.year}` : '', p.gallery.length ? ` · ${p.gallery.length} ملفات` : ' · صور مؤقتة')),
+        h('div', { class: 't', dir: 'auto' }, p.title.ar || '(بدون عنوان)'),
+        h('div', { class: 'c', dir: 'auto' }, p.client.ar, ' · ', sectorName(p.sector), p.year ? ` · ${p.year}` : '', p.gallery.length ? ` · ${p.gallery.length} ملفات` : ' · صور مؤقتة')),
       h('div', { class: 'row' },
         h('button', { type: 'button', class: 'btn btn-icon btn-small', title: 'تقديم', 'aria-label': 'تقديم', disabled: i === 0, onclick: () => move(i, -1) }, '↑'),
         h('button', { type: 'button', class: 'btn btn-icon btn-small', title: 'تأخير', 'aria-label': 'تأخير', disabled: i === data.projects.length - 1, onclick: () => move(i, 1) }, '↓'),
@@ -657,11 +692,11 @@ function projectEditor(view, id) {
       }
     }),
     ...pending,
-    dropZone('إضافة فيديو أو GIF أو صوت أو PDF', true, addMedia, true));
+    dropZone(['إضافة فيديو أو ', h('bdi', null, 'GIF'), ' أو صوت أو ', h('bdi', null, 'PDF')], true, addMedia, true));
   drawGallery();
 
-  const remove = () => {
-    if (!confirm(`حذف مشروع «${p.title.ar || p.id}»؟ يمكنك التراجع قبل الحفظ.`)) return;
+  const remove = async () => {
+    if (!await ask(`حذف مشروع «${p.title.ar || p.id}»؟ يمكنك التراجع قبل الحفظ.`, { yes: 'حذف', danger: true })) return;
     proj.data.projects.splice(proj.data.projects.indexOf(p), 1);
     location.hash = '#/projects';
   };
@@ -780,9 +815,14 @@ const blankFeedback = () => ({
 });
 const withDefaults = (t) => ({ ...blankFeedback(), ...t }); // entries saved before images / date / featured existed
 
+const FEEDBACK_PER_PAGE = 20;
+// each review's full form is 60-odd elements and 270 of them froze a phone: a page of compact rows, and one form at a time
 async function viewTestimonials(view) {
   const [r, parts] = await Promise.all([api('GET', '/testimonials'), api('GET', '/partners')]);
   let saved = r.data.map(withDefaults), rev = r.rev, list = clone(saved);
+  let page = 0, opened = null; // the page of rows on screen, the entry whose form is open
+  // after a save or an undo the entries are new objects: the same review stays open
+  const reopen = () => { opened = opened && opened.id ? list.find((t) => t.id === opened.id) || null : null; };
   setPending({
     label: 'آراء العملاء',
     // compared by id, so adding one at the top counts as one change, not a shift of all the others
@@ -793,24 +833,28 @@ async function viewTestimonials(view) {
       const removed = saved.filter((s) => !list.some((t) => t.id === s.id)).length;
       return Math.max(1, changed + removed); // 1 when only the order changed
     },
-    discard: () => { list = clone(saved); draw(); },
-    save: async () => { const s = await api('PUT', '/testimonials', { rev, data: list }); saved = s.data.map(withDefaults); rev = s.rev; list = clone(saved); draw(); },
+    discard: () => { list = clone(saved); reopen(); draw(); },
+    save: async () => { const s = await api('PUT', '/testimonials', { rev, data: list }); saved = s.data.map(withDefaults); rev = s.rev; list = clone(saved); reopen(); draw(); },
   });
   const box = h('div', { class: 'tm-admin' });
+  const pager = h('nav', { class: 'tm-pager', 'aria-label': 'صفحات الآراء' });
   const info = h('p', { class: 'hint' });
   const lang2 = (lang) => (lang === 'ar' ? 'بالعربية' : 'English');
-  let cards = []; // [element, entry], for the search box
-  const search = h('input', { type: 'search', class: 'tm-search', placeholder: 'ابحث باسم العميل أو نص الرأي…', oninput: () => applySearch() });
-  const applySearch = () => {
+  // the search covers every review, not just the page on screen
+  const search = h('input', { type: 'search', class: 'tm-search', placeholder: 'ابحث باسم العميل أو نص الرأي…', oninput: () => { page = 0; draw(); } });
+  const found = () => {
     const q = search.value.trim().toLowerCase();
-    cards.forEach(([el, t]) => { el.hidden = Boolean(q) && ![t.name.ar, t.name.en, t.role.ar, t.role.en, t.quote.ar, t.quote.en].join(' ').toLowerCase().includes(q); });
+    return q ? list.filter((t) => [t.name.ar, t.name.en, t.role.ar, t.role.en, t.quote.ar, t.quote.en].join(' ').toLowerCase().includes(q)) : list;
   };
+  const faceOf = (t) => (t.photo
+    ? h('img', { src: asset(t.photo), alt: '', loading: 'lazy', class: /^assets\/partners\//.test(t.photo) ? 'logo' : null })
+    : h('span', null, [...(t.name.ar || t.name.en || '؟')][0]));
 
-  function card(t, i) {
+  // the full form of one review. `onChange` keeps its row (name, stars, photo) in step while typing
+  function editor(t, onChange) {
+    const i = list.indexOf(t);
     const face = h('div', { class: 'tm-face-box' });
-    const drawFace = () => face.replaceChildren(t.photo
-      ? h('img', { src: asset(t.photo), alt: '', class: /^assets\/partners\//.test(t.photo) ? 'logo' : null })
-      : h('span', null, [...(t.name.ar || t.name.en || '؟')][0]));
+    const drawFace = () => { face.replaceChildren(faceOf(t)); onChange(); };
     drawFace();
     const setPhoto = (src) => { t.photo = src; drawFace(); photoActs(); refreshBar(); };
     const pickPartner = () => {
@@ -849,23 +893,29 @@ async function viewTestimonials(view) {
       h('span', null, `${label} — ${lang2(lang)}`, required && lang === 'ar' ? h('b', null, ' *') : null),
       h(multiline ? 'textarea' : 'input', {
         value: t[key][lang], dir: lang === 'ar' ? 'rtl' : 'ltr', lang, rows: multiline ? 4 : null,
-        oninput: (e) => { t[key][lang] = e.target.value; if (key === 'name' && !t.photo) drawFace(); refreshBar(); },
+        oninput: (e) => { t[key][lang] = e.target.value; if (key === 'name' && !t.photo) drawFace(); else onChange(); refreshBar(); },
       }))));
-    const toggle = (key, label) => h('label', { class: 'tm-switch' },
-      h('input', { type: 'checkbox', checked: t[key], onchange: (e) => { t[key] = e.target.checked; el.classList.toggle('off', !t.visible); drawInfo(); refreshBar(); } }), label);
+    // moved past the edge of the page: the page follows it
+    const move = (d) => {
+      [list[i], list[i + d]] = [list[i + d], list[i]];
+      const at = found().indexOf(t);
+      if (at >= 0) page = Math.floor(at / FEEDBACK_PER_PAGE);
+      draw();
+    };
+    const remove = async () => {
+      if (!await ask(`حذف رأي «${t.name.ar || t.name.en || 'بدون اسم'}»؟ يمكنك التراجع قبل الحفظ.`, { yes: 'حذف', danger: true })) return;
+      list.splice(list.indexOf(t), 1);
+      opened = null;
+      draw();
+    };
 
-    const el = h('div', { class: `card tm-item${t.visible ? '' : ' off'}` },
+    return h('div', { class: 'tm-item' },
       h('div', { class: 'tm-item-head' },
         h('span', { class: 'tag' }, `#${i + 1}`),
-        toggle('visible', 'ظاهر على الموقع'),
-        toggle('featured', 'في الصفحة الرئيسية'),
         h('span', { class: 'spacer' }),
-        h('button', { type: 'button', class: 'btn btn-icon btn-small', title: 'تقديم', 'aria-label': 'تقديم', disabled: i === 0, onclick: () => { [list[i - 1], list[i]] = [list[i], list[i - 1]]; draw(); } }, '↑'),
-        h('button', { type: 'button', class: 'btn btn-icon btn-small', title: 'تأخير', 'aria-label': 'تأخير', disabled: i === list.length - 1, onclick: () => { [list[i + 1], list[i]] = [list[i], list[i + 1]]; draw(); } }, '↓'),
-        h('button', {
-          type: 'button', class: 'btn btn-small btn-danger',
-          onclick: () => { if (confirm(`حذف رأي «${t.name.ar || t.name.en || 'بدون اسم'}»؟ يمكنك التراجع قبل الحفظ.`)) { list.splice(i, 1); draw(); } },
-        }, 'حذف')),
+        h('button', { type: 'button', class: 'btn btn-icon btn-small', title: 'تقديم', 'aria-label': 'تقديم', disabled: i === 0, onclick: () => move(-1) }, '↑'),
+        h('button', { type: 'button', class: 'btn btn-icon btn-small', title: 'تأخير', 'aria-label': 'تأخير', disabled: i === list.length - 1, onclick: () => move(1) }, '↓'),
+        h('button', { type: 'button', class: 'btn btn-small btn-danger', onclick: remove }, 'حذف')),
       h('div', { class: 'tm-person' }, face, h('div', { class: 'grid', style: 'gap:8px' },
         h('span', { class: 'hint' }, 'صورة العميل أو شعار شركته (اختياري). بدونها يظهر أول حرف من الاسم.'), acts)),
       pairField('اسم العميل', 'name', false, true),
@@ -879,6 +929,28 @@ async function viewTestimonials(view) {
           h('input', { value: t.date, dir: 'ltr', placeholder: '2026-05-14 أو 2026-05', inputmode: 'numeric', oninput: (e) => { t.date = e.target.value.trim(); refreshBar(); } }))),
       h('div', { class: 'field' }, h('span', null, 'صور مرفقة (اختياري)'),
         h('span', { class: 'hint' }, 'لقطة من محادثة العميل، صورة من العمل المسلَّم… حتى 6 صور. تظهر مصغّرة تحت الرأي، وتُفتح بحجم كامل عند الضغط عليها.'), images));
+  }
+
+  // one review in the list: who, the stars, the two switches, and «تعديل» to open its form under the row
+  function row(t) {
+    const face = h('div', { class: 'tm-face-box' }), who = h('div', { class: 'tm-row-who' });
+    const drawRow = () => {
+      face.replaceChildren(faceOf(t));
+      const quote = (t.quote.ar || t.quote.en).replace(/\s+/g, ' ');
+      who.replaceChildren(
+        h('span', { class: 'tm-row-name' }, h('b', { dir: 'auto' }, t.name.ar || t.name.en || 'بدون اسم'),
+          t.rating ? h('span', { class: 'tm-row-stars', 'aria-label': `${t.rating} من 5` }, '★'.repeat(t.rating)) : null),
+        h('span', { class: 'tm-row-quote', dir: 'auto' }, quote.length > 110 ? `${quote.slice(0, 110)}…` : quote));
+    };
+    drawRow();
+    const toggle = (key, label) => h('label', { class: 'tm-switch' },
+      h('input', { type: 'checkbox', checked: t[key], onchange: (e) => { t[key] = e.target.checked; el.classList.toggle('off', !t.visible); drawInfo(); refreshBar(); } }), label);
+    const isOpen = opened === t;
+    const el = h('div', { class: `card tm-row-card${t.visible ? '' : ' off'}` },
+      h('div', { class: 'tm-row' }, face, who,
+        h('button', { type: 'button', class: `btn btn-small${isOpen ? '' : ' btn-primary'}`, 'aria-expanded': String(isOpen), onclick: () => { opened = isOpen ? null : t; draw(); } }, isOpen ? 'إغلاق' : 'تعديل'),
+        h('div', { class: 'tm-row-switches' }, toggle('visible', 'ظاهر على الموقع'), toggle('featured', 'في الصفحة الرئيسية'))),
+      isOpen ? editor(t, drawRow) : null);
     return el;
   }
 
@@ -889,17 +961,27 @@ async function viewTestimonials(view) {
       : '';
   }
   function draw() {
-    cards = list.map((t, i) => [card(t, i), t]);
-    box.replaceChildren(...(list.length ? cards.map(([el]) => el) : [h('p', { class: 'empty' }, 'لا آراء بعد. أضف أول رأي، أو استوردها كلها مرة واحدة من ملف Excel — تظهر صفحة «آراء العملاء» وقسمها في الصفحة الرئيسية تلقائياً عندما يكون هناك رأي ظاهر واحد على الأقل.')]));
+    const shown = found(), pages = Math.max(1, Math.ceil(shown.length / FEEDBACK_PER_PAGE));
+    page = Math.min(page, pages - 1);
+    const rows = shown.slice(page * FEEDBACK_PER_PAGE, (page + 1) * FEEDBACK_PER_PAGE).map(row);
+    box.replaceChildren(...(rows.length ? rows : [h('p', { class: 'empty' }, list.length ? 'لا آراء تطابق البحث.' : 'لا آراء بعد. أضف أول رأي، أو استوردها كلها مرة واحدة من ملف Excel — تظهر صفحة «آراء العملاء» وقسمها في الصفحة الرئيسية تلقائياً عندما يكون هناك رأي ظاهر واحد على الأقل.')]));
+    const go = (to) => { page = to; opened = null; draw(); box.scrollIntoView({ block: 'start' }); };
+    pager.replaceChildren(...(pages > 1 ? [
+      h('button', { type: 'button', class: 'btn btn-small', disabled: page === 0, onclick: () => go(page - 1) }, 'السابق'),
+      h('span', { class: 'muted small' }, `صفحة ${page + 1} من ${pages}`),
+      h('button', { type: 'button', class: 'btn btn-small', disabled: page === pages - 1, onclick: () => go(page + 1) }, 'التالي'),
+    ] : []));
     drawInfo();
-    applySearch();
     refreshBar();
+    box.querySelector('[aria-expanded="true"]')?.closest('.tm-row-card').scrollIntoView({ block: 'nearest' });
   }
   const add = () => {
-    list.unshift(blankFeedback());
+    opened = blankFeedback();
+    list.unshift(opened);
     search.value = '';
+    page = 0;
     draw();
-    box.querySelector('input:not([type])')?.focus();
+    box.querySelector('.tm-item input:not([type])')?.focus();
   };
   const importNow = () => importFeedback({
     existing: list, partners: parts.data,
@@ -908,6 +990,8 @@ async function viewTestimonials(view) {
       else if (mode === 'top') list.unshift(...items);
       else list.push(...items);
       search.value = '';
+      page = 0;
+      opened = null;
       draw();
       toast(`${items.length === 1 ? 'أُضيف رأي واحد' : items.length === 2 ? 'أُضيف رأيان' : `أُضيف ${items.length} ${noun(items.length, ['', '', 'آراء', 'رأياً'])}`} — راجعها ثم اضغط «حفظ التغييرات»`);
     },
@@ -929,10 +1013,10 @@ async function viewTestimonials(view) {
       h('button', { type: 'button', class: 'btn btn-ghost', onclick: exportNow }, 'تصدير إلى Excel'),
       h('button', {
         type: 'button', class: 'btn btn-ghost', title: 'رتّب الآراء بالسحب والإفلات: الترتيب نفسه يظهر على الموقع',
-        onclick: () => sortFeedback(list, (order) => { list.splice(0, list.length, ...order); search.value = ''; draw(); toast('تم الترتيب — اضغط «حفظ التغييرات» ليظهر على الموقع'); }),
+        onclick: () => sortFeedback(list, (order) => { list.splice(0, list.length, ...order); search.value = ''; page = 0; opened = null; draw(); toast('تم الترتيب — اضغط «حفظ التغييرات» ليظهر على الموقع'); }),
       }, '⇅ ترتيب بالسحب'),
       h('span', { class: 'spacer' }), search),
-    info, h('div', { style: 'height:12px' }), box);
+    info, h('div', { style: 'height:12px' }), box, pager);
   draw();
 }
 
@@ -958,8 +1042,8 @@ function sortFeedback(list, onDone) {
       h('span', { class: 'sort-n' }),
       face,
       h('span', { class: 'sort-who' },
-        h('b', null, nameOf(t), t.rating ? h('span', { class: 'sort-stars' }, ` ${'★'.repeat(t.rating)}`) : null),
-        h('span', { class: 'sort-q' }, quote.length > 110 ? `${quote.slice(0, 110)}…` : quote)),
+        h('span', { class: 'sort-name' }, h('b', { dir: 'auto' }, nameOf(t)), t.rating ? h('span', { class: 'sort-stars', 'aria-label': `${t.rating} من 5` }, '★'.repeat(t.rating)) : null),
+        h('span', { class: 'sort-q', dir: 'auto' }, quote.length > 110 ? `${quote.slice(0, 110)}…` : quote)),
       h('span', { class: 'sort-tags' }),
       h('button', { type: 'button', class: 'btn btn-icon btn-small', title: 'إلى الأعلى', 'aria-label': `نقل «${nameOf(t)}» إلى الأعلى`, onclick: () => moveTo(t, 0) }, '⤒'));
     li.addEventListener('keydown', (e) => {
@@ -1062,7 +1146,11 @@ function sortFeedback(list, onDone) {
     h('div', { class: 'row sorter-foot' },
       h('button', { type: 'button', class: 'btn btn-primary', onclick: () => { if (changed()) onDone(order); dlg.close(); } }, 'تطبيق الترتيب'),
       h('button', { type: 'button', class: 'btn btn-ghost', onclick: () => dlg.close() }, 'إلغاء')));
-  dlg.addEventListener('cancel', (e) => { if (changed() && !confirm('تجاهل الترتيب الجديد؟')) e.preventDefault(); });
+  dlg.addEventListener('cancel', async (e) => {
+    if (!changed()) return;
+    e.preventDefault();
+    if (await ask('تجاهل الترتيب الجديد؟', { yes: 'تجاهل', danger: true })) dlg.close();
+  });
   dlg.addEventListener('close', () => dlg.remove());
   ol.append(...order.map(row));
   renumber();
@@ -1300,7 +1388,7 @@ function importFeedback({ existing, partners, onDone }) {
 
   async function run() {
     const ok = result.rows.filter((r) => !r.errors.length && !r.dup);
-    if (mode === 'replace' && existing.length && !confirm(`ستحلّ آراء الملف (${ok.length}) محلّ كل الآراء الحالية (${existing.length}). يمكنك التراجع قبل الحفظ. متابعة؟`)) return;
+    if (mode === 'replace' && existing.length && !await ask(`ستحلّ آراء الملف (${ok.length}) محلّ كل الآراء الحالية (${existing.length}). يمكنك التراجع قبل الحفظ. متابعة؟`, { yes: 'استبدال', danger: true })) return;
     await busy(go, async () => {
       // each picked image is uploaded once, even when several rows use it; attachments big enough for the viewer
       const attached = new Set(ok.flatMap((r) => r.images).filter((x) => x.file).map((x) => x.file));
@@ -1432,13 +1520,13 @@ async function viewMessages(view) {
     list.replaceChildren(...(shown.length ? shown.map((m) => {
       const d = h('details', { class: `msg${m.read ? '' : ' unread'}` },
         h('summary', null, h('span', { class: 'dot', 'aria-hidden': 'true' }),
-          h('span', { class: 'who' }, m.name, m.company ? h('small', null, ` — ${m.company}`) : null),
+          h('span', { class: 'who', dir: 'auto' }, m.name, m.company ? h('small', null, ` — ${m.company}`) : null),
           h('span', { class: 'when' }, fmtDate(m.date))),
         h('div', { class: 'body' },
           h('dl', { class: 'kv' },
             m.phone ? [h('dt', null, 'واتساب'), h('dd', null, h('a', { href: `https://wa.me/${m.phone.replace(/\D/g, '')}`, class: 'ltr', target: '_blank', rel: 'noopener' }, m.phone))] : null,
             m.email ? [h('dt', null, 'البريد'), h('dd', null, h('a', { href: `mailto:${m.email}`, class: 'ltr' }, m.email))] : null,
-            m.company ? [h('dt', null, 'الشركة'), h('dd', null, m.company)] : null,
+            m.company ? [h('dt', null, 'الشركة'), h('dd', { dir: 'auto' }, m.company)] : null,
             h('dt', null, 'القطع المطلوبة'), h('dd', null, h('div', { class: 'chips' }, m.services.map((s) => h('span', { class: 'tag' }, labels[s] || s)))),
             h('dt', null, 'لغة الصفحة'), h('dd', null, m.lang === 'en' ? 'الإنجليزية' : 'العربية')),
           h('div', { class: 'text', dir: 'auto' }, m.message),
@@ -1450,7 +1538,7 @@ async function viewMessages(view) {
             h('button', {
               type: 'button', class: 'btn btn-small btn-danger',
               onclick: async () => {
-                if (!confirm(`حذف رسالة ${m.name} نهائياً؟`)) return;
+                if (!await ask(`حذف رسالة ${m.name} نهائياً؟`, { yes: 'حذف', danger: true })) return;
                 try { await api('DELETE', `/messages/${m.id}`); msgs = msgs.filter((x) => x !== m); refreshMe().catch(() => {}); draw(); toast('تم حذف الرسالة'); } catch (err) { toast(err.message, 'err'); }
               },
             }, 'حذف'))));
@@ -1843,7 +1931,7 @@ async function viewAccount(view) {
     form,
     h('div', { style: 'margin-top:24px' }, h('button', {
       type: 'button', class: 'btn btn-danger',
-      onclick: async () => { if (dirty() && !confirm('لديك تغييرات غير محفوظة. الخروج بدون حفظ؟')) return; await api('POST', '/logout', {}).catch(() => {}); setPending(null); showLogin(); },
+      onclick: async () => { if (dirty() && !await ask('لديك تغييرات غير محفوظة. الخروج بدون حفظ؟', { yes: 'الخروج', danger: true })) return; await api('POST', '/logout', {}).catch(() => {}); setPending(null); showLogin(); },
     }, 'تسجيل الخروج')));
 }
 

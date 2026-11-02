@@ -98,6 +98,7 @@ html.lenis, html.lenis body { height: auto; }
 .nav { display: flex; gap: 28px; font-size: 14px; color: var(--muted); margin-left: auto; }
 [dir="rtl"] .nav { direction: rtl; }
 .nav a { transition: color .2s; white-space: nowrap; }
+.nav .nav-home { display: none; } /* only in the phone menu (pages.js) */
 /* just above the phone menu the bar is tight: closer links keep each one on one line */
 @media (max-width: 1000px) { .topbar { gap: 16px; } .nav { gap: 18px; } }
 @media (max-width: 820px) { .nav { gap: 12px; } }
@@ -508,7 +509,10 @@ span.tm-face { background: var(--lime); color: #0a0a0b; font-weight: 900; font-s
 /* a masonry wall: cards of any height, packed in columns (inline-flex keeps a card from splitting between two) */
 .fb-wall { columns: 3 300px; column-gap: clamp(14px, 1.6vw, 22px); }
 .fb-wall .tm-card { display: inline-flex; width: 100%; vertical-align: top; margin-bottom: clamp(14px, 1.6vw, 22px); }
-.fb-wall .tm-card.is-hidden { display: none; }
+.fb-more-row { display: grid; justify-items: center; gap: 10px; margin-top: clamp(20px, 3vw, 34px); }
+.fb-more[hidden] { display: none; }
+.fb-more-note:empty { display: none; }
+.fb-more-note { color: var(--muted); font-size: 14px; }
 .tm-quote.is-clamped { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 9; overflow: hidden; }
 .tm-more {
   align-self: flex-start; margin-top: -8px; padding: 0; border: 0; background: none; cursor: pointer;
@@ -1053,9 +1057,14 @@ button.my-puzzle-send { border: 0; cursor: pointer; font-family: var(--ar); } /*
 .work-filterbar .work-filters + .work-filters { border-top: 1px solid var(--line); }
 .work-filters-label { font-size: 13px; font-weight: 600; color: var(--muted); }
 .work-chips { display: flex; flex-wrap: wrap; gap: 10px; }
+.chip:disabled { opacity: .35; cursor: not-allowed; }
 @media (max-width: 640px) {
   .work-filterbar { padding: 4px 16px; border-radius: 20px; }
   .work-filterbar .work-filters { grid-template-columns: minmax(0, 1fr); gap: 10px; }
+  /* each group is one row that scrolls sideways, so the projects start on the first screen */
+  .work-chips { flex-wrap: nowrap; overflow-x: auto; margin-inline: -16px; padding: 3px 16px; scrollbar-width: none; overscroll-behavior-x: contain; }
+  .work-chips::-webkit-scrollbar { display: none; }
+  .work-chips .chip { flex: none; }
 }
 .work-empty { display: grid; justify-items: start; gap: 16px; padding: 34px; border: 1px dashed var(--line); border-radius: 22px; }
 .work-empty[hidden] { display: none; }
@@ -1545,6 +1554,7 @@ html .loader.is-leaving { display: grid; position: fixed; inset: 0; z-index: 900
     font-size: 26px; font-weight: 800; color: var(--text);
   }
   .topbar.menu-open .nav a { padding: 14px 0; border-bottom: 1px solid var(--line); }
+  .topbar.menu-open .nav .nav-home { display: block; }
   .topbar.menu-open .nav a[aria-current="page"] { color: var(--accent-text); }
   .topbar.menu-open .top-actions {
     display: flex; gap: 10px; position: fixed; inset: auto 16px max(24px, env(safe-area-inset-bottom));
@@ -1890,7 +1900,7 @@ body:has(.px-consent.in) .to-top { translate: 0 calc(-100% - 150px); }
 html.menu-lock .wa-hello { display: none; }
 /* phones: the footer's last line stays clear of the two round buttons in its corners */
 @media (max-width: 760px) {
-  .site-footer { padding-bottom: calc(max(14px, env(safe-area-inset-bottom)) + 70px); }
+  .site-footer { padding-bottom: calc(max(14px, env(safe-area-inset-bottom)) + 54px + 24px); } /* the taller button + 24px */
   .footer-legal { justify-content: center; width: 100%; }
 }
 @media (max-width: 600px) { .wa-hello { left: max(14px, env(safe-area-inset-left)); bottom: calc(max(14px, env(safe-area-inset-bottom)) + 64px); } }

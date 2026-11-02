@@ -88,6 +88,17 @@ function ivBlank(type) {
   };
 }
 // the share link the client opens
+// a link out of an editor: unsaved changes ask first, then it goes on
+function ivLeave(e) {
+  if (!dirty()) { setPending(null); return; }
+  e.preventDefault();
+  const to = e.currentTarget.getAttribute('href');
+  ask(LEAVE_QUESTION, { yes: 'المغادرة', danger: true }).then((leave) => {
+    if (!leave) return;
+    setPending(null);
+    location.hash = to;
+  });
+}
 const ivLink = (d) => `${location.origin}/doc/${d.token}`;
 const ivClientName = (d) => d.client.name || d.client.company || '—';
 const ivCopy = async (text, okText) => {
@@ -405,7 +416,7 @@ function ivList(view) {
   const remove = async (d, btn) => {
     const linked = docs.filter((r) => r.type === 'receipt' && r.invoiceId === d.id).length;
     const more = linked ? `\nإيصالاتها (${linked}) تبقى محفوظة لكنها لن تعود مرتبطة بها.` : '';
-    if (!confirm(`حذف ${IV.types[d.type].name} ${d.number}؟ لا يمكن التراجع عن الحذف.${more}`)) return;
+    if (!await ask(`حذف ${IV.types[d.type].name} ${d.number}؟ لا يمكن التراجع عن الحذف.${more}`, { yes: 'حذف', danger: true })) return;
     btn.disabled = true;
     try { const r = await api('DELETE', `/invoices/${d.id}`); ivState.docs = r.docs; toast('حُذف المستند'); ivList(view); } catch (err) { toast(err.message, 'err'); btn.disabled = false; }
   };
@@ -419,7 +430,7 @@ function ivList(view) {
       h('a', { class: 'ivx-main', href: `#/invoices/${d.id}` },
         h('span', { class: 'ivx-type' }, IV.types[d.type].name),
         h('b', { class: 'ivx-no ltr' }, d.number),
-        h('span', { class: 'ivx-client' }, ivClientName(d), d.client.name && d.client.company ? h('small', null, ` · ${d.client.company}`) : null),
+        h('span', { class: 'ivx-client', dir: 'auto' }, ivClientName(d), d.client.name && d.client.company ? h('small', null, ` · ${d.client.company}`) : null),
         h('span', { class: 'ivx-date muted small' }, InvoiceDoc.dateText(d.issueDate, 'ar'))),
       h('span', { class: 'ivx-amount' }, h('b', null, ivMoney(d.total, d.currency)),
         d.type === 'invoice' && d.paid > 0 && d.balance > 0 ? h('small', null, `المتبقي ${ivMoney(d.balance, d.currency)}`) : null),
@@ -663,8 +674,8 @@ function ivEditor(view, d, base, opts = {}) {
         h('div', { class: 'ivx-page-head' }, h('b', null, `صفحة إضافية ${i + 1}`), h('span', { class: 'row' },
           h('button', { type: 'button', class: 'btn btn-icon btn-small', title: 'تقديم', 'aria-label': 'تقديم', disabled: i === 0, onclick: () => move(i - 1) }, '↑'),
           h('button', { type: 'button', class: 'btn btn-icon btn-small', title: 'تأخير', 'aria-label': 'تأخير', disabled: i === d.extraPages.length - 1, onclick: () => move(i + 1) }, '↓'),
-          h('button', { type: 'button', class: 'btn btn-icon btn-small btn-danger', title: 'حذف الصفحة', 'aria-label': 'حذف الصفحة', onclick: () => {
-            if ((x.title || x.body) && !confirm(`حذف الصفحة الإضافية ${i + 1} وما كُتب فيها؟`)) return;
+          h('button', { type: 'button', class: 'btn btn-icon btn-small btn-danger', title: 'حذف الصفحة', 'aria-label': 'حذف الصفحة', onclick: async () => {
+            if ((x.title || x.body) && !await ask(`حذف الصفحة الإضافية ${i + 1} وما كُتب فيها؟`, { yes: 'حذف', danger: true })) return;
             d.extraPages.splice(i, 1); drawPages(); changed();
           } }, '✕'))),
         field('العنوان (اختياري)', h('input', { value: x.title, dir: 'auto', maxlength: IV.limits.pageTitle, placeholder: 'مثال: نطاق العمل', oninput: (e) => { x.title = e.target.value; changed(); } })),
@@ -823,17 +834,16 @@ function ivEditor(view, d, base, opts = {}) {
 
   const remove = async (btn) => {
     const n = ivState.docs.filter((r) => r.type === 'receipt' && r.invoiceId === d.id).length;
-    if (!confirm(`حذف ${T.name} ${d.number}؟ لا يمكن التراجع عن الحذف.${n ? `\nإيصالاتها (${n}) تبقى محفوظة لكنها لن تعود مرتبطة بها.` : ''}`)) return;
+    if (!await ask(`حذف ${T.name} ${d.number}؟ لا يمكن التراجع عن الحذف.${n ? `\nإيصالاتها (${n}) تبقى محفوظة لكنها لن تعود مرتبطة بها.` : ''}`, { yes: 'حذف', danger: true })) return;
     try { const r = await busy(btn, () => api('DELETE', `/invoices/${d.id}`)); ivState.docs = r.docs; setPending(null); toast('حُذف المستند'); location.hash = '#/invoices'; } catch (err) { toast(err.message, 'err'); }
   };
-  const back = (e) => { if (dirty() && !confirm('لديك تغييرات غير محفوظة. المغادرة بدون حفظ؟')) e.preventDefault(); else setPending(null); };
   const open = d.id && d.type === 'invoice' && d.balance > 0 && d.status !== 'cancelled';
 
   view.replaceChildren(
     h('div', { class: 'page-head' }, h('div', null,
       h('p', { class: 'kicker' }, T.prefix),
       h('h1', null, d.id ? `${T.name} ${d.number}` : `${T.name} جديدة`),
-      h('p', null, h('a', { href: '#/invoices', onclick: back }, '→ كل المستندات'), ' · ', totalsLine)),
+      h('p', null, h('a', { href: '#/invoices', onclick: ivLeave }, '→ كل المستندات'), ' · ', totalsLine)),
       h('div', { class: 'row' },
         h('button', { type: 'button', class: 'btn btn-primary', onclick: (e) => saveDoc(e.currentTarget) }, isNew ? 'حفظ وإعطاء رقم' : 'حفظ'),
         h('button', { type: 'button', class: 'btn', onclick: printNow }, '⤓ تنزيل PDF'),
@@ -897,7 +907,7 @@ function ivShareCard(d, isSaved, reopen) {
     try { const r = await busy(btn, () => api('POST', `/invoices/${d.id}/email`, { to })); ivState.docs = r.docs; toast(`أُرسل إلى ${to}`); reopen(r.docs.find((x) => x.id === d.id)); } catch (err) { toast(err.message, 'err'); }
   };
   const renew = async (btn) => {
-    if (!confirm('رابط جديد؟ الرابط القديم يتوقف عن العمل فوراً لمن أرسلته إليه.')) return;
+    if (!await ask('رابط جديد؟ الرابط القديم يتوقف عن العمل فوراً لمن أرسلته إليه.', { yes: 'رابط جديد', danger: true })) return;
     btn.disabled = true;
     try { const r = await api('POST', `/invoices/${d.id}/token`); ivState.docs = r.docs; toast('أُنشئ رابط جديد'); reopen(r.doc); } catch (err) { toast(err.message, 'err'); btn.disabled = false; }
   };
@@ -956,7 +966,7 @@ function ivProfile(view) {
     h('div', { class: 'page-head' }, h('div', null,
       h('p', { class: 'kicker' }, 'COMPANY'),
       h('h1', null, 'بيانات الشركة على المستندات'),
-      h('p', null, h('a', { href: '#/invoices', onclick: (e) => { if (dirty() && !confirm('لديك تغييرات غير محفوظة. المغادرة بدون حفظ؟')) e.preventDefault(); else setPending(null); } }, '→ كل المستندات'), ' · تظهر في رأس وتذييل كل فاتورة وإيصال وعرض سعر.'))),
+      h('p', null, h('a', { href: '#/invoices', onclick: ivLeave }, '→ كل المستندات'), ' · تظهر في رأس وتذييل كل فاتورة وإيصال وعرض سعر.'))),
     h('div', { class: 'editor' },
       h('div', { class: 'card' }, h('h2', null, 'الاسم والعنوان'),
         h('div', { class: 'pair' }, field('اسم الشركة — بالعربية', 'nameAr'), field('Company name — English', 'nameEn', { dir: 'ltr' })),

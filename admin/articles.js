@@ -191,8 +191,8 @@ function articleEditor(view, id) {
         h('span', { class: 'hint' }, 'سطر فارغ بين الفقرات. ## عنوان قسم، ### عنوان فرعي، - نقطة، 1. رقم، **غامق**، [نص](https://رابط).')));
   };
 
-  const remove = () => {
-    if (!confirm(`حذف مقال «${a.title.ar || a.title.en || a.id}»؟ يمكنك التراجع قبل الحفظ.`)) return;
+  const remove = async () => {
+    if (!await ask(`حذف مقال «${a.title.ar || a.title.en || a.id}»؟ يمكنك التراجع قبل الحفظ.`, { yes: 'حذف', danger: true })) return;
     blog.list.splice(blog.list.indexOf(a), 1);
     location.hash = '#/articles';
   };

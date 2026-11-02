@@ -30,6 +30,8 @@
 
   var params = new URLSearchParams(location.search);
   var project = /\/project(\.html)?$/.test(location.pathname) ? params.get('id') || '' : '';
+  // only a project that exists is counted as viewed (projects.js; the server checks too)
+  if (project && !(typeof PROJECTS !== 'undefined' && PROJECTS.some(function (x) { return x.id === project; }))) project = '';
   function send(data) {
     var s = visit();
     data.p = location.pathname;

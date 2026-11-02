@@ -78,7 +78,9 @@ At `/admin/` the team edits the site without touching code:
 - **Client feedback**: the feedback page (`/feedback.html`, «آراء العملاء» in the menu). Each review has a name, role /
   company, the quote in Arabic and English, an optional photo or partner logo, 1–5 stars, a date and up to 6 attached
   images (chat screenshots, the finished work) that open in a full-screen viewer. The page opens with the average rating
-  and the count per star, and filters by 5 stars / 4 stars / with photos. Reviews marked «في الصفحة الرئيسية» (the first 6)
+  and the count per star, and filters by 5 stars / 4 stars / with photos. The page draws the first 12 reviews; «عرض المزيد» and the filters fetch the
+  rest from `/api/feedback`, filtered first and then 12 at a time. In the panel each review is a compact row (20 to a page, the search covers all of
+  them), and its full form opens under the row with «تعديل». Reviews marked «في الصفحة الرئيسية» (the first 6)
   also show in "What our clients say" on the home page. Hide one to take it off the site without deleting it; with none
   shown, the home section is left out and the page (still in the menu) says there are no reviews yet.
   **Excel**: «استيراد من Excel» takes an .xlsx or .csv (Excel, Google Sheets), one row per review; download the template

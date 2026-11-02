@@ -17,7 +17,7 @@ const { pipeline } = require('node:stream/promises');
 const PhoneNumber = require('./phone-number');
 const { createStore } = require('./lib/store');
 const { createAuth } = require('./lib/auth');
-const { createContent, projectsScript, PAGES } = require('./lib/content');
+const { createContent, projectsScript, feedbackSlice, PAGES } = require('./lib/content');
 const { createAdmin } = require('./lib/admin');
 const { createIndexNow } = require('./lib/indexnow');
 const { createMail } = require('./lib/mail');
@@ -407,12 +407,22 @@ async function handleTrack(req, res) {
   if (!auth.sessionFrom(req)) {
     let body = null;
     try { body = JSON.parse(raw.toString('utf8')); } catch { /* not ours */ }
+    // a project that doesn't exist gets no row in the statistics, whatever id was typed into the address
+    if (body && body.pr && !store.read('projects.json', { projects: [] }).projects.some((x) => x.id === String(body.pr).toLowerCase())) delete body.pr;
     const ip = clientIp(req);
     const country = (TRUST_PROXY && String(req.headers['cf-ipcountry'] || '').toUpperCase()) || geo.country(ip);
     analytics.record(body, { ip, ua: String(req.headers['user-agent'] || '').slice(0, 400), country });
   }
   res.writeHead(204, { ...SECURITY_HEADERS, 'Cache-Control': 'no-store' });
   res.end();
+}
+
+/* ---------- the feedback page's next cards, for "show more" and the filters (lib/content.js) ---------- */
+function handleFeedback(req, res, url) {
+  if (req.method !== 'GET' && req.method !== 'HEAD') { res.setHeader('Allow', 'GET, HEAD'); return json(res, 405, { ok: false }); }
+  const lang = url.searchParams.get('lang') === 'en' ? 'en' : 'ar';
+  const offset = Math.max(0, parseInt(url.searchParams.get('offset'), 10) || 0);
+  json(res, 200, { ok: true, ...feedbackSlice(store.read('testimonials.json', []), lang, url.searchParams.get('filter'), offset) });
 }
 
 /* ---------- CSP reports: what the policy blocked (or would block, when Report-Only), written to the log ---------- */
@@ -478,6 +488,7 @@ const server = http.createServer(async (req, res) => {
     if (p === '/healthz' || p === '/health') return json(res, 200, { ok: true });
     if (p === '/api/csp-report') return await handleCspReport(req, res);
     if (p === '/api/track') return await handleTrack(req, res);
+    if (p === '/api/feedback') return handleFeedback(req, res, url);
     if (p === '/api/contact') {
       if (req.method !== 'POST') { res.setHeader('Allow', 'POST'); return json(res, 405, { ok: false }); }
       return await handleContact(req, res);
@@ -495,6 +506,7 @@ const server = http.createServer(async (req, res) => {
       if (!shared) return p.startsWith('/api/') ? json(res, 404, { ok: false }) : await notFound(req, res, p);
       return send(req, res, 200, await load(path.join(ROOT, 'doc.html')), '.html', { 'Cache-Control': 'no-store', 'Referrer-Policy': 'no-referrer' });
     }
+    if (p === '/api' || p.startsWith('/api/')) return json(res, 404, { ok: false, error: 'not_found' });
     if (req.method !== 'GET' && req.method !== 'HEAD') { res.setHeader('Allow', 'GET, HEAD'); return json(res, 405, { ok: false }); }
 
     // one address per page, so search engines don't see the same page several times:
@@ -555,9 +567,12 @@ const server = http.createServer(async (req, res) => {
       const html = articlePage(entry.body.toString('utf8'), a, lang, list, { seo: content.seo, siteUrl: SITE_URL, settings: store.read('settings.json', {}) });
       return send(req, res, 200, makeEntry(Buffer.from(html), '.html'), ext, { 'Cache-Control': 'no-cache' });
     }
-    if (path.basename(file) === 'project.html' && url.searchParams.get('id')) {
-      const html = projectPage(entry.body.toString('utf8'), url.searchParams.get('id'), file.includes(`${path.sep}en${path.sep}`));
-      if (html) entry = makeEntry(Buffer.from(html), '.html');
+    if (path.basename(file) === 'project.html') {
+      const page = entry.body.toString('utf8');
+      // no such project: pages.js says so, and search engines leave the address out
+      const html = projectPage(page, url.searchParams.get('id'), file.includes(`${path.sep}en${path.sep}`))
+        || page.replace('</head>', '<meta name="robots" content="noindex">\n</head>');
+      entry = makeEntry(Buffer.from(html), '.html');
     }
     send(req, res, 200, entry, ext, { 'Cache-Control': cacheControl(ext, url.search.slice(1)) });
   } catch (err) {

@@ -1,8 +1,9 @@
 /* PuzzleX — background music, off until the visitor turns it on with the speaker button.
    The track fades in and out on its own, so each play starts while the last one is fading out
    and the loop never goes quiet. Once on, it carries on from the same spot on the next page and
-   pauses while the tab is hidden. So the button answers at once, the file is fetched quietly once the page has settled
-   (not on a slow connection or with data saver on), and decoded as soon as the pointer reaches the button.
+   pauses while the tab is hidden. So the button answers at once on a computer, the file is fetched quietly once the page
+   has settled (not on a slow connection or with data saver on), and decoded as soon as the pointer reaches the button.
+   A phone downloads nothing until the button is touched: most visitors never play it, and the data is theirs.
    Uses audio, unlockAudio, ROOT from main.js. */
 
 (function initMusic() {
@@ -114,9 +115,9 @@
 
   // on the way to the button: have it ready for the click
   ['pointerenter', 'focus', 'touchstart'].forEach((ev) => btn.addEventListener(ev, () => { load(); }, { passive: true }));
-  // fetched ahead once the page has settled, for whoever can spare the data
+  // fetched ahead once the page has settled, for whoever can spare the data (computers, not phones)
   const net = navigator.connection;
-  if (!(net && (net.saveData || /(^|-)2g$/.test(net.effectiveType || '')))) {
+  if (matchMedia('(hover: hover)').matches && !(net && (net.saveData || /(^|-)2g$/.test(net.effectiveType || '')))) {
     const ahead = () => { fetchTrack().catch(() => { bytes = null; }); };
     window.addEventListener('load', () => { setTimeout(() => { (window.requestIdleCallback || ((f) => f()))(ahead); }, 1500); }, { once: true });
   }
