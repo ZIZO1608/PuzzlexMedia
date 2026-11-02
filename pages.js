@@ -574,6 +574,21 @@ const projectImage = (p, src, variant, w, h) => (src
   ? `<img class="cover" src="${escHtml(assetUrl(src))}" alt="${escHtml(p.title)} — ${escHtml(p.client)}" width="${w}" height="${h}" loading="lazy" decoding="async">`
   : coverSVG(p, variant, w, h));
 
+// a gallery file: a video and a PDF are shown as what they are. Phones can't show a PDF inside a page (some would just
+// download it), so the embedded viewer is only added where it works and the button to open it is always there.
+const galleryFile = (p, src, variant, w, h) => {
+  const url = src ? escHtml(assetUrl(src)) : '';
+  const label = `${escHtml(p.title)} — ${escHtml(p.client)}`;
+  if (/\.mp4$/.test(url)) {
+    return `<video class="cover gallery-video" src="${url}" poster="${url.replace(/\.mp4$/, '.jpg')}" width="${w}" height="${h}" controls playsinline preload="metadata" aria-label="${label}"></video>`;
+  }
+  if (/\.pdf$/.test(url)) {
+    const viewer = matchMedia('(hover: hover) and (min-width: 721px)').matches ? `<iframe src="${url}#view=FitH" title="${label}" loading="lazy"></iframe>` : '';
+    return `<div class="gallery-pdf">${viewer}<div class="gallery-pdf-bar"><span class="gallery-pdf-mark" aria-hidden="true">PDF</span><a class="btn btn-small" href="${url}" target="_blank" rel="noopener">${T('فتح ملف PDF', 'Open the PDF')}</a></div></div>`;
+  }
+  return projectImage(p, src, variant, w, h);
+};
+
 function coverSVG(p, variant = 0, w = 400, h = 300) {
   const R = rng(hashStr(p.id) + variant * 101);
   const gid = `cv-${p.id}-${variant}-${w}x${h}`;
@@ -772,7 +787,9 @@ function initProject() {
     ? p.gallery.map((src, k) => [k, ...shape(k), src])
     : [[0, 800, 400, 'wide'], [1, 400, 300, ''], [2, 400, 300, ''], [3, 800, 340, 'wide']];
   page.querySelector('.project-gallery').innerHTML = frames
-    .map(([v, w, h, cls, src]) => `<figure class="gallery-item ${cls}">${projectImage(p, src, v, w, h)}</figure>`).join('');
+    .map(([v, w, h, cls, src]) => `<figure class="gallery-item ${cls}">${galleryFile(p, src, v, w, h)}</figure>`).join('');
+  // the "these are placeholders" note is only true while there are no real files
+  if (p.gallery.length) page.querySelector('.work-note')?.remove();
 
   const prev = PROJECTS[(i - 1 + PROJECTS.length) % PROJECTS.length];
   const next = PROJECTS[(i + 1) % PROJECTS.length];

@@ -61,11 +61,68 @@ async function prepareImage(file, maxSide) {
   } catch { /* the browser can't convert it: send the original */ }
   return file;
 }
-async function upload(file, maxSide) {
-  const blob = await prepareImage(file, maxSide);
+// a gallery image gets the PuzzleX mark drawn in. Proportions as in lib/media.js markSize, which stamps videos and PDFs.
+let watermark = null;
+const watermarkImage = () => (watermark ||= fetch('/assets/watermark.png').then((r) => r.blob()).then(createImageBitmap).catch((err) => { watermark = null; throw err; }));
+async function stampImage(file, maxSide) {
+  if (!/^image\/(png|jpeg|webp)$/.test(file.type)) throw new Error(`«${file.name}»: الصور بصيغة JPG أو PNG أو WebP فقط`);
+  try {
+    const [bmp, mark] = await Promise.all([createImageBitmap(file), watermarkImage()]);
+    const scale = Math.min(1, maxSide / Math.max(bmp.width, bmp.height));
+    const cv = h('canvas');
+    cv.width = Math.round(bmp.width * scale);
+    cv.height = Math.round(bmp.height * scale);
+    const g = cv.getContext('2d');
+    g.drawImage(bmp, 0, 0, cv.width, cv.height);
+    const short = Math.min(cv.width, cv.height);
+    const w = Math.max(cv.width * 0.2, short * 0.28), hgt = w * (mark.height / mark.width), margin = short * 0.03;
+    g.drawImage(mark, cv.width - w - margin, cv.height - hgt - margin, w, hgt);
+    const blob = await new Promise((r) => cv.toBlob(r, 'image/webp', 0.86));
+    if (blob) return blob;
+  } catch { /* reported below: a gallery image is never sent without the mark */ }
+  throw new Error(`تعذّرت إضافة العلامة المائية إلى «${file.name}»`);
+}
+async function upload(file, maxSide, stamped) {
+  const blob = await (stamped ? stampImage : prepareImage)(file, maxSide);
   if (blob.size > 8 * 1024 * 1024) throw new Error(`«${file.name}» أكبر من 8 ميغابايت`);
   const { src } = await api('POST', '/upload', blob, blob.type);
   return src;
+}
+// a video or PDF goes up as it is and the server stamps it (lib/media.js); `show` gets a line to display as it goes
+const MEDIA_TYPES = ['video/mp4', 'video/quicktime', 'video/webm', 'application/pdf'];
+function sendMedia(file, show) {
+  return new Promise((resolve, reject) => {
+    const xhr = new XMLHttpRequest(); // fetch can't report how much of an upload has gone
+    xhr.open('POST', '/api/admin/media');
+    xhr.setRequestHeader('X-PX-Admin', '1');
+    xhr.setRequestHeader('Content-Type', 'application/octet-stream');
+    xhr.upload.addEventListener('progress', (e) => { if (e.lengthComputable) show(`جارٍ الرفع ${Math.round((e.loaded / e.total) * 100)}%`); });
+    xhr.addEventListener('error', () => reject(new Error('تعذّر الاتصال بالخادم — تحقق من الإنترنت')));
+    xhr.addEventListener('load', () => {
+      if (xhr.status === 413) return reject(new Error('الملف أكبر مما يقبله الخادم'));
+      let data = null;
+      try { data = JSON.parse(xhr.responseText); } catch { /* handled below */ }
+      if (xhr.status === 401) showLogin();
+      if (!data || !data.ok) return reject(new Error((data && data.error) || 'استجابة غير متوقعة من الخادم'));
+      resolve(data.job);
+    });
+    xhr.send(file);
+  });
+}
+async function uploadMedia(file, show) {
+  const isPdf = file.type === 'application/pdf';
+  if (!MEDIA_TYPES.includes(file.type)) throw new Error(`«${file.name}»: المقبول فيديو MP4 أو MOV أو WebM، أو ملف PDF`);
+  if (file.size > (isPdf ? 50 : 500) * 1024 * 1024) throw new Error(`«${file.name}» أكبر من ${isPdf ? 50 : 500} ميغابايت`);
+  const job = await sendMedia(file, show);
+  // a moment without internet doesn't lose a job the server is still working on: give up only after 30 seconds of that
+  for (let misses = 0; ;) {
+    await new Promise((r) => setTimeout(r, 1500));
+    let state;
+    try { state = await api('GET', `/media/${job}`); misses = 0; } catch (err) { if (++misses > 20) throw err; continue; }
+    if (state.status === 'failed') throw new Error(`«${file.name}»: ${state.error}`);
+    if (state.status === 'done') return state.src;
+    show(state.status === 'queued' ? 'بانتظار انتهاء ملف آخر…' : `إضافة العلامة المائية ${state.percent}%`);
+  }
 }
 // How the home page's puzzle reads a logo (sections.js logoLook; keep the two in step): its visible extent (a
 // transparent margin, or a solid white one round a JPG, doesn't count) and whether it is a white or pale logo
@@ -117,20 +174,20 @@ async function trimLogo(file) {
     return file; // the browser can't read it: upload it untouched
   }
 }
-function pickFiles(multiple, onFiles) {
-  const input = h('input', { type: 'file', accept: 'image/png,image/jpeg,image/webp', multiple });
+function pickFiles(multiple, onFiles, accept = 'image/png,image/jpeg,image/webp') {
+  const input = h('input', { type: 'file', accept, multiple });
   input.addEventListener('change', () => input.files.length && onFiles([...input.files]));
   input.click();
 }
-// a dashed drop zone that also opens the file picker
-function dropZone(label, multiple, onFiles) {
-  const z = h('button', { type: 'button', class: 'drop' }, h('b', null, '+'), label, h('span', { class: 'small' }, 'أو اسحب الصور هنا'));
-  z.addEventListener('click', () => pickFiles(multiple, onFiles));
+// a dashed drop zone that also opens the file picker; `media` makes it take videos and PDFs instead of images
+function dropZone(label, multiple, onFiles, media = false) {
+  const z = h('button', { type: 'button', class: 'drop' }, h('b', null, '+'), label, h('span', { class: 'small' }, media ? 'أو اسحب الملفات هنا' : 'أو اسحب الصور هنا'));
+  z.addEventListener('click', () => pickFiles(multiple, onFiles, media ? MEDIA_TYPES.join(',') : undefined));
   z.addEventListener('dragover', (e) => { e.preventDefault(); z.classList.add('over'); });
   z.addEventListener('dragleave', () => z.classList.remove('over'));
   z.addEventListener('drop', (e) => {
     e.preventDefault(); z.classList.remove('over');
-    const files = [...e.dataTransfer.files].filter((f) => f.type.startsWith('image/'));
+    const files = [...e.dataTransfer.files].filter((f) => (media ? MEDIA_TYPES.includes(f.type) : f.type.startsWith('image/')));
     if (files.length) onFiles(multiple ? files : files.slice(0, 1));
   });
   return z;
@@ -440,7 +497,7 @@ async function viewProjects(view, arg) {
       p.cover ? h('div', { class: 'thumb' }, h('img', { src: asset(p.cover), alt: '' })) : h('div', { class: 'thumb logo' }, h('img', { src: asset(p.logo), alt: '' })),
       h('div', null,
         h('div', { class: 't' }, p.title.ar || '(بدون عنوان)'),
-        h('div', { class: 'c' }, p.client.ar, ' · ', sectorName(p.sector), p.year ? ` · ${p.year}` : '', p.gallery.length ? ` · ${p.gallery.length} صور` : ' · صور مؤقتة')),
+        h('div', { class: 'c' }, p.client.ar, ' · ', sectorName(p.sector), p.year ? ` · ${p.year}` : '', p.gallery.length ? ` · ${p.gallery.length} ملفات` : ' · صور مؤقتة')),
       h('div', { class: 'row' },
         h('button', { type: 'button', class: 'btn btn-icon btn-small', title: 'تقديم', 'aria-label': 'تقديم', disabled: i === 0, onclick: () => move(i, -1) }, '↑'),
         h('button', { type: 'button', class: 'btn btn-icon btn-small', title: 'تأخير', 'aria-label': 'تأخير', disabled: i === data.projects.length - 1, onclick: () => move(i, 1) }, '↓'),
@@ -510,16 +567,42 @@ function projectEditor(view, id) {
   drawCover();
 
   const gallery = h('div', { class: 'images' });
+  const pending = new Set(); // tiles of the videos and PDFs still on their way
+  const galleryFace = (src, i) => {
+    if (/\.pdf$/.test(src)) return h('a', { class: 'media-face', href: asset(src), target: '_blank', rel: 'noopener', title: 'فتح الملف' }, 'PDF');
+    if (/\.mp4$/.test(src)) {
+      return h('a', { class: 'media-face', href: asset(src), target: '_blank', rel: 'noopener', title: 'تشغيل الفيديو' },
+        h('video', { src: asset(src), poster: asset(src.replace(/\.mp4$/, '.jpg')), preload: 'metadata', muted: true }), h('span', { class: 'media-badge' }, 'فيديو'));
+    }
+    return h('img', { src: asset(src), alt: `صورة ${i + 1}` });
+  };
+  const addMedia = async (files) => {
+    for (const f of files) {
+      const line = h('span', null, 'جارٍ الرفع…');
+      const tile = h('div', { class: 'img-tile media-pending' }, h('b', { title: f.name }, f.name), line);
+      pending.add(tile);
+      drawGallery();
+      try {
+        const src = await uploadMedia(f, (text) => { line.textContent = text; });
+        p.gallery.push(src);
+        changed();
+      } catch (err) { toast(err.message, 'err'); }
+      pending.delete(tile);
+      drawGallery();
+    }
+  };
   const drawGallery = () => gallery.replaceChildren(
-    ...p.gallery.map((src, i) => h('div', { class: 'img-tile' }, h('img', { src: asset(src), alt: `صورة ${i + 1}` }), h('div', { class: 'acts' },
+    ...p.gallery.map((src, i) => h('div', { class: 'img-tile' }, galleryFace(src, i), h('div', { class: 'acts' },
       h('button', { type: 'button', class: 'btn btn-icon btn-small', title: 'تقديم', 'aria-label': 'تقديم', disabled: i === 0, onclick: () => { [p.gallery[i - 1], p.gallery[i]] = [p.gallery[i], p.gallery[i - 1]]; drawGallery(); changed(); } }, '→'),
       h('button', { type: 'button', class: 'btn btn-icon btn-small btn-danger', title: 'حذف', 'aria-label': 'حذف', onclick: () => { p.gallery.splice(i, 1); drawGallery(); changed(); } }, '✕'),
       h('button', { type: 'button', class: 'btn btn-icon btn-small', title: 'تأخير', 'aria-label': 'تأخير', disabled: i === p.gallery.length - 1, onclick: () => { [p.gallery[i + 1], p.gallery[i]] = [p.gallery[i], p.gallery[i + 1]]; drawGallery(); changed(); } }, '←')))),
     dropZone('إضافة صور', true, async (files) => {
       for (const [k, f] of files.entries()) {
-        try { toast(`جارٍ رفع الصورة ${k + 1} من ${files.length}…`); p.gallery.push(await upload(f, 2000)); drawGallery(); changed(); } catch (err) { toast(err.message, 'err'); }
+        try { toast(`جارٍ رفع الصورة ${k + 1} من ${files.length}…`); p.gallery.push(await upload(f, 2000, true)); drawGallery(); changed(); } catch (err) { toast(err.message, 'err'); }
       }
-    }));
+    }),
+    ...pending,
+    dropZone('إضافة فيديو أو PDF', true, addMedia, true));
   drawGallery();
 
   const remove = () => {
@@ -557,8 +640,8 @@ function projectEditor(view, id) {
           h('button', { type: 'button', class: 'btn btn-ghost', onclick: () => pickFiles(false, async ([f]) => { try { setLogo(await upload(f, 600)); } catch (err) { toast(err.message, 'err'); } }) }, 'رفع شعار جديد')))),
       h('div', { class: 'card' }, h('h2', null, 'صورة الغلاف'),
         h('p', { class: 'hint' }, 'تظهر في بطاقة المشروع في صفحة الأعمال. بدونها يظهر غلاف مؤقت بألوان المشروع والشعار.'), coverWrap),
-      h('div', { class: 'card' }, h('h2', null, 'معرض الصور'),
-        h('p', { class: 'hint' }, 'صور صفحة المشروع، بالترتيب: الأولى عريضة ثم صورتان متجاورتان، وهكذا. تُصغَّر الصور تلقائياً قبل الرفع.'), gallery),
+      h('div', { class: 'card' }, h('h2', null, 'معرض المشروع'),
+        h('p', { class: 'hint' }, 'صور وفيديوهات وملفات PDF لصفحة المشروع، بالترتيب: الأول عريض ثم اثنان متجاوران، وهكذا. تُضاف علامة PuzzleX المائية تلقائياً إلى كل ملف جديد. الفيديو حتى 500 ميغابايت وPDF حتى 50 ميغابايت. قد تستغرق معالجة الفيديو عدة دقائق: أبقِ الصفحة مفتوحة واحفظ بعد انتهائها.'), gallery),
       h('div', { class: 'card' }, h('h2', null, 'ألوان الغلاف المؤقت'),
         h('div', { class: 'row' }, [0, 1].map((k) => h('label', { class: 'row' }, h('input', { type: 'color', value: p.colors[k], oninput: (e) => { p.colors[k] = e.target.value; changed(); } }), k ? 'اللون الثاني' : 'اللون الأول')))),
     ),

@@ -76,16 +76,19 @@ html.lenis, html.lenis body { height: auto; }
 
 /* ---------- Top bar ---------- */
 .topbar {
+  --bar-top: 18px; --bar-bottom: 18px;
   position: absolute; z-index: 20; inset: 0 0 auto 0;
   display: flex; align-items: center; justify-content: space-between; gap: 24px;
-  padding: 18px clamp(16px, 4vw, 48px);
+  padding: var(--bar-top) clamp(16px, 4vw, 48px) var(--bar-bottom);
 }
 .brand { display: flex; align-items: center; gap: 10px; direction: ltr; } /* icon on the left of the name, in both languages */
 /* the flying pieces stay out from behind the logo and the menu: the bar sits on a band of the page's own black */
-.stage .topbar::before {
+.topbar--home::before {
   content: ""; position: absolute; inset: 0 0 -46px 0; z-index: -1; pointer-events: none;
   background: linear-gradient(rgb(var(--ink-rgb)) 0 58%, rgba(var(--ink-rgb), .8) 72%, rgba(var(--ink-rgb), 0));
+  transition: opacity .35s ease;
 }
+.topbar--home.is-scrolled::before { opacity: 0; }
 .brand img { width: 34px; height: 34px; border-radius: 8px; }
 .brand-name { font-family: var(--lat); font-weight: 900; font-size: 15px; letter-spacing: .06em; direction: ltr; }
 .brand-name span { font-weight: 400; color: var(--accent-text); margin-inline-start: 6px; }
@@ -94,6 +97,8 @@ html.lenis, html.lenis body { height: auto; }
 /* just above the phone menu the bar is tight: closer links keep each one on one line */
 @media (max-width: 1000px) { .topbar { gap: 16px; } .nav { gap: 18px; } }
 @media (max-width: 820px) { .nav { gap: 12px; } }
+/* the tightest widths before the phone menu: the logo alone leaves the links room */
+@media (min-width: 761px) and (max-width: 900px) { .topbar .brand-name { display: none; } }
 .nav a:hover { color: var(--text); }
 
 .btn {
@@ -625,16 +630,39 @@ html.has-cursor, html.has-cursor * { cursor: none !important; }
   --tray-seam: rgba(255, 255, 255, .08); --tray-hole: #060607;
 }
 
-/* fixed header on inner pages, frosted once you scroll */
+/* the header stays on every page: once you scroll it lifts off the edge into a floating bar of frosted glass */
 .topbar--page {
-  position: fixed; z-index: 50;
-  border-bottom: 1px solid transparent;
-  transition: background-color .3s ease, border-color .3s ease, backdrop-filter .3s ease;
+  position: fixed; z-index: 50; top: 0; left: 0; right: 0;
+  border: 1px solid transparent;
+  transition: top .45s cubic-bezier(.2, .8, .2, 1), left .45s cubic-bezier(.2, .8, .2, 1), right .45s cubic-bezier(.2, .8, .2, 1),
+    padding .45s cubic-bezier(.2, .8, .2, 1), border-radius .45s cubic-bezier(.2, .8, .2, 1),
+    background-color .3s ease, border-color .3s ease, box-shadow .3s ease, backdrop-filter .3s ease;
 }
 .topbar--page.is-scrolled {
-  background: rgba(var(--ink-rgb), .78);
-  -webkit-backdrop-filter: blur(14px); backdrop-filter: blur(14px);
-  border-color: var(--line);
+  top: 12px; left: clamp(10px, 2.4vw, 32px); right: clamp(10px, 2.4vw, 32px);
+  padding: 8px clamp(10px, 1.6vw, 20px);
+  border-radius: 999px; border-color: rgba(215, 255, 0, .22);
+  background: rgba(var(--ink-rgb), .72);
+  -webkit-backdrop-filter: blur(16px) saturate(1.3); backdrop-filter: blur(16px) saturate(1.3);
+  box-shadow: 0 14px 40px -14px rgba(0, 0, 0, .75), inset 0 1px 0 rgba(255, 255, 255, .05);
+}
+.topbar--page.is-scrolled:hover { border-color: rgba(215, 255, 0, .5); }
+.brand img { transition: transform .45s cubic-bezier(.2, .8, .2, 1); }
+.topbar--page.is-scrolled .brand img { transform: rotate(-8deg) scale(.92); }
+/* a lime line grows under the link you point at */
+.topbar--page .nav a { position: relative; }
+.topbar--page .nav a:not([aria-current="page"])::after {
+  content: ""; position: absolute; inset: auto 0 -5px; height: 2px; border-radius: 2px; background: var(--lime);
+  transform: scaleX(0); transition: transform .25s ease;
+}
+.topbar--page .nav a:hover::after, .topbar--page .nav a:focus-visible::after { transform: scaleX(1); }
+.topbar--page .nav a:hover { color: var(--text); }
+/* the music button while the track is on its way */
+.music-toggle.is-loading { animation: music-wait 1s ease-in-out infinite; }
+@keyframes music-wait { 50% { opacity: .45; } }
+@media (prefers-reduced-motion: reduce) {
+  .topbar--page, .topbar--page .brand img, .topbar--page .nav a::after { transition: none; }
+  .music-toggle.is-loading { animation: none; }
 }
 .nav a[aria-current="page"] { color: var(--text); box-shadow: inset 0 -2px 0 var(--lime); padding-bottom: 4px; }
 
@@ -1097,6 +1125,10 @@ img.cover { object-fit: cover; } /* uploaded project images fill their frame lik
 .gallery-item { margin: 0; border-radius: 22px; overflow: hidden; background: var(--ink-2); }
 .gallery-item.wide { grid-column: 1 / -1; }
 .gallery-item .cover { display: block; width: 100%; height: auto; }
+.gallery-item .gallery-video { max-height: 85vh; background: #000; }
+.gallery-pdf iframe { display: block; width: 100%; height: clamp(420px, 78vh, 860px); border: 0; background: #fff; }
+.gallery-pdf-bar { display: flex; align-items: center; justify-content: space-between; gap: 14px; padding: 16px 20px; }
+.gallery-pdf-mark { font-family: var(--lat); font-weight: 900; letter-spacing: .08em; color: var(--accent-text); direction: ltr; }
 .project > .work-note { padding: 0 clamp(16px, 6vw, 96px); margin-top: 18px; }
 
 .project-nav { display: grid; grid-template-columns: 1fr 1fr; gap: 22px; padding: 60px clamp(16px, 6vw, 96px) 10px; }
@@ -1408,7 +1440,7 @@ html .loader.is-leaving { display: grid; position: fixed; inset: 0; z-index: 900
 
 @media (max-width: 760px) {
   .nav { display: none; }
-  .topbar { padding-top: 14px; }
+  .topbar { --bar-top: 14px; }
   .cta { flex-direction: row; gap: 8px; }
   .cta .btn { font-size: 13px; }
   .hero { height: 244vh; } /* a shorter story on phones: the finished picture and its buttons come sooner */
@@ -1469,8 +1501,11 @@ html .loader.is-leaving { display: grid; position: fixed; inset: 0; z-index: 900
   .topbar.menu-open .menu-toggle span:first-child { transform: translateY(3.9px) rotate(45deg); }
   .topbar.menu-open .menu-toggle span:last-child { transform: translateY(-3.9px) rotate(-45deg); }
   /* a backdrop-filter would trap the fixed panel inside the bar */
-  .topbar.menu-open { -webkit-backdrop-filter: none; backdrop-filter: none; background: none; border-color: transparent; }
-  .topbar.menu-open::before { content: ""; position: fixed; inset: 0; z-index: -1; background: var(--ink); }
+  .topbar.menu-open {
+    top: 0; left: 0; right: 0; padding: var(--bar-top) clamp(16px, 4vw, 48px) var(--bar-bottom); border-radius: 0; box-shadow: none;
+    -webkit-backdrop-filter: none; backdrop-filter: none; background: none; border-color: transparent;
+  }
+  .topbar.menu-open::before { content: ""; position: fixed; inset: 0; z-index: -1; background: var(--ink); opacity: 1; }
   .topbar.menu-open .nav {
     display: flex; flex-direction: column; gap: 0; position: fixed; inset: 92px 16px auto;
     font-size: 26px; font-weight: 800; color: var(--text);

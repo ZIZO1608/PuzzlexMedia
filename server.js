@@ -13,6 +13,7 @@ const fsp = require('node:fs/promises');
 const path = require('node:path');
 const zlib = require('node:zlib');
 const crypto = require('node:crypto');
+const { pipeline } = require('node:stream/promises');
 const { createStore } = require('./lib/store');
 const { createAuth } = require('./lib/auth');
 const { createContent, projectsScript, PAGES } = require('./lib/content');
@@ -247,6 +248,27 @@ function send(req, res, status, entry, ext, headers = {}) {
   h['Content-Length'] = body.length;
   res.writeHead(status, h);
   res.end(req.method === 'HEAD' ? undefined : body);
+}
+
+// a video or PDF: streamed from disk (these don't fit the in-memory cache), in the pieces a player asks for
+async function sendLarge(req, res, file, type, headers) {
+  const { size, mtimeMs } = await fsp.stat(file);
+  const h = { ...SECURITY_HEADERS, 'Content-Type': type, 'Accept-Ranges': 'bytes', ETag: `"${size.toString(16)}-${Math.round(mtimeMs).toString(16)}"`, ...headers };
+  if (req.headers['if-none-match'] === h.ETag) { res.writeHead(304, h); return res.end(); }
+  let start = 0, end = size - 1, status = 200;
+  const range = /^bytes=(\d*)-(\d*)$/.exec(req.headers.range || '');
+  if (range && (range[1] || range[2])) {
+    if (range[1]) { start = Number(range[1]); if (range[2]) end = Math.min(Number(range[2]), end); }
+    else start = Math.max(0, size - Number(range[2]));
+    if (start > end) { res.writeHead(416, { ...h, 'Content-Range': `bytes */${size}` }); return res.end(); }
+    status = 206;
+    h['Content-Range'] = `bytes ${start}-${end}/${size}`;
+  }
+  h['Content-Length'] = end - start + 1;
+  res.writeHead(status, h);
+  if (req.method === 'HEAD') return res.end();
+  // a player that seeks drops the connection: nothing to report
+  await pipeline(fs.createReadStream(file, { start, end }), res).catch(() => {});
 }
 
 function cacheControl(ext, query) {
@@ -494,6 +516,21 @@ const server = http.createServer(async (req, res) => {
     if (p === '/llms.txt') return send(req, res, 200, await llmsEntry(), '.txt', { 'Cache-Control': 'no-cache' });
     if (indexNow.enabled && p === indexNow.keyPath) return send(req, res, 200, makeEntry(Buffer.from(indexNow.key), '.txt'), '.txt', { 'Cache-Control': 'no-cache' });
 
+    // watermarked videos and PDFs from the admin panel (lib/media.js)
+    const large = p.match(/^\/uploads\/([a-f0-9]{24}\.(mp4|pdf))$/);
+    if (large) {
+      const cached = { 'Cache-Control': 'public, max-age=31536000, immutable' };
+      try {
+        // browsers won't open a PDF in their viewer under a sandboxing policy, so a PDF only gets the default headers
+        return await (large[2] === 'pdf'
+          ? sendLarge(req, res, path.join(store.uploadsDir, large[1]), 'application/pdf', cached)
+          : sendLarge(req, res, path.join(store.uploadsDir, large[1]), 'video/mp4', { ...cached, 'Content-Security-Policy': "default-src 'none'; media-src 'self'; sandbox" }));
+      } catch (err) {
+        if (err.code === 'ENOENT') return await notFound(req, res, p);
+        throw err;
+      }
+    }
+
     // images uploaded from the admin panel
     const up = p.match(/^\/uploads\/([a-f0-9]{24}\.(webp|png|jpg))$/);
     if (up) {
@@ -532,6 +569,7 @@ const server = http.createServer(async (req, res) => {
   }
 });
 
+server.requestTimeout = 30 * 60 * 1000; // Node's default of 5 minutes would cut off a large video on a slow connection
 if (!store.read('users.json', []).length) console.warn('[admin] no admin users yet — add one with: node tools/admin-user.js add <username> <display name>');
 server.listen(PORT, HOST, () => {
   console.log(`PuzzleX Media on http://${HOST}:${PORT} · messages → ${DATA_DIR} · email ${mail.enabled ? `→ ${mail.to}` : 'off (no SMTP set)'}`);

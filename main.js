@@ -334,7 +334,10 @@ function build() {
   boardEl.style.height = H + 'px';
 
   // master artwork: laid out in the visible part of the board, below the top bar
-  const topH = $('.topbar').offsetHeight;
+  // measured as it stands at the top of the page: the bar is slimmer while scrolled, and this can run on a reload part way down
+  const bar = $('.topbar'), barStyle = getComputedStyle(bar);
+  const topH = Math.max(...[...bar.children].map((el) => el.offsetHeight))
+    + parseFloat(barStyle.getPropertyValue('--bar-top')) + parseFloat(barStyle.getPropertyValue('--bar-bottom'));
   const ox = (W - vw) / 2, oy = (H - vh) / 2 + topH;
   const master = document.createElement('canvas');
   master.width = Math.round(W * DPR);
