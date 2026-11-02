@@ -21,7 +21,8 @@
   document.fonts.ready.then(tick, tick);
   window.addEventListener('load', tick, { once: true });
   document.addEventListener('DOMContentLoaded', () => {
-    const imgs = [...document.images].filter((img) => !img.closest('.loader'));
+    // a lazy image far down the page doesn't load until it's scrolled to: waiting for it would always run to MAX_MS
+    const imgs = [...document.images].filter((img) => !img.closest('.loader') && img.loading !== 'lazy');
     total += imgs.length;
     imgs.forEach((img) => {
       if (img.complete) tick();
