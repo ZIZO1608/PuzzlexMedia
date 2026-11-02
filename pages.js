@@ -756,13 +756,15 @@ function initProject() {
   if (meta) meta.setAttribute('content', p.summary);
 
   page.querySelector('.project-logo').innerHTML = `<img src="${escHtml(assetUrl(p.logo))}" alt="${escHtml(p.client)}" width="96" height="96">`;
-  page.querySelector('.project-client').textContent = p.client;
+  const clientEl = page.querySelector('.project-client');
+  clientEl.textContent = p.client;
+  clientEl.classList.toggle('is-latin', !/\p{Script=Arabic}/u.test(p.client)); // English names sit on the left, even on Arabic pages
   page.querySelector('.project-title').textContent = p.title;
   page.querySelector('.project-summary').textContent = p.summary;
   page.querySelector('.project-sector').textContent = SECTORS[p.sector];
   page.querySelector('.project-services').innerHTML = p.services.map((s) => `<a class="tag" href="services.html">${escHtml(s)}</a>`).join('');
   if (p.year) page.querySelector('.project-year').textContent = p.year;
-  else page.querySelector('.project-year-row').remove();
+  else page.querySelector('.project-year-row')?.remove();
 
   // gallery: one wide frame, two side by side, one wide again (repeating for more uploaded images)
   const shape = (k) => (k % 3 === 0 ? [800, 450, 'wide'] : [400, 300, '']);
