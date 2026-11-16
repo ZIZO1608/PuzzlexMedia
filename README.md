@@ -204,6 +204,7 @@ Needs only Node and Chrome. `--preview` writes a PNG per page plus `overview.png
 | `OPENROUTER_API_KEY` | Turns on Shater (شاطر), the assistant in the corner: a key from openrouter.ai/keys. Without it the widget still opens, says it isn't ready yet and points to WhatsApp |
 | `OPENROUTER_MODEL` | Which model answers (default `openai/gpt-4o-mini`); any id from openrouter.ai/models |
 | `ASSISTANT_QUESTIONS` | Questions a visitor may ask Shater in one browser session (default 3; at most 12 an hour per address) |
+| `OPENROUTER_BLOG_MODEL` | Optional: another OpenRouter model for the daily article only (otherwise `OPENROUTER_MODEL`) |
 | `BLOG_BOT` | `0` stops the daily AI article (lib/blogbot.js). Otherwise, with `OPENROUTER_API_KEY`, every day at 8:00 (UTC+3) it searches the web for a current topic and writes an Arabic + English draft that waits in the admin panel's Blog page: approve and publish (today's date; Adnan Masri and Hussein Masri take turns as the author), edit, delete or write another |
 
 ## What the server does
