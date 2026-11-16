@@ -492,7 +492,11 @@ async function readBody(req, limit) {
   return Buffer.concat(chunks);
 }
 
-const admin = createAdmin({ store, auth, content, clientIp, json, readBody, serviceLabels: SERVICES, mail, analytics, company, assistant });
+// the blog's daily writer: a draft article every morning at 8:00 (UTC+3), waiting in the admin panel (lib/blogbot.js)
+const { createBlogBot } = require('./lib/blogbot');
+const blogBot = createBlogBot({ store, assistant });
+blogBot.start();
+const admin = createAdmin({ store, auth, content, clientIp, json, readBody, serviceLabels: SERVICES, mail, analytics, company, assistant, blogBot });
 // the client's copy of an invoice / receipt / quotation: /doc/<token> (doc.html, which fetches /api/doc/<token>)
 const invoices = createInvoices({ store, readBody });
 

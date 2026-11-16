@@ -2513,3 +2513,4 @@ body:has(.px-consent.in) .sh-ping { translate: 0 calc(-100% - 150px); }
 .sh-privacy { margin-top: 4px; text-align: center; font-size: 11px; color: rgba(244, 244, 241, .38); }
 .sh-privacy a { color: inherit; text-decoration: underline; text-underline-offset: 2px; }
 .sh-privacy a:hover { color: var(--text); }
+.article-author { color: var(--text); }

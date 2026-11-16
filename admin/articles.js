@@ -55,6 +55,7 @@ async function viewArticles(view, arg) {
       h('div', { class: 'row' },
         h('a', { class: 'btn btn-ghost', href: '/blog.html', target: '_blank', rel: 'noopener' }, 'افتح المدونة ↗'),
         h('button', { type: 'button', class: 'btn btn-primary', onclick: add }, '+ مقال جديد'))),
+    aiDraftsPanel(),
     list.length
       ? h('div', { class: 'proj-list' }, list.map((a) => h('div', { class: `proj-row${a.published ? '' : ' draft'}` },
         a.cover ? h('div', { class: 'thumb' }, h('img', { src: asset(a.cover), alt: '' })) : h('div', { class: 'thumb art-thumb' }, h('b', null, [...(a.title.ar || a.title.en || '؟')][0])),
@@ -217,6 +218,112 @@ function articleEditor(view, id) {
       langCard('ar'),
       langCard('en')),
   );
+}
+
+/* ---------- the daily AI article (lib/blogbot.js → /api/admin/blog-drafts) ----------
+   Every morning at 8:00 (UTC+3) a new article waits here: approve and publish (today's date, the next author in
+   turn), edit it first, delete it, or have another one written in its place. «اكتب تدوينة الآن» writes one at once. */
+let aiPoll = 0;
+function aiDraftsPanel() {
+  const box = h('section', { class: 'card ai-drafts' }, h('p', { class: 'muted' }, 'جارٍ تحميل تدوينات الذكاء الاصطناعي…'));
+  clearTimeout(aiPoll);
+  const load = async () => {
+    let r;
+    try { r = await api('GET', '/blog-drafts'); } catch (err) { box.replaceChildren(h('p', { class: 'muted' }, err.message)); return; }
+    draw(r);
+    // while one is being written, look again every few seconds
+    clearTimeout(aiPoll);
+    if (r.generating) aiPoll = setTimeout(() => { if (box.isConnected) load(); }, 5000);
+  };
+  const start = async (replacing) => {
+    try {
+      await api('POST', '/blog-drafts/generate', { replacing: replacing || '' });
+      toast('بدأت كتابة التدوينة، تأخذ دقيقة أو دقيقتين');
+      load();
+    } catch (err) { toast(err.message, 'err'); }
+  };
+  function draw(r) {
+    const head = h('div', { class: 'ai-drafts-head' },
+      h('div', null,
+        h('h2', null, '✦ تدوينة اليوم بالذكاء الاصطناعي'),
+        h('p', { class: 'muted small' }, `كل يوم الساعة ${r.hour}:00 صباحاً (توقيت دمشق والرياض) يبحث الذكاء الاصطناعي عن أحدث المواضيع في مجالنا ويكتب تدوينة بالعربية والإنجليزية. لا تُنشر إلا بموافقتك، بتاريخ يوم النشر، والكاتب بالتناوب: ${r.authors.map((a) => a.ar).join(' ثم ')}.`)),
+      r.generating ? null : h('button', { type: 'button', class: 'btn btn-ghost btn-small', disabled: !r.ready, onclick: () => start() }, 'اكتب تدوينة الآن'));
+    const notes = [
+      !r.ready ? h('p', { class: 'ai-note warn' }, 'الذكاء الاصطناعي غير مفعّل: أضف OPENROUTER_API_KEY في متغيرات البيئة على الاستضافة.') : null,
+      !r.enabled ? h('p', { class: 'ai-note warn' }, 'الكتابة اليومية متوقفة (BLOG_BOT=0).') : null,
+      r.generating ? h('p', { class: 'ai-note busy' }, h('span', { class: 'ai-spin', 'aria-hidden': 'true' }), r.generating.replacing ? 'يكتب تدوينة بديلة الآن… (دقيقة أو دقيقتان)' : 'يبحث عن موضوع اليوم ويكتب التدوينة الآن… (دقيقة أو دقيقتان)') : null,
+      !r.generating && r.lastError ? h('p', { class: 'ai-note err' }, `${r.lastError} — ${fmtDate(r.lastErrorAt)}`) : null,
+    ];
+    const cards = r.drafts.map((d) => draftCard(d, r));
+    // (replaceChildren would write an empty slot as the word "null": only real elements go in)
+    box.replaceChildren(...[head, ...notes,
+      cards.length ? h('div', { class: 'ai-list' }, cards) : (!r.generating ? h('p', { class: 'muted small' }, 'لا تدوينات بانتظار الموافقة الآن.') : null)].filter(Boolean));
+  }
+  function draftCard(d, r) {
+    const busy = Boolean(r.generating);
+    // the article itself, shown as the site will show it, one language at a time
+    let lang = 'ar';
+    const preview = h('div', { class: 'prose ai-preview' });
+    const showPreview = () => {
+      preview.setAttribute('dir', lang === 'ar' ? 'rtl' : 'ltr');
+      preview.replaceChildren(h('h3', null, d.title[lang]), h('p', { class: 'lead' }, d.excerpt[lang]), previewBody(d.body[lang]));
+    };
+    showPreview();
+    const langBtns = h('div', { class: 'row' }, ['ar', 'en'].map((l) => h('button', { type: 'button', class: `btn btn-small${l === lang ? ' btn-primary' : ''}`, onclick: (e) => { lang = l; [...e.target.parentNode.children].forEach((b) => b.classList.toggle('btn-primary', b === e.target)); showPreview(); } }, l === 'ar' ? 'العربية' : 'English')));
+    // editing: the six texts in place, saved to the draft before publishing
+    const editor = h('div', { class: 'ai-editor', hidden: true });
+    const fields = {};
+    const field = (key, l, label, rows) => {
+      const t = h('textarea', { class: 'input', rows, dir: l === 'ar' ? 'rtl' : 'ltr', value: d[key][l] });
+      fields[`${key}.${l}`] = t;
+      return h('label', { class: 'field' }, h('span', null, label), t);
+    };
+    editor.append(
+      h('div', { class: 'ai-editor-cols' },
+        h('div', { class: 'grid' }, h('b', null, 'العربية'), field('title', 'ar', 'العنوان', 2), field('excerpt', 'ar', 'الوصف المختصر', 3), field('body', 'ar', 'النص', 16)),
+        h('div', { class: 'grid' }, h('b', null, 'English'), field('title', 'en', 'Title', 2), field('excerpt', 'en', 'Excerpt', 3), field('body', 'en', 'Text', 16))),
+      h('p', { class: 'hint' }, 'النص: سطر فارغ بين الفقرات، ## للعناوين، و"- " للقوائم، و**عريض**، و[نص](https://…) للروابط.'),
+      h('div', { class: 'row' },
+        h('button', { type: 'button', class: 'btn btn-primary btn-small', onclick: async () => {
+          const pick = (key) => ({ ar: fields[`${key}.ar`].value, en: fields[`${key}.en`].value });
+          const next = { title: pick('title'), excerpt: pick('excerpt'), body: pick('body') };
+          try { await api('PATCH', `/blog-drafts/${d.id}`, next); Object.assign(d, next); showPreview(); editor.hidden = true; previewWrap.hidden = false; toast('حُفظت التعديلات'); } catch (err) { toast(err.message, 'err'); }
+        } }, 'حفظ التعديلات'),
+        h('button', { type: 'button', class: 'btn btn-small', onclick: () => { editor.hidden = true; previewWrap.hidden = false; } }, 'إلغاء')));
+    const previewWrap = h('div', null, langBtns, preview);
+    return h('article', { class: 'ai-draft' },
+      h('div', { class: 'ai-draft-head' },
+        h('div', null,
+          h('p', { class: 'kicker' }, d.topic || 'AI'),
+          h('h3', { dir: 'rtl' }, d.title.ar),
+          h('p', { class: 'muted small' }, `كُتبت ${fmtDate(d.created)}${d.by && d.by !== 'schedule' ? ` بطلب ${d.by}` : ' تلقائياً'}${d.edited ? ' · عُدّلت' : ''}`)),
+        h('span', { class: 'tag lime' }, 'بانتظار الموافقة')),
+      d.sources && d.sources.length ? h('p', { class: 'small ai-sources' }, 'المصادر: ', ...d.sources.flatMap((s, i) => [i ? ' · ' : '', h('a', { href: s, target: '_blank', rel: 'noopener noreferrer', class: 'ltr' }, (() => { try { return new URL(s).hostname.replace(/^www\./, ''); } catch { return s; } })())])) : null,
+      previewWrap, editor,
+      h('div', { class: 'row ai-actions' },
+        h('button', { type: 'button', class: 'btn btn-primary', disabled: busy, onclick: async (e) => {
+          if (!await ask(`نشر «${d.title.ar}» الآن على المدونة بتاريخ اليوم؟`, { yes: 'نشر' })) return;
+          e.target.disabled = true;
+          try {
+            const res = await api('POST', `/blog-drafts/${d.id}/publish`);
+            toast(`نُشرت التدوينة باسم ${res.article.author.ar}`);
+            await loadArticles(true);
+            render();
+          } catch (err) { e.target.disabled = false; toast(err.message, 'err'); }
+        } }, '✓ موافقة ونشر'),
+        h('button', { type: 'button', class: 'btn', disabled: busy, onclick: () => { editor.hidden = false; previewWrap.hidden = true; fields['title.ar'].focus(); } }, '✎ تعديل'),
+        h('button', { type: 'button', class: 'btn', disabled: busy || !r.ready, onclick: async () => {
+          if (!await ask('كتابة تدوينة أخرى بدل هذه؟ تُحذف هذه حين تجهز الجديدة.', { yes: 'اكتب غيرها' })) return;
+          start(d.id);
+        } }, '↻ إعادة توليد'),
+        h('span', { class: 'spacer' }),
+        h('button', { type: 'button', class: 'btn btn-danger', disabled: busy, onclick: async () => {
+          if (!await ask('حذف هذه التدوينة؟', { yes: 'حذف', danger: true })) return;
+          try { await api('DELETE', `/blog-drafts/${d.id}`); toast('حُذفت التدوينة'); load(); refreshMe().catch(() => {}); } catch (err) { toast(err.message, 'err'); }
+        } }, '✕ حذف')));
+  }
+  load();
+  return box;
 }
 
 VIEWS.articles = viewArticles;
