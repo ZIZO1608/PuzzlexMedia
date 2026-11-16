@@ -225,11 +225,11 @@ document.addEventListener('DOMContentLoaded', function initShater() {
   });
   const remember = (who, text, extra) => { st.msgs.push({ who, text, extra: extra || '' }); save(); };
 
-  const HELLO = T('مرحبا، أنا شاطر 👋 بشو بقدر ساعدك؟', 'Hi, I\'m Shater 👋 How can I help?');
-  const HELLO_2 = T('اسألني عن خدمات بزل إكس ميديا، أو كيف ممكن نشتغل معك على مشروعك.', 'Ask me about PuzzleX Media\'s services, or how we could work with you on your project.');
+  const HELLO = T('أهلين، أنا شاطر. بشو بقدر ساعدك اليوم؟', 'Hi, I\'m Shater. How can I help you today?');
+  const HELLO_2 = T('احكيلي شو بتشتغل وشو هدفك، وأنا بقلّك كيف منقدر نكبّر شغلك: هوية، سوشال ميديا، فيديو، تسويق، لينكدإن أو موقع.', 'Tell me what you do and what you\'re aiming for, and I\'ll show you how we can grow it: branding, social media, video, marketing, LinkedIn or a website.');
   const SUGGEST = EN
-    ? ['What services do you offer?', 'How does a project with you start?', 'Can you run my brand\'s social media?']
-    : ['شو الخدمات اللي بتقدموها؟', 'كيف بيبلش المشروع معكم؟', 'فيكم تمسكوا السوشال ميديا لعلامتي؟'];
+    ? ['What services do you offer?', 'I want more sales. What do you suggest?', 'Can you run my brand\'s social media?']
+    : ['شو الخدمات اللي بتقدموها؟', 'بدي زيد مبيعاتي، شو بتنصحني؟', 'فيكم تمسكوا السوشال ميديا لعلامتي؟'];
 
   // the suggestions: under the greeting, until the first question is asked
   let sugg = null;
@@ -312,7 +312,7 @@ document.addEventListener('DOMContentLoaded', function initShater() {
       reply = data.answer;
       st.history.push({ q: question, a: data.answer });
     } else if (data.reason === 'not-ready') {
-      reply = T('أنا لسا عم اتجهّز لجاوب 🙏 بس فريقنا موجود هلق: اضغط زر واتساب الأخضر فوق وبيردّوا عليك.', 'I\'m still getting ready to answer 🙏 Our team is here right now though: tap the green WhatsApp button above.');
+      reply = T('أنا لسا عم اتجهّز لجاوب، بس فريقنا موجود هلق: اضغط زر واتساب الأخضر فوق وبيردّوا عليك.', 'I\'m still getting ready to answer, but our team is here right now: tap the green WhatsApp button above.');
       extra = 'is-note';
     } else if (data.reason === 'limit') {
       st.left = 0;
@@ -328,7 +328,7 @@ document.addEventListener('DOMContentLoaded', function initShater() {
     drawLeft();
     if (reply) { remember('bot', reply, extra); await type(reply, extra); }
     if (st.left <= 0 && !st.msgs.some((m) => m.extra === 'is-end')) {
-      const end = T('خلصت أسئلتك لهالزيارة 🙌 إذا حابب نكمّل، فريقنا بانتظارك على واتساب.', 'That\'s all the questions for this visit 🙌 If you\'d like to keep going, our team is waiting on WhatsApp.');
+      const end = T('خلصت أسئلتك لهالزيارة. إذا حابب نبلّش بمشروعك، فريقنا بانتظارك على واتساب وبيعطيك عرض سعر بسرعة.', 'That\'s all the questions for this visit. If you\'d like to get your project started, our team is waiting on WhatsApp with a quick quote.');
       remember('bot', end, 'is-end');
       await type(end, 'is-end');
     }
