@@ -8,7 +8,7 @@
   <link rel="icon" href="/assets/icon.svg" type="image/svg+xml">
   <link rel="preload" href="/assets/fonts/alexandria-arabic.woff2" as="font" type="font/woff2" crossorigin>
   <link rel="stylesheet" href="/assets/fonts/alexandria.css?v=1">
-  <link rel="stylesheet" href="/admin/admin.css?v=12">
+  <link rel="stylesheet" href="/admin/admin.css?v=13">
   <link rel="stylesheet" href="/admin/blog.css?v=2">
   <link rel="stylesheet" href="/invoice-doc.css?v=4">
   <link rel="stylesheet" href="/admin/invoices.css?v=8">
@@ -52,6 +52,8 @@
         <a href="#/profile" data-route="profile"><span class="ico">⎙</span>الملف التعريفي</a>
         <a href="#/stats" data-route="stats"><span class="ico">▮</span>الإحصائيات</a>
         <a href="#/messages" data-route="messages"><span class="ico">✉</span>الرسائل <b class="badge" id="unread" hidden></b></a>
+        <a href="#/leads" data-route="leads"><span class="ico">★</span>العملاء المحتملون <b class="badge" id="leads-new" hidden></b></a>
+        <a href="#/chats" data-route="chats"><span class="ico">✦</span>محادثات شاطر <b class="badge badge-soft" id="chats-unread" hidden></b></a>
         <a href="#/applications" data-route="applications"><span class="ico">✚</span>طلبات التوظيف</a>
         <a href="#/newsletter" data-route="newsletter"><span class="ico">@</span>النشرة البريدية</a>
         <a href="#/invoices" data-route="invoices"><span class="ico">▤</span>الفواتير والإيصالات</a>
@@ -76,11 +78,12 @@
   <div class="toasts" id="toasts" aria-live="polite"></div>
 
   <script src="/admin/xlsx.js?v=1"></script>
-  <script src="/admin/admin.js?v=17"></script>
+  <script src="/admin/admin.js?v=18"></script>
   <script src="/invoice-doc.js?v=4"></script>
   <script src="/invoice-number.js?v=1"></script>
   <script src="/admin/invoices.js?v=8"></script>
   <script src="/admin/articles.js?v=2"></script>
   <script src="/admin/company.js?v=1"></script>
+  <script src="/admin/chats.js?v=1"></script>
 </body>
 </html>

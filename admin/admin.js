@@ -269,6 +269,11 @@ async function refreshMe() {
   const b = $('#unread');
   b.hidden = !r.stats.unread;
   b.textContent = r.stats.unread;
+  // Shater: leads not followed up yet, conversations not opened yet (admin/chats.js)
+  for (const [id, n] of [['#leads-new', r.stats.leadsNew], ['#chats-unread', r.stats.chatsUnread]]) {
+    const el = $(id);
+    if (el) { el.hidden = !n; el.textContent = n || ''; }
+  }
   return r;
 }
 

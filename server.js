@@ -47,6 +47,7 @@ const company = createCompany({ store, json, clientIp, readBody });
 const { createAssistant } = require('./lib/assistant');
 const assistant = createAssistant({
   json, clientIp, readBody, siteUrl: SITE_URL, secureCookies: () => process.env.COOKIE_SECURE !== '0',
+  store, country: (ip) => geo.country(ip), // conversations and leads for the admin panel (DATA_DIR/chats.json)
   knowledge: async () => (await llmsEntry()).body.toString('utf8'),
 });
 company.seed();

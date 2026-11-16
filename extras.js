@@ -123,6 +123,7 @@ document.addEventListener('DOMContentLoaded', function initShater() {
         <button type="submit" class="sh-send" aria-label="${T('إرسال', 'Send')}"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12h13M13 6l6 6-6 6"/></svg></button>
       </form>
       <p class="sh-left"><span class="sh-dots" aria-hidden="true"></span><span class="sh-left-text"></span></p>
+      <p class="sh-privacy">${T('منحفظ المحادثة لنقدر نتابع معك.', 'We keep this chat so we can follow up with you.')} <a href="${EN ? '/en/' : '/'}privacy.html">${T('الخصوصية', 'Privacy')}</a></p>
     </footer>`;
   body.append(ping, fab, panel);
 
@@ -300,7 +301,7 @@ document.addEventListener('DOMContentLoaded', function initShater() {
       const res = await fetch('/api/assistant', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ lang: EN ? 'en' : 'ar', question, history: st.history }),
+        body: JSON.stringify({ lang: EN ? 'en' : 'ar', question, history: st.history, page: location.pathname }),
       });
       data = await res.json().catch(() => ({}));
     } catch (e) { /* offline: shown below */ }
