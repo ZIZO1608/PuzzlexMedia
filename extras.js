@@ -50,7 +50,7 @@
 })();
 
 /* ---------- Shater (شاطر): the site's assistant, in the corner the WhatsApp button had ----------
-   A tilted lime puzzle piece; after a few seconds a small "Got a question?" pops out of it like a notification.
+   A tilted lime puzzle piece; whenever the chat is closed a small "How can we help?" pops out of it like a notification.
    A click opens the chat out of the piece itself (it grows from the piece, the way an app opens from the Dock) and
    Shater types his greeting. Questions: a few a visit (the number comes from the server, which counts every one sent),
    answers from /api/assistant (lib/assistant.js → OpenRouter). While it waits three pieces lock together; the answer
@@ -99,7 +99,7 @@ document.addEventListener('DOMContentLoaded', function initShater() {
   ping.className = 'sh-ping';
   ping.setAttribute('aria-hidden', 'true');
   ping.tabIndex = -1;
-  ping.innerHTML = `<span class="sh-ping-q">?</span><span>${T('عندك سؤال؟', 'Got a question?')}</span>`;
+  ping.innerHTML = `<span class="sh-ping-q">?</span><span>${T('بشو منقدر نساعدك؟', 'How can we help?')}</span>`;
 
   // the chat
   const panel = document.createElement('section');
@@ -416,6 +416,7 @@ document.addEventListener('DOMContentLoaded', function initShater() {
     const done = () => { if (!st.open) { panel.classList.remove('is-open'); panel.hidden = true; anim?.cancel(); } };
     // put away when the animation ends, or on time regardless (a page in the background draws no frames)
     if (a) { a.onfinish = done; setTimeout(done, 700); } else done();
+    schedulePing(8000); // "How can we help?" comes back a little later
   };
   fab.addEventListener('click', () => (st.open ? close() : open()));
   ping.addEventListener('click', () => open());
@@ -428,14 +429,19 @@ document.addEventListener('DOMContentLoaded', function initShater() {
     close();
   }, true);
 
-  // the notification: "Got a question?" pops out of the piece a few seconds in, until the chat is opened
-  function hidePing() { ping.classList.remove('is-in'); fab.classList.add('is-seen'); }
-  if (st.seen) fab.classList.add('is-seen');
-  else {
-    setTimeout(() => { if (!st.open && !st.seen) ping.classList.add('is-in'); }, st.pinged ? 1500 : 5000);
-    st.pinged = true;
-    save();
+  // the notification: "How can we help?" pops out of the piece whenever the chat is closed: a few seconds after a page
+  // opens (sooner on the pages after the first), and again a little after the chat is closed. The "?" on the piece
+  // stays until the chat is first opened.
+  let pingTimer = 0;
+  function hidePing() { clearTimeout(pingTimer); ping.classList.remove('is-in'); fab.classList.add('is-seen'); }
+  function schedulePing(ms) {
+    clearTimeout(pingTimer);
+    pingTimer = setTimeout(() => { if (!st.open) ping.classList.add('is-in'); }, ms);
   }
+  if (st.seen) fab.classList.add('is-seen');
+  if (!st.open) schedulePing(st.pinged ? 2500 : 5000);
+  st.pinged = true;
+  save();
 
   // on another page: the same conversation, at once, and open if it was open
   st.msgs.forEach((m) => put(m.who, m.text, m.extra));
