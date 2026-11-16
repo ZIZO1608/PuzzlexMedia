@@ -2514,3 +2514,10 @@ body:has(.px-consent.in) .sh-ping { translate: 0 calc(-100% - 150px); }
 .sh-privacy a { color: inherit; text-decoration: underline; text-underline-offset: 2px; }
 .sh-privacy a:hover { color: var(--text); }
 .article-author { color: var(--text); }
+/* the AI article's cover, taken from its source: whose picture it is, on the picture */
+.article-cover { position: relative; }
+.article-cover-credit {
+  position: absolute; bottom: 12px; inset-inline-end: 12px; margin: 0; padding: 4px 11px; border-radius: 999px;
+  background: rgba(10, 10, 11, .72); color: rgba(244, 244, 241, .85); font-size: 12px; line-height: 1.6;
+}
+.article-cover-credit a { color: inherit; text-decoration: underline; text-underline-offset: 2px; }

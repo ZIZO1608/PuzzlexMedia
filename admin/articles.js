@@ -121,9 +121,10 @@ function articleEditor(view, id) {
   const cover = h('div', { class: 'images' });
   const drawCover = () => cover.replaceChildren(a.cover
     ? h('div', { class: 'img-tile' }, h('img', { src: asset(a.cover), alt: 'صورة الغلاف' }), h('div', { class: 'acts' },
-      h('button', { type: 'button', class: 'btn btn-small btn-danger', onclick: () => { a.cover = ''; drawCover(); changed(); } }, 'إزالة')))
+      h('button', { type: 'button', class: 'btn btn-small btn-danger', onclick: () => { a.cover = ''; delete a.coverCredit; drawCover(); changed(); } }, 'إزالة')))
     : dropZone('رفع صورة الغلاف', false, async ([f]) => {
-      try { toast('جارٍ رفع الصورة…'); a.cover = await upload(f, 1600); drawCover(); changed(); } catch (err) { toast(err.message, 'err'); }
+      // a cover of your own: the source credit of the AI article's picture no longer applies
+      try { toast('جارٍ رفع الصورة…'); a.cover = await upload(f, 1600); delete a.coverCredit; drawCover(); changed(); } catch (err) { toast(err.message, 'err'); }
     }));
   drawCover();
 
@@ -298,6 +299,16 @@ function aiDraftsPanel() {
           h('h3', { dir: 'rtl' }, d.title.ar),
           h('p', { class: 'muted small' }, `كُتبت ${fmtDate(d.created)}${d.by && d.by !== 'schedule' ? ` بطلب ${d.by}` : ' تلقائياً'}${d.edited ? ' · عُدّلت' : ''}`)),
         h('span', { class: 'tag lime' }, 'بانتظار الموافقة')),
+      // the cover, taken from the source; removable (it then goes out with the blog's drawn cover)
+      d.cover
+        ? h('figure', { class: 'ai-cover' }, h('img', { src: d.cover, alt: '' }),
+          h('figcaption', null,
+            d.coverCredit ? h('span', null, 'الصورة من ', h('a', { href: d.coverCredit.url, target: '_blank', rel: 'noopener noreferrer', class: 'ltr' }, d.coverCredit.host || 'المصدر')) : null,
+            h('button', { type: 'button', class: 'btn btn-small', disabled: busy, onclick: async () => {
+              if (!await ask('إزالة صورة الغلاف؟ تُنشر التدوينة حينها بالغلاف المرسوم للمدونة.', { yes: 'إزالة' })) return;
+              try { await api('PATCH', `/blog-drafts/${d.id}`, { cover: '' }); toast('أُزيلت الصورة'); load(); } catch (err) { toast(err.message, 'err'); }
+            } }, 'إزالة الصورة')))
+        : h('p', { class: 'muted small' }, 'لم نجد صورة في المصادر: تُنشر بالغلاف المرسوم للمدونة، ويمكنك رفع صورة من محرر المقال بعد النشر.'),
       d.sources && d.sources.length ? h('p', { class: 'small ai-sources' }, 'المصادر: ', ...d.sources.flatMap((s, i) => [i ? ' · ' : '', h('a', { href: s, target: '_blank', rel: 'noopener noreferrer', class: 'ltr' }, (() => { try { return new URL(s).hostname.replace(/^www\./, ''); } catch { return s; } })())])) : null,
       previewWrap, editor,
       h('div', { class: 'row ai-actions' },
