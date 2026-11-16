@@ -414,12 +414,19 @@ document.addEventListener('DOMContentLoaded', function initShater() {
     save();
     const a = genie(false);
     const done = () => { if (!st.open) { panel.classList.remove('is-open'); panel.hidden = true; anim?.cancel(); } };
-    if (a) a.onfinish = done; else done();
+    // put away when the animation ends, or on time regardless (a page in the background draws no frames)
+    if (a) { a.onfinish = done; setTimeout(done, 700); } else done();
   };
   fab.addEventListener('click', () => (st.open ? close() : open()));
   ping.addEventListener('click', () => open());
   panel.querySelector('.sh-close').addEventListener('click', () => { close(); fab.focus({ preventScroll: true }); });
   document.addEventListener('keydown', (ev) => { if (ev.key === 'Escape' && st.open) { close(); fab.focus({ preventScroll: true }); } });
+  // a click or tap anywhere outside the chat closes it, so it never stays open over the page being browsed
+  // (the piece itself toggles it; a link outside closes it on the way, so it doesn't reopen on the next page)
+  document.addEventListener('pointerdown', (ev) => {
+    if (!st.open || panel.contains(ev.target) || fab.contains(ev.target) || ping.contains(ev.target)) return;
+    close();
+  }, true);
 
   // the notification: "Got a question?" pops out of the piece a few seconds in, until the chat is opened
   function hidePing() { ping.classList.remove('is-in'); fab.classList.add('is-seen'); }
