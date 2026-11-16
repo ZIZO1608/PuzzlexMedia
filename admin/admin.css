@@ -88,7 +88,15 @@ input[type="color"] { width: 52px; height: 42px; border: 1px solid var(--line-2)
 .side-brand img { border-radius: 8px; }
 .brand-name { font-weight: 900; font-size: 14px; letter-spacing: .08em; direction: ltr; }
 .brand-name span { color: var(--lime); font-weight: 400; margin-inline-start: 6px; }
-.side-nav { display: grid; gap: 4px; }
+/* the sections scroll on their own when they don't fit the screen's height (the brand stays on top, the footer at the
+   bottom); a wheel over them moves only them, and doesn't carry on into the page when they reach their end */
+.side-nav {
+  display: grid; align-content: start; gap: 4px; flex: 1 1 auto; min-height: 0; overflow-y: auto; overscroll-behavior: contain;
+  margin-inline: -6px; padding-inline: 6px; scrollbar-width: thin; scrollbar-color: var(--ink-4) transparent;
+}
+.side-nav::-webkit-scrollbar { width: 6px; }
+.side-nav::-webkit-scrollbar-thumb { background: var(--ink-4); border-radius: 6px; }
+.side-nav::-webkit-scrollbar-track { background: transparent; }
 .side-nav a {
   position: relative; display: flex; align-items: center; gap: 12px; min-height: 44px; padding: 0 12px;
   border-radius: 12px; color: var(--muted); font-weight: 600; transition: background-color .2s, color .2s;
@@ -368,7 +376,7 @@ dialog.ask { width: min(440px, calc(100% - 24px)); }
   .app { grid-template-columns: minmax(0, 1fr); }
   .side { position: sticky; z-index: 20; height: auto; padding: 10px 12px; gap: 8px; border-inline-end: 0; border-bottom: 1px solid var(--line); }
   .side-brand { padding: 2px 4px; }
-  .side-nav { display: flex; overflow-x: auto; gap: 6px; padding-bottom: 4px; scrollbar-width: none; }
+  .side-nav { display: flex; flex: none; overflow-x: auto; overflow-y: hidden; gap: 6px; margin-inline: 0; padding: 0 0 4px; scrollbar-width: none; }
   .side-nav::-webkit-scrollbar { display: none; }
   .side-nav a { flex: none; min-height: 40px; padding: 0 12px; font-size: 13.5px; }
   .side-nav .ico { display: none; }
