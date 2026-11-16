@@ -233,17 +233,19 @@ document.addEventListener('DOMContentLoaded', function initShater() {
 
   // the suggestions: under the greeting, until the first question is asked
   let sugg = null;
-  const drawSuggestions = () => {
+  // `appear`: the first time, they come in one after another; on a later page they're simply there
+  const drawSuggestions = (appear) => {
     sugg?.remove();
     sugg = null;
     if (st.msgs.some((m) => m.who === 'me') || st.left <= 0) return;
     sugg = document.createElement('div');
-    sugg.className = 'sh-sugg';
-    sugg.innerHTML = `<small>${T('جرّب تسأل', 'Try asking')}</small>`;
-    SUGGEST.forEach((q) => {
+    sugg.className = `sh-sugg${appear && !REDUCED ? ' is-appearing' : ''}`;
+    sugg.innerHTML = `<small style="--i:0">${T('جرّب تسأل', 'Try asking')}</small>`;
+    SUGGEST.forEach((q, i) => {
       const b = document.createElement('button');
       b.type = 'button';
       b.className = 'sh-chip';
+      b.style.setProperty('--i', i + 1);
       b.textContent = q;
       b.addEventListener('click', () => ask(q));
       sugg.append(b);
@@ -404,7 +406,7 @@ document.addEventListener('DOMContentLoaded', function initShater() {
       if (!restoring) await new Promise((r) => setTimeout(r, REDUCED ? 0 : 420));
       await type(HELLO, '', 1.4);
       await type(HELLO_2);
-      drawSuggestions();
+      drawSuggestions(true); // once the greeting has finished typing, one after another
     }
   };
   const close = () => {
@@ -445,7 +447,8 @@ document.addEventListener('DOMContentLoaded', function initShater() {
 
   // on another page: the same conversation, at once, and open if it was open
   st.msgs.forEach((m) => put(m.who, m.text, m.extra));
-  drawSuggestions();
+  // the suggestions only ever come after the greeting: here only when it's already there (a later page)
+  if (st.msgs.length) drawSuggestions(false);
   setStatus('idle');
   drawLeft();
   if (st.open) open(true);

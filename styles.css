@@ -2419,7 +2419,9 @@ body[data-shater="off"] .sh-status i { background: #f5b942; box-shadow: 0 0 0 3p
 @keyframes sh-shine { from { background-position: 110% 0; } to { background-position: -110% 0; } }
 
 /* suggested questions, under the greeting until the first question */
-.sh-sugg { display: grid; justify-items: start; gap: 7px; margin-top: 4px; animation: sh-pop .4s .1s ease-out both; }
+.sh-sugg { display: grid; justify-items: start; gap: 7px; margin-top: 4px; }
+/* the first time: "Try asking", then each suggestion, popping in one after another */
+.sh-sugg.is-appearing > * { animation: sh-pop .38s cubic-bezier(.3, 1.4, .5, 1) both; animation-delay: calc(var(--i, 0) * .22s + .1s); }
 .sh-sugg small { color: var(--muted); font-size: 12px; padding-inline: 4px; }
 .sh-chip {
   padding: 8px 13px; border-radius: 14px; border: 1px solid rgba(215, 255, 0, .3); background: rgba(215, 255, 0, .04);
